@@ -29,6 +29,7 @@
     <input type="text" id="userInput" placeholder="Type your message here..." onkeydown="if(event.key === 'Enter') sendMessage()">
 
     <script>
+        let chatId = -1;
         async function sendMessage() {
             const userInput = document.getElementById('userInput');
             const chatbox = document.getElementById('chatbox');
@@ -50,14 +51,16 @@
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({ message })
+                    body: JSON.stringify({ message, chatId })
                 });
                 console.log(response);
                 const data = await response.json();
                 console.log(data);
                 // Display chatbot's reply
                 const botMessage = document.createElement('div');
-                botMessage.textContent = 'Bot: ' + data.reply;
+                botMessage.textContent = 'Bot: ' + data.message;
+                // set chatId
+                chatId = data.chatId;
                 chatbox.appendChild(botMessage);
 
                 // Scroll to the bottom of the chatbox
