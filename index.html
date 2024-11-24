@@ -3,9 +3,69 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <title>Chatbot</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        #chatbox {
+            width: 100%;
+            height: 300px;
+            border: 1px solid #ccc;
+            padding: 10px;
+            overflow-y: scroll;
+        }
+        #userInput {
+            width: calc(100% - 22px);
+            padding: 10px;
+            margin-top: 10px;
+        }
+    </style>
 </head>
 <body>
-    <h1>Hello World</h1>
+    <h1>Chatbot</h1>
+    <div id="chatbox"></div>
+    <input type="text" id="userInput" placeholder="Type your message here..." onkeydown="if(event.key === 'Enter') sendMessage()">
+
+    <script>
+        async function sendMessage() {
+            const userInput = document.getElementById('userInput');
+            const chatbox = document.getElementById('chatbox');
+            const message = userInput.value;
+
+            if (message.trim() === '') return;
+
+            // Display user's message
+            const userMessage = document.createElement('div');
+            userMessage.textContent = 'You: ' + message;
+            chatbox.appendChild(userMessage);
+
+            // Clear input field
+            userInput.value = '';
+
+            try {
+                const response = await fetch('/api/chatbot', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ message })
+                });
+                console.log(response);
+                const data = await response.json();
+                console.log(data);
+                // Display chatbot's reply
+                const botMessage = document.createElement('div');
+                botMessage.textContent = 'Bot: ' + data.reply;
+                chatbox.appendChild(botMessage);
+
+                // Scroll to the bottom of the chatbox
+                chatbox.scrollTop = chatbox.scrollHeight;
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+    </script>
 </body>
 </html>
