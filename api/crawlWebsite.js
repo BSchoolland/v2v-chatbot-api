@@ -10,6 +10,15 @@ process.on('unhandledRejection', (reason, promise) => {
     console.error('Unhandled Rejection:', reason);
 });
 
+class webPageData {
+    constructor(url, title, description, content) {
+        this.url = url;
+        this.title = title;
+        this.description = description;
+        this.content = content;
+    }
+}
+
 class WebScraper {
     constructor(startUrl, maxDepth = 2) {
         this.startUrl = startUrl;
@@ -19,6 +28,7 @@ class WebScraper {
         this.visitedUrls = new Set();
         // TODO add more stuff
         this.ready = false;
+        this.verbose = true;
     }
     async init() {
         this.browser = await puppeteer.launch(
@@ -56,45 +66,54 @@ class WebScraper {
     }
 
     async getAllPageUrls(pageUrl) {
-        
         const queue = [{ url: pageUrl, depth: 0 }];
         let totalCompleted = 0;
         let totalStartTime = Date.now();
+        const urlContentMap = new Map(); // Store URL and its content
+    
         while (queue.length > 0) {
             const { url, depth } = queue.shift();
             if (depth >= this.maxDepth) continue; // Skip if beyond max depth
-            
+    
             totalCompleted++;
-            console.log(`\n\n--- Processing URL: ${url} ---`);
     
             const startTime = Date.now();
             let uniqueLinks = [];
+            let pageContent = '';
     
             try {
-                // Attempt to fetch unique links from the page
-                uniqueLinks = await this.getUniqueLinks(url);
+                // Fetch the page content and links
+                pageContent = await this.getPageContent(url);
+                uniqueLinks = await this.getUniqueLinks(pageContent);
             } catch (error) {
-                console.error(`Failed to get links from URL: ${url}`);
+                console.error(`Failed to fetch content or links from URL: ${url}`);
                 console.error(`Error: ${error.message}`);
                 console.error(error.stack);
                 continue; // Skip this page and move on
             }
+            // get the shortened HTML
+            pageContent = await this.getCleanHtmlContent(pageContent, ['href']);
+            // Store the page content in the map
+            urlContentMap.set(url, pageContent);
     
             try {
                 // Filter for internal links only
                 let internalLinks = uniqueLinks.filter(link => link.startsWith(this.startUrl));
-                // filter out pages with file extensions like .pdf, .jpg, .png, etc.
+                // Filter out pages with file extensions like .pdf, .jpg, etc.
                 internalLinks = internalLinks.filter(link => !link.match(/\.(pdf|jpg|jpeg|png|gif|doc|docx|xls|xlsx|ppt|pptx|webp)$/i));
                 // Filter out already visited links adding to queue
                 const newLinks = internalLinks.filter(link => !this.visitedUrls.has(link));
     
                 const endTime = Date.now();
-                console.log(`Depth: ${depth}`);
-                console.log(`Unique Links Found: ${uniqueLinks.length}`);
-                console.log(`New Links Added: ${newLinks.length}`);
-                console.log(`Queue Size: ${queue.length}`);
-                console.log(`Total Completed: ${totalCompleted}`);
-                console.log(`Time Taken: ${(endTime - startTime) / 1000} seconds`);
+                if (this.verbose) {
+                    console.log(`\n\n--- Processing URL: ${url} ---`);
+                    console.log(`Depth: ${depth}`);
+                    console.log(`Unique Links Found: ${uniqueLinks.length}`);
+                    console.log(`New Links Added: ${newLinks.length}`);
+                    console.log(`Queue Size: ${queue.length}`);
+                    console.log(`Total Completed: ${totalCompleted}`);
+                    console.log(`Time Taken: ${(endTime - startTime) / 1000} seconds`);
+                }
     
                 // Add new links to the queue and mark them as visited
                 for (let link of newLinks) {
@@ -108,21 +127,27 @@ class WebScraper {
                 continue; // Skip problematic link processing and move on
             }
         }
-        // add a / to the end of each link in the visitedUrls set
+    
+        // Add trailing slashes to all URLs
         this.visitedUrls = new Set(Array.from(this.visitedUrls).map(url => url.endsWith('/') ? url : url + '/'));
         let totalEndTime = Date.now();
-        console.log('\n--- Scraping Complete ---');
-        console.log(`\nTotal Time Taken: ${(totalEndTime - totalStartTime) / 1000} seconds`);
-        console.log(`Total URLs Visited: ${this.visitedUrls.size}`);
-        return Array.from(this.visitedUrls); // Return all visited URLs
+    
+        if (this.verbose) {
+            console.log('\n--- Scraping Complete ---');
+            console.log(`\nTotal Time Taken: ${(totalEndTime - totalStartTime) / 1000} seconds`);
+            console.log(`Total URLs Visited: ${this.visitedUrls.size}`);
+        }
+    
+        // Return the map with URLs and their content
+        return urlContentMap;
     }
     
     
     
 
     // AI: this function was generated by AI
-    async getUniqueLinks(pageUrl) {
-        let content = await this.getPageContent(pageUrl);
+    async getUniqueLinks(pageContent) {
+        let content = pageContent;
         // strip any style or linked style sheets
         content = content.replace(/<style.*?>.*?<\/style>/gs, '');
         content = content.replace(/<link[^>]+rel=["']stylesheet["'][^>]*>/gi, '');
@@ -177,71 +202,100 @@ class WebScraper {
     }
 
     // AI: this function was generated by AI
-    async getCleanHtmlContent(pageUrl, keepAttributes = []) {
+    async getCleanHtmlContent(content, keepAttributes = []) {
         if (!this.ready) {
             await this.init();
         }
-        const content = await this.getPageContent(pageUrl);
+    
         const dom = new JSDOM(content);
         const { document, Node } = dom.window; // Define Node for easier reference
-        
+    
+        // Remove scripts, styles, and comments
+        document.querySelectorAll('script, style').forEach(el => el.remove());
+        document.querySelectorAll('comment').forEach(comment => comment.remove());
+    
         function cleanNode(node) {
-            // If it's a text node, return its text content
             if (node.nodeType === Node.TEXT_NODE) {
-                return node.textContent.trim();
+                const text = node.textContent.trim();
+                return text ? text : null; // Return text if it's not empty
             }
-            
-            // If it's an element node
+    
             if (node.nodeType === Node.ELEMENT_NODE) {
-                // Create a new element with just the tag name
+                const childNodes = [];
+                for (const childNode of node.childNodes) {
+                    const cleanedChild = cleanNode(childNode);
+                    if (cleanedChild) {
+                        childNodes.push(cleanedChild);
+                    }
+                }
+    
+                if (childNodes.length === 0) {
+                    return null;
+                }
+    
+                if (childNodes.length === 1 && typeof childNodes[0] !== 'string') {
+                    return childNodes[0];
+                }
+    
                 const cleanElement = document.createElement(node.tagName.toLowerCase());
-                
-                // Add back only the specified attributes
                 for (const attr of keepAttributes) {
                     if (node.hasAttribute(attr)) {
                         cleanElement.setAttribute(attr, node.getAttribute(attr));
                     }
                 }
-                
-                // Recursively clean child nodes
-                for (const childNode of node.childNodes) {
-                    const cleanedChild = cleanNode(childNode);
-                    if (cleanedChild) {
-                        if (typeof cleanedChild === 'string') {
-                            cleanElement.appendChild(document.createTextNode(cleanedChild));
-                        } else {
-                            cleanElement.appendChild(cleanedChild);
-                        }
+    
+                for (const child of childNodes) {
+                    if (typeof child === 'string') {
+                        cleanElement.appendChild(document.createTextNode(child));
+                    } else {
+                        cleanElement.appendChild(child);
                     }
                 }
-                
+    
                 return cleanElement;
             }
-            
-            // Ignore other types of nodes
-            return null;
+    
+            return null; // Ignore other types of nodes
         }
-        
-        // Clean the body
+    
+        function formatHTML(node, indentLevel = 0) {
+            const indent = '  '.repeat(indentLevel);
+            if (node.nodeType === Node.TEXT_NODE) {
+                return `${indent}${node.textContent.trim()}\n`;
+            }
+    
+            if (node.nodeType === Node.ELEMENT_NODE) {
+                const tagName = node.tagName.toLowerCase();
+                let formatted = `${indent}<${tagName}`;
+    
+                for (const attr of node.attributes) {
+                    formatted += ` ${attr.name}="${attr.value}"`;
+                }
+    
+                formatted += '>\n';
+    
+                for (const child of node.childNodes) {
+                    formatted += formatHTML(child, indentLevel + 1);
+                }
+    
+                formatted += `${indent}</${tagName}>\n`;
+                return formatted;
+            }
+    
+            return '';
+        }
+    
         const cleanBody = cleanNode(dom.window.document.body);
-        
-        // Return the inner HTML of the cleaned body
-        return cleanBody.innerHTML;
+        return cleanBody ? formatHTML(cleanBody).trim() : '';
     }
 
 }
 
-
-
 (async () => {
-    const url = 'https://solvecc.org';
+    const url = 'https://beanythingmuseum.org';
     const scraper = new WebScraper(url, 7);
     await scraper.init();
     const result = await scraper.getAllPageUrls(url);
-    console.log('Total URLs:', result.length);
-    // save the result to a file
-    const fs = require('fs');
-    fs.writeFileSync('urls.txt', result.join('\n'));
-    console.log('URLs saved to urls.txt');
+    console.log(result);
     await scraper.browser.close();
 })();
