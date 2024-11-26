@@ -1,5 +1,6 @@
 const puppeteer = require('puppeteer');
 const { JSDOM } = require('jsdom');
+const { insertOrUpdatePage, getWebsiteByUrl, insertWebsite } = require('./database.js')
 
 // catch all uncaught exceptions and unhandled rejections
 process.on('uncaughtException', (err) => {
@@ -291,11 +292,32 @@ class WebScraper {
 
 }
 
+
+
 (async () => {
     const url = 'https://beanythingmuseum.org';
+    // create or identify the website in the database
+    let website = await getWebsiteByUrl(url);
+    if (!website) {
+        console.log('Website does not exist in the database. Inserting...');
+        await insertWebsite(url);
+        website = await getWebsiteByUrl(url);
+    }
+    // scrape the website to find all pages
+    console.log('Website exists in the database.');
     const scraper = new WebScraper(url, 7);
     await scraper.init();
     const result = await scraper.getAllPageUrls(url);
     console.log(result);
     await scraper.browser.close();
+    // store each page in the database or overwrite if it already exists
+    for (const [pageUrl, content] of result.entries()) {
+        console.log(`Processing page: ${pageUrl}`);
+        // create a new page object
+        const pageData = new webPageData(pageUrl, '', '', content);
+        // insert or update the page in the database
+        insertOrUpdatePage(website.id, pageData.url, pageData.content);
+    }
+
+
 })();
