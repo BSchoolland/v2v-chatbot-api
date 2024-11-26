@@ -56,14 +56,14 @@ class WebScraper {
     }
 
     async getAllPageUrls(pageUrl) {
+        
         const queue = [{ url: pageUrl, depth: 0 }];
-        this.visitedUrls = new Set([pageUrl]); // Initialize with the start URL
         let totalCompleted = 0;
         let totalStartTime = Date.now();
         while (queue.length > 0) {
             const { url, depth } = queue.shift();
             if (depth >= this.maxDepth) continue; // Skip if beyond max depth
-    
+            
             totalCompleted++;
             console.log(`\n\n--- Processing URL: ${url} ---`);
     
@@ -82,9 +82,10 @@ class WebScraper {
     
             try {
                 // Filter for internal links only
-                const internalLinks = uniqueLinks.filter(link => link.startsWith(this.startUrl));
-    
-                // Filter out already visited links BEFORE adding to queue
+                let internalLinks = uniqueLinks.filter(link => link.startsWith(this.startUrl));
+                // filter out pages with file extensions like .pdf, .jpg, .png, etc.
+                internalLinks = internalLinks.filter(link => !link.match(/\.(pdf|jpg|jpeg|png|gif|doc|docx|xls|xlsx|ppt|pptx|webp)$/i));
+                // Filter out already visited links adding to queue
                 const newLinks = internalLinks.filter(link => !this.visitedUrls.has(link));
     
                 const endTime = Date.now();
@@ -96,7 +97,7 @@ class WebScraper {
                 console.log(`Time Taken: ${(endTime - startTime) / 1000} seconds`);
     
                 // Add new links to the queue and mark them as visited
-                for (const link of newLinks) {
+                for (let link of newLinks) {
                     this.visitedUrls.add(link); // Mark as visited immediately
                     queue.push({ url: link, depth: depth + 1 });
                 }
@@ -107,6 +108,8 @@ class WebScraper {
                 continue; // Skip problematic link processing and move on
             }
         }
+        // add a / to the end of each link in the visitedUrls set
+        this.visitedUrls = new Set(Array.from(this.visitedUrls).map(url => url.endsWith('/') ? url : url + '/'));
         let totalEndTime = Date.now();
         console.log('\n--- Scraping Complete ---');
         console.log(`\nTotal Time Taken: ${(totalEndTime - totalStartTime) / 1000} seconds`);
@@ -167,6 +170,8 @@ class WebScraper {
         if (cleanedUrl.endsWith('/')) {
             cleanedUrl = cleanedUrl.slice(0, -1);
         }
+        // remove any query parameters
+        cleanedUrl = cleanedUrl.split('?')[0];
         // return the cleaned URL as a regular string
         return cleanedUrl;
     }
@@ -229,7 +234,7 @@ class WebScraper {
 
 
 (async () => {
-    const url = 'https://chalkwild.com';
+    const url = 'https://solvecc.org';
     const scraper = new WebScraper(url, 7);
     await scraper.init();
     const result = await scraper.getAllPageUrls(url);
