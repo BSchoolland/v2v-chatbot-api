@@ -1,3 +1,6 @@
+const {getPageByUrl, db} = require('./database.js');
+const defaultPath = "https://solvecc.org";
+
 // a set of tools the chatbot can use to find information for the user
 tools = [
     {
@@ -40,4 +43,47 @@ tools = [
     },
 ]
 
-module.exports = tools;
+
+
+async function readPageContent(params) {
+    // convert params to json
+    params = JSON.parse(params);
+    let path = params.path;
+    // if the path does not begin with http, add the default path
+    if (!path.startsWith("http")) {
+        path = defaultPath + path;
+    }
+    // if there's no / at the end add it
+    if (path[path.length - 1] !== "/") {
+        path = path + "/";
+    }
+    const page = await getPageByUrl(path);
+    console.log(page);
+    if (page) {
+        return page.content;
+    } else {
+        return `No information found for path ${path}.  Are you sure you entered it correctly?`;
+    }
+}
+
+async function siteWideSearch(params) {
+    // convert params to json
+    params = JSON.parse(params);
+    const searchString = params.term;
+    return new Promise((resolve, reject) => {
+        db.all('SELECT url, content FROM pages', (err, rows) => {
+            if (err) {
+                reject(err);
+            } else {
+                let matchingPaths = rows
+                    .filter(row => row.content.includes(searchString))
+                    .map(row => row.url);
+                // turn matching paths into a string
+                matchingPaths = matchingPaths.join("\n");
+                resolve(matchingPaths);
+            }
+        });
+    });
+}
+
+module.exports = {readPageContent, siteWideSearch, tools};

@@ -99,11 +99,25 @@ async function getPageByUrl(url) {
     });
 }
 
+async function getUrlsByWebsiteId(websiteId) {
+    return new Promise((resolve, reject) => {
+        db.all('SELECT url FROM pages WHERE website_id = ?', [websiteId], (err, rows) => {
+            if (err) {
+                reject(err);
+            } else {
+                const urls = rows.map(row => row.url);
+                resolve(urls);
+            }
+        });
+    });
+}
+
 
 module.exports = {
     db,
     insertWebsite,
     insertOrUpdatePage,
     getWebsiteByUrl,
-    getPageByUrl
+    getPageByUrl,
+    getUrlsByWebsiteId
 };

@@ -1,8 +1,8 @@
 'use server';
 const fetch = require("node-fetch");
 const dotenv = require("dotenv");
-const tools = require("./tools.js");
-const readPageContent = require("./readPageContent.js")
+const {tools, readPageContent, siteWideSearch} = require("./tools.js");
+const { getWebsiteByUrl, getUrlsByWebsiteId, } = require('./database.js');
 dotenv.config();
 
 const prompt = require("./systemPrompt.js");
@@ -11,10 +11,20 @@ class Chatbot {
     constructor() {
         this.apiKey = process.env.OPENAI_API_KEY;
         this.endpoint = "https://api.openai.com/v1/chat/completions";
-        this.maxHistory = 4;
+        this.maxHistory = 16;
         this.model = "gpt-4o-mini";
-        this.systemMessage = prompt.content;
+        this.systemMessage = prompt.content // TODO: load prompt from a database
         this.tools = tools;
+    }
+    // function that gives the AI relevant info 
+    async init() {
+        // get all urls related to this site
+        let baseUrl = 'https://solvecc.org'
+        let website = await getWebsiteByUrl(baseUrl);
+        let websiteId = website.id;
+        let urls = await getUrlsByWebsiteId(websiteId);
+        // add the urls to the system message
+        this.systemMessage += "\nHere are all the resources you have access to on this site: \n" + urls.join("\n")
     }
 
     async sendMessage(history) {
@@ -28,6 +38,10 @@ class Chatbot {
             const historyLength = history.length;
             if (historyLength > this.maxHistory) {
                 history = history.slice(-this.maxHistory);
+                // while the first message is a tool response, remove it
+                while (history[0].role === "tool") {
+                    history.shift();
+                }
             }
             // prepend the system message to the history if it's not already there
             if (history[0].role !== "system") {
@@ -38,7 +52,7 @@ class Chatbot {
             // get the response from the chatbot
             textResponse = response.choices[0].message.content;
             // get tool calls from the response
-            let tool_calls = response.choices[0].message.tool_calls
+            let tool_calls = response.choices[0].message.tool_calls;
             // if there are tool calls, set toolCall to false
             if (!tool_calls) {
                 history.push({ role: "assistant", content: textResponse });
@@ -51,9 +65,11 @@ class Chatbot {
                 for (let i = 0; i < tool_calls.length; i++) {
                     let tool_call = tool_calls[i]
                     let function_name = tool_call.function.name
-                    let tool_result = "Tool not defined"
+                    let tool_result = "Sorry, this tool is not yet implemented."
                     if (function_name === "readPageContent") {
                         tool_result = await readPageContent(tool_call.function.arguments)
+                    } else if (function_name === "siteWideSearch") {
+                        tool_result = await siteWideSearch(tool_call.function.arguments)
                     }
                     console.log(tool_result)
                     history.push({ tool_call_id: tool_call.id, role: "tool", name: function_name, content: tool_result })

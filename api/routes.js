@@ -2,6 +2,7 @@ const Chatbot = require('./openAI.js');
 const { v4: uuidv4 } = require('uuid');
 
 const chatbot = new Chatbot();
+chatbot.init(); // FIXME: this needs to be awaited
 
 const sessions = {};
 const sessionTimestamps = {};
