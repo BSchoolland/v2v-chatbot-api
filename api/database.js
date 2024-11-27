@@ -85,11 +85,14 @@ async function getWebsiteByUrl(url) {
 }
 
 async function getPageByUrl(url) {
+    console.log("getPageByUrl called with URL:", url);
     return new Promise((resolve, reject) => {
         db.get('SELECT * FROM pages WHERE url = ?', [url], (err, row) => {
             if (err) {
+                console.error("Error executing query:", err);
                 reject(err);
             } else {
+                console.log("Query result:", row);
                 resolve(row);
             }
         });

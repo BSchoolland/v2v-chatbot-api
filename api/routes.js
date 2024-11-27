@@ -49,21 +49,27 @@ async function handleChatbotRequest(req, res) {
 
         // Append user message to the session history
         sessions[sessionId].push({ role: 'user', content: message });
-
+        
         // Get chatbot response
         let chatBotResponse;
+        let history;
         try {
-            const history = sessions[sessionId];
-            chatBotResponse = await chatbot.sendMessage(history);
+            history = sessions[sessionId];
+            history = await chatbot.sendMessage(history);
+            // Set chatbot response to the session history
+            sessions[sessionId] = history;
+            // get the response from the chatbot
+            console.log(history);
+            chatBotResponse = history[history.length - 1].content;
+
+            res.send({ chatId: sessionId, message: chatBotResponse });
         } catch (error) {
             console.error('Error getting chatbot response:', error);
             chatBotResponse = 'Sorry, something went wrong. Please try again later.';
+            res.status(500).send({ chatId: sessionId, message: chatBotResponse });
         }
-
-        // Append chatbot response to the session history
-        sessions[sessionId].push({ role: 'assistant', content: chatBotResponse });
-
-        res.send({ chatId: sessionId, message: chatBotResponse });
+        
+        
     } catch (err) {
         console.error('Error handling chatbot request:', err);
         res.status(500).send('Internal Server Error');

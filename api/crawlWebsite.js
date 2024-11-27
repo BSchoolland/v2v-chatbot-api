@@ -311,7 +311,11 @@ class WebScraper {
     console.log(result);
     await scraper.browser.close();
     // store each page in the database or overwrite if it already exists
-    for (const [pageUrl, content] of result.entries()) {
+    for (let [pageUrl, content] of result.entries()) {
+        // if it doesn't end in a slash, add one (I don't know why this is still necessary, but this fixes the problem)
+        if (!pageUrl.endsWith('/')) {
+            pageUrl += '/';
+        }
         console.log(`Processing page: ${pageUrl}`);
         // create a new page object
         const pageData = new webPageData(pageUrl, '', '', content);
