@@ -292,10 +292,8 @@ class WebScraper {
 
 }
 
-
-
 (async () => {
-    const url = 'https://beanythingmuseum.org';
+    const url = 'https://solvecc.org';
     // create or identify the website in the database
     let website = await getWebsiteByUrl(url);
     if (!website) {
@@ -322,6 +320,5 @@ class WebScraper {
         // insert or update the page in the database
         insertOrUpdatePage(website.id, pageData.url, pageData.content);
     }
-
 
 })();

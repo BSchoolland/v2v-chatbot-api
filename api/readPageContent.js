@@ -1,5 +1,5 @@
 const {getPageByUrl} = require('./database.js');
-const defaultPath = "https://beanythingmuseum.org";
+const defaultPath = "https://solvecc.org";
 async function readPageContent(params) {
     // convert params to json
     params = JSON.parse(params);
