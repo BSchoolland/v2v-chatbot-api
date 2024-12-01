@@ -101,7 +101,7 @@ class WebScraper {
                 // Filter for internal links only
                 let internalLinks = uniqueLinks.filter(link => link.startsWith(this.startUrl));
                 // Filter out pages with file extensions like .pdf, .jpg, etc.
-                internalLinks = internalLinks.filter(link => !link.match(/\.(pdf|jpg|jpeg|png|gif|doc|docx|xls|xlsx|ppt|pptx|webp)$/i));
+                internalLinks = internalLinks.filter(link => !link.match(/\.(pdf|jpg|jpeg|png|gif|doc|docx|xls|xlsx|ppt|pptx|webp|zip)$/i));
                 // Filter out already visited links adding to queue
                 const newLinks = internalLinks.filter(link => !this.visitedUrls.has(link));
     
@@ -196,6 +196,8 @@ class WebScraper {
         if (cleanedUrl.endsWith('/')) {
             cleanedUrl = cleanedUrl.slice(0, -1);
         }
+        // replace ://www with ://
+        cleanedUrl = cleanedUrl.replace('://www.', '://');
         // remove any query parameters
         cleanedUrl = cleanedUrl.split('?')[0];
         // return the cleaned URL as a regular string
@@ -293,7 +295,7 @@ class WebScraper {
 }
 
 (async () => {
-    const url = 'https://solvecc.org';
+    const url = 'https://outsideopen.com';
     // create or identify the website in the database
     let website = await getWebsiteByUrl(url);
     if (!website) {
@@ -306,7 +308,6 @@ class WebScraper {
     const scraper = new WebScraper(url, 7);
     await scraper.init();
     const result = await scraper.getAllPageUrls(url);
-    console.log(result);
     await scraper.browser.close();
     // store each page in the database or overwrite if it already exists
     for (let [pageUrl, content] of result.entries()) {
