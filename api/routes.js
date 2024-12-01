@@ -1,5 +1,7 @@
 const Chatbot = require('./openAI.js');
 const { v4: uuidv4 } = require('uuid');
+const showdown = require('showdown');
+
 
 const chatbot = new Chatbot();
 chatbot.init(); // FIXME: this needs to be awaited
@@ -27,6 +29,13 @@ function cleanupSessions() {
     }
 }
 setInterval(cleanupSessions, 10 * 60 * 1000); // Run cleanup every 10 minutes
+
+function convertMarkdownToHtml(markdown) {
+    // Convert markdown to HTML
+    const converter = new showdown.Converter();
+    return converter.makeHtml(markdown);
+}
+
 
 async function handleChatbotRequest(req, res) {
     try {
@@ -62,7 +71,7 @@ async function handleChatbotRequest(req, res) {
             // get the response from the chatbot
             console.log(history);
             chatBotResponse = history[history.length - 1].content;
-
+            chatBotResponse = convertMarkdownToHtml(chatBotResponse);
             res.send({ chatId: sessionId, message: chatBotResponse });
         } catch (error) {
             console.error('Error getting chatbot response:', error);

@@ -27,7 +27,7 @@
     <h1>Chatbot</h1>
     <div id="chatbox"></div>
     <input type="text" id="userInput" placeholder="Type your message here..." onkeydown="if(event.key === 'Enter') sendMessage()">
-
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.2.1/purify.min.js" integrity="sha512-PBUtfPzExa/FxBEi6tr884CPkb9Wh0kjchdWPECubdH16+G0JjkGQHgWCO7zgINZlXtmVnpII7KnZctAPUAZWg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <script>
         let chatId = -1;
         async function sendMessage() {
@@ -58,7 +58,17 @@
                 console.log(data);
                 // Display chatbot's reply
                 const botMessage = document.createElement('div');
-                botMessage.textContent = 'Bot: ' + data.message;
+                try {
+                    // Sanitize the message
+                    const cleanMessage = DOMPurify.sanitize(data.message);
+                    // set innerHTML to display the message as HTML
+                    botMessage.innerHTML = 'Chatbot: ' + cleanMessage;
+                } catch (error) {
+                    console.error('Error sanitizing message:', error);
+                    // TODO: determine if this slightly less secure method is acceptable
+                    botMessage.innerHTML = 'Chatbot: ' + data.message;
+                }
+                
                 // set chatId
                 chatId = data.chatId;
                 chatbox.appendChild(botMessage);
