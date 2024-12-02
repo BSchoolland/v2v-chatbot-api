@@ -2,7 +2,7 @@
 const fetch = require("node-fetch");
 const dotenv = require("dotenv");
 const {tools, readPageContent, siteWideSearch} = require("./tools.js");
-const { getWebsiteByUrl, getUrlsByWebsiteId, } = require('./database.js');
+const { getWebsiteByUrl, getUrlsByWebsiteId, getPageByUrl} = require('./database.js');
 dotenv.config();
 
 const prompt = require("./systemPrompt.js");
@@ -23,8 +23,25 @@ class Chatbot {
         let website = await getWebsiteByUrl(baseUrl);
         let websiteId = website.id;
         let urls = await getUrlsByWebsiteId(websiteId);
+
+        let allPages = [];
+        for (let i = 0; i < urls.length; i++) {
+            let url = urls[i];
+            // TODO: make this more efficient by only fetching summaries, not the full page
+            let page = await getPageByUrl(url);
+            allPages.push(page);
+        }
         // add the urls to the system message
-        this.systemMessage += "\nHere are all the resources you have access to on this site: \n" + urls.join("\n")
+        this.systemMessage += "\nHere are all the resources you have access to on this site: \n"
+        for (let i = 0; i < allPages.length; i++) {
+            let page = allPages[i];
+            this.systemMessage += page.url;
+            if (page.summary) {
+            this.systemMessage += "   notes: " + page.summary;
+            }
+            this.systemMessage += "\n";
+        }
+        console.log(this.systemMessage);
     }
 
     async sendMessage(history) {
@@ -47,7 +64,7 @@ class Chatbot {
             }
             // Send the user's message to the chatbot and receive a response
             const response = await this.getChatCompletion(history);
-            // console.log(response.usage);
+            console.log(response.usage);
 
             // get the response from the chatbot
             textResponse = response.choices[0].message.content;

@@ -1,6 +1,7 @@
 const puppeteer = require('puppeteer');
 const { JSDOM } = require('jsdom');
 const { insertOrUpdatePage, getWebsiteByUrl, insertWebsite } = require('./database.js')
+const summarizePage = require('./summarizeContent.js');
 
 // catch all uncaught exceptions and unhandled rejections
 process.on('uncaughtException', (err) => {
@@ -11,14 +12,6 @@ process.on('unhandledRejection', (reason, promise) => {
     console.error('Unhandled Rejection:', reason);
 });
 
-class webPageData {
-    constructor(url, title, description, content) {
-        this.url = url;
-        this.title = title;
-        this.description = description;
-        this.content = content;
-    }
-}
 
 class WebScraper {
     constructor(startUrl, maxDepth = 2) {
@@ -294,8 +287,10 @@ class WebScraper {
 
 }
 
+
+
 (async () => {
-    const url = 'https://outsideopen.com';
+    const url = 'https://solvecc.org';
     // create or identify the website in the database
     let website = await getWebsiteByUrl(url);
     if (!website) {
@@ -309,17 +304,48 @@ class WebScraper {
     await scraper.init();
     const result = await scraper.getAllPageUrls(url);
     await scraper.browser.close();
-    // store each page in the database or overwrite if it already exists
+    // turn each entry into an object with a summary
+    let allPages = [];
+    // an array of all strings that appear in the summaries
+    let allSummaries = [];
     for (let [pageUrl, content] of result.entries()) {
-        // if it doesn't end in a slash, add one (I don't know why this is still necessary, but this fixes the problem)
-        if (!pageUrl.endsWith('/')) {
-            pageUrl += '/';
-        }
         console.log(`Processing page: ${pageUrl}`);
+        let summary = summarizePage(content);
+        // loop through the summary and add each string to the array
+        for (let str of summary) {
+            allSummaries.push(str);
+        }
         // create a new page object
-        const pageData = new webPageData(pageUrl, '', '', content);
-        // insert or update the page in the database
-        insertOrUpdatePage(website.id, pageData.url, pageData.content);
+        let page = {
+            website_id: website.id,
+            url: pageUrl,
+            content: content,
+            summary: summary
+        };
+        allPages.push(page);
     }
-
+    let commonSummaryItems = new Set();
+    // items that appear more than 5% of the time
+    for (let str of allSummaries) {
+        let count = allSummaries.filter(s => s === str).length;
+        if (count > allPages.length / 20) {
+            commonSummaryItems.add(str);
+        } 
+    }
+    console.log("all these items will be removed from the summaries: ", Array.from(commonSummaryItems));
+    // remove any common items from the summaries
+    for (let page of allPages) {
+        page.summary = page.summary.filter(s => !commonSummaryItems.has(s));
+    }
+    // save all the pages to the database
+    for (let page of allPages) {
+        console.log(`Inserting page: ${page.url}`);
+        let summaryStr = page.summary.join(', ');
+        console.log(`Summary: ${summaryStr}`);
+        // add a / to the end of the URL if it's missing
+        if (!page.url.endsWith('/')) {
+            page.url += '/';
+        }
+        await insertOrUpdatePage(page.website_id, page.url, page.content, summaryStr);
+    }
 })();

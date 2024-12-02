@@ -36,6 +36,7 @@ db.run(`
         website_id INTEGER NOT NULL,
         url TEXT NOT NULL,
         content TEXT NOT NULL,
+        summary TEXT NOT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (website_id) REFERENCES websites (id),
         UNIQUE (url)
@@ -60,9 +61,14 @@ async function insertWebsite(url) {
     });
 }
 
-async function insertOrUpdatePage(websiteId, url, content) {
+async function insertOrUpdatePage(websiteId, url, content, summary) {
+    // if summary is not provided, use existing one or empty string
+    if (!summary) {
+        const existingPage = await getPageByUrl(url);
+        summary = existingPage ? existingPage.summary : '';
+    }
     return new Promise((resolve, reject) => {
-        db.run('INSERT OR REPLACE INTO pages (website_id, url, content) VALUES (?, ?, ?)', [websiteId, url, content], function (err) {
+        db.run('INSERT OR REPLACE INTO pages (website_id, url, summary, content) VALUES (?, ?, ?, ?)', [websiteId, url, summary, content], function (err) {
             if (err) {
                 reject(err);
             } else {
@@ -92,6 +98,7 @@ async function getPageByUrl(url) {
                 console.error("Error executing query:", err);
                 reject(err);
             } else {
+                console.log(row);
                 resolve(row);
             }
         });
