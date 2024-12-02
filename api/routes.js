@@ -40,7 +40,6 @@ function convertMarkdownToHtml(markdown) {
 async function handleChatbotRequest(req, res) {
     try {
         const { message, chatId } = req.body;
-        console.log('user:', message);
 
         let sessionId = chatId;
 
@@ -69,7 +68,6 @@ async function handleChatbotRequest(req, res) {
             // Set chatbot response to the session history
             sessions[sessionId] = history;
             // get the response from the chatbot
-            console.log(history);
             chatBotResponse = history[history.length - 1].content;
             chatBotResponse = convertMarkdownToHtml(chatBotResponse);
             res.send({ chatId: sessionId, message: chatBotResponse });

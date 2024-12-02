@@ -92,7 +92,6 @@ async function getPageByUrl(url) {
                 console.error("Error executing query:", err);
                 reject(err);
             } else {
-                console.log("Query result:", row);
                 resolve(row);
             }
         });

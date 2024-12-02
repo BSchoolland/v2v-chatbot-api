@@ -28,12 +28,10 @@ class Chatbot {
     }
 
     async sendMessage(history) {
-        console.log("sendMessage")
         let toolCall = true;
         let textResponse;
         while (toolCall) {
             toolCall = false;
-            console.log('messaging openAI');
             // only include the last maxHistory messages to save tokens
             const historyLength = history.length;
             if (historyLength > this.maxHistory) {
@@ -49,6 +47,8 @@ class Chatbot {
             }
             // Send the user's message to the chatbot and receive a response
             const response = await this.getChatCompletion(history);
+            // console.log(response.usage);
+
             // get the response from the chatbot
             textResponse = response.choices[0].message.content;
             // get tool calls from the response
@@ -58,10 +58,8 @@ class Chatbot {
                 history.push({ role: "assistant", content: textResponse });
                 toolCall = false;
             } else {
-                console.log("tool_calls", tool_calls)
                 history.push({ role: "assistant", content: textResponse, tool_calls: tool_calls });
                 toolCall = true;
-                console.log("tool_calls", tool_calls)
                 for (let i = 0; i < tool_calls.length; i++) {
                     let tool_call = tool_calls[i]
                     let function_name = tool_call.function.name
@@ -71,7 +69,6 @@ class Chatbot {
                     } else if (function_name === "siteWideSearch") {
                         tool_result = await siteWideSearch(tool_call.function.arguments)
                     }
-                    console.log(tool_result)
                     history.push({ tool_call_id: tool_call.id, role: "tool", name: function_name, content: tool_result })
                 }
             }
@@ -94,7 +91,6 @@ class Chatbot {
                     tools: this.tools
                 }),
             });
-
             if (!response.ok) {
                 console.error(response);
                 const message = `An error has occurred: ${response.status}`;
