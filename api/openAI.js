@@ -21,46 +21,51 @@ class Chatbot {
     async init() {
         // get all urls related to this site
         let baseUrl = url;
-        let website = await getWebsiteByUrl(baseUrl);
-        let websiteId = website.id;
-        let urls = await getUrlsByWebsiteId(websiteId);
+        try {
+            
+            let website = await getWebsiteByUrl(baseUrl);
+            let websiteId = website.id;
+            let urls = await getUrlsByWebsiteId(websiteId);
 
-        let allPages = [];
-        for (let i = 0; i < urls.length; i++) {
-            let url = urls[i];
-            // TODO: make this more efficient by only fetching summaries, not the full page
-            let page = await getPageByUrl(url);
-            allPages.push(page);
-        }
-        // add the urls to the system message
-        this.systemMessage += "\nHere are all the pages that exist on this site: \n"
-        for (let i = 0; i < allPages.length; i++) {
-            let page = allPages[i];
-            if (page.external) {
-                console.log("Skipping external page:", page.url);
-                continue;
+            let allPages = [];
+            for (let i = 0; i < urls.length; i++) {
+                let url = urls[i];
+                // TODO: make this more efficient by only fetching summaries, not the full page
+                let page = await getPageByUrl(url);
+                allPages.push(page);
             }
-            this.systemMessage += page.url;
-            if (page.summary) {
-            this.systemMessage += "   notes: " + page.summary;
-            }
-            this.systemMessage += "\n";
-        }
-        // add external resources to the system message
-        this.systemMessage += "\nExternal resources referenced on this site: \n"
-        for (let i = 0; i < allPages.length; i++) {
-            let page = allPages[i];
-            if (!page.external) {
-                console.log("Skipping internal page:", page.url);
-                continue;
-            }
-            this.systemMessage += page.url;
-            if (page.summary) {
+            // add the urls to the system message
+            this.systemMessage += "\nHere are all the pages that exist on this site: \n"
+            for (let i = 0; i < allPages.length; i++) {
+                let page = allPages[i];
+                if (page.external) {
+                    console.log("Skipping external page:", page.url);
+                    continue;
+                }
+                this.systemMessage += page.url;
+                if (page.summary) {
                 this.systemMessage += "   notes: " + page.summary;
+                }
+                this.systemMessage += "\n";
             }
-            this.systemMessage += "\n";
+            // add external resources to the system message
+            this.systemMessage += "\nExternal resources referenced on this site: \n"
+            for (let i = 0; i < allPages.length; i++) {
+                let page = allPages[i];
+                if (!page.external) {
+                    console.log("Skipping internal page:", page.url);
+                    continue;
+                }
+                this.systemMessage += page.url;
+                if (page.summary) {
+                    this.systemMessage += "   notes: " + page.summary;
+                }
+                this.systemMessage += "\n";
+            }
+            console.log(this.systemMessage);
+        } catch (error) {
+            console.error(error);
         }
-        console.log(this.systemMessage);
     }
 
     async sendMessage(history) {

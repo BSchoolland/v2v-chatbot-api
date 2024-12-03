@@ -2,7 +2,7 @@ const puppeteer = require('puppeteer');
 const { JSDOM } = require('jsdom');
 const { insertOrUpdatePage, getWebsiteByUrl, insertWebsite } = require('./database.js')
 const summarizePage = require('./summarizeContent.js');
-
+const url = require("./url.js");
 // catch all uncaught exceptions and unhandled rejections
 process.on('uncaughtException', (err) => {
     console.error('Uncaught Exception:', err);
@@ -50,12 +50,20 @@ class WebScraper {
             await this.init();
         }
         try {
-            await this.page.goto(pageUrl, { timeout: 120000 });
+            await this.page.goto(pageUrl, { timeout: 30000, waitUntil: 'networkidle0' });
             const content = await this.page.content();
             return content;
         } catch (error) {
-            console.error('Error getting page content:', error);
-            return '';
+            console.error('Error fetching page content:', error.message);
+            console.log('Trying without waiting for network idle...');
+            try {
+                await this.page.goto(pageUrl, { timeout: 30000, waitUntil: 'domcontentloaded' });
+                return await this.page.content();
+            } catch (error) {
+                console.error('Error fetching page content:', error.message);
+                console.log('Giving up on page:', pageUrl);
+                return '';
+            }
         }
     }
 
@@ -109,7 +117,7 @@ class WebScraper {
                 if (this.verbose) {
                     console.log(`\n\n--- Processing URL: ${url} ---`);
                     console.log(`Depth: ${depth}`);
-                    console.log(`Unique Links Found: ${uniqueLinks.length}`);
+                    console.log(`Unique Links Found: ${uniqueLinks.length} ${uniqueLinks}`);
                     console.log(`New Internal Links Added: ${newInternalLinks.length}`);
                     console.log(`Queue Size: ${queue.length}`);
                     console.log(`Total Completed: ${totalCompleted}`);
@@ -179,7 +187,11 @@ class WebScraper {
     
         // Select all anchor tags
         const links = document.querySelectorAll('a');
-    
+        // for debugging, lig each tag as a string
+        links.forEach(link => {
+            console.log(link.outerHTML);
+        });
+        // Loop through each link and add to the Set
         links.forEach(link => {
             const href = link.getAttribute('href');
             
@@ -352,7 +364,6 @@ function summarizeAllPages(urlContentMap, website) {
 
 
 (async () => {
-    const url = 'https://solvecc.org';
     // create or identify the website in the database
     let website = await getWebsiteByUrl(url);
     if (!website) {
