@@ -67,8 +67,8 @@ class WebScraper {
         }
     }
 
-    async getAllPageUrls(pageUrl) {
-        const queue = [{ url: pageUrl, depth: 0 }];
+    async getAllPageUrls(pageUrl, manuallyAddedPages = []) {
+        const queue = [{ url: pageUrl, depth: 0 }, ...manuallyAddedPages];
         let totalCompleted = 0;
         let totalStartTime = Date.now();
         const urlContentMap = new Map(); // Store URL and its content
@@ -146,6 +146,9 @@ class WebScraper {
                 if (this.verbose) {
                     console.log(`\n\n--- Processing External URL: ${url} ---`);
                     console.log(`Completed: ${externalUrlContentMap.size + 1} of ${allExternalLinks.size}`);
+                }
+                if (content.trim() === '') {
+                    cleanedContent = 'Content not accessible to chatbot. Provide user with link to view content if needed.';
                 }
                 externalUrlContentMap.set(url, cleanedContent);
             } catch (error) {
@@ -375,7 +378,8 @@ function summarizeAllPages(urlContentMap, website) {
     console.log('Website exists in the database.');
     const scraper = new WebScraper(url, 7);
     await scraper.init();
-    const { urlContentMap, externalUrlContentMap } = await scraper.getAllPageUrls(url);
+    let manuallyAddedPages = [{ url: "https://www.futureofworkchallenge.com/champions", depth: 1 }];
+    const { urlContentMap, externalUrlContentMap } = await scraper.getAllPageUrls(url, manuallyAddedPages);
     await scraper.browser.close();
     // summarize the content of all pages
     let allInternalPages = summarizeAllPages(urlContentMap, website);

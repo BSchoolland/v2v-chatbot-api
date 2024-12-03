@@ -35,7 +35,7 @@ class Chatbot {
                 allPages.push(page);
             }
             // add the urls to the system message
-            this.systemMessage += "\nHere are all the pages that exist on this site: \n"
+            this.systemMessage += "\nHere are all the pages that exist on this site starting with the home page: \n"
             for (let i = 0; i < allPages.length; i++) {
                 let page = allPages[i];
                 if (page.external) {
@@ -62,6 +62,9 @@ class Chatbot {
                 }
                 this.systemMessage += "\n";
             }
+            // add the current date as well as the current page
+            this.systemMessage += "\nToday's date is: " + new Date().toDateString() + "\n";
+            this.systemMessage += "\nThe user is currently on the page: " + baseUrl + "\n";
             console.log(this.systemMessage);
         } catch (error) {
             console.error(error);

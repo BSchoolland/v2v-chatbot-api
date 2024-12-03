@@ -8,13 +8,27 @@ chatbot.init(); // FIXME: this needs to be awaited
 
 const sessions = {};
 const sessionTimestamps = {};
-const sessionTimeout = process.env.SESSION_TIMEOUT || 30 * 60 * 1000; // 30 minutes
+const sessionTimeout = process.env.SESSION_TIMEOUT || 30 * 60 * 3000; // 30 minutes
 
 function generateChatId() {
     return uuidv4();
 }
 
+function logSessionsToFile() {
+    try {
+        console.log('Logging sessions to file');
+        const fs = require('fs');
+        const path = require('path');
+        const filePath = path.resolve(__dirname, 'sessions.json');
+        fs.writeFileSync(filePath, JSON.stringify(sessions, null, 2));
+    }
+    catch (err) {
+        console.error('Error logging sessions to file:', err);
+    }
+}
+
 function cleanupSessions() {
+    return logSessionsToFile(); // For now, we're not cleaning up sessions, but saving them to a file
     try {
         const now = Date.now();
         for (const [chatId, timestamp] of Object.entries(sessionTimestamps)) {
@@ -28,7 +42,7 @@ function cleanupSessions() {
         console.error('Error cleaning up sessions:', err);
     }
 }
-setInterval(cleanupSessions, 10 * 60 * 1000); // Run cleanup every 10 minutes
+setInterval(cleanupSessions, 10 * 60 * 3000); // Run cleanup every 10 minutes
 
 function convertMarkdownToHtml(markdown) {
     // Convert markdown to HTML

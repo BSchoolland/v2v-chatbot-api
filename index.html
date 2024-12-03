@@ -24,14 +24,15 @@
     </style>
 </head>
 <body>
-    <h1>Chatbot Prototype for SolveCC</h1>
-    <p>Enter a message below to chat with the chatbot.  Right now it uses data from solvecc.org as futureofworkchallenge.com has less data and is not as good a test of its capabilities and limitations.</p>
+    <h1>Chatbot Prototype for The Future of Work Challenge</h1>
          <p>Current Features:</p>
     <ul>
         <li>Basic ability to respond to messages</li>
-        <li>Access to a database with a lot of information about SolveCC from the SolveCC website</li>
-        <li>Ability to provide links to the SolveCC website</li>
+        <li>Access to both future of work pages</li>
+        <li>Access to all external resources linked to by those pages, for example the solvecc.org landing page</li>
+        <li>Ability to provide links to the resources it references</li>
     </ul>
+    <p>Enter a message below to chat with the chatbot.</p>
     <div id="chatbox"></div>
     <input type="text" id="userInput" placeholder="Type your message here..." onkeydown="if(event.key === 'Enter') sendMessage()">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.2.1/purify.min.js" integrity="sha512-PBUtfPzExa/FxBEi6tr884CPkb9Wh0kjchdWPECubdH16+G0JjkGQHgWCO7zgINZlXtmVnpII7KnZctAPUAZWg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>

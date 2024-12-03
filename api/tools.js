@@ -73,6 +73,12 @@ async function readPageContent(params) {
     if (page) {
         return page.content;
     } else {
+        // try with www. instead
+        path = path.replace("://", "://www.");
+        const page = await getPageByUrl(path);
+        if (page) {
+            return page.content;
+        }
         return `No information found for path ${path}.  Are you sure you entered it correctly?`;
     }
 }
