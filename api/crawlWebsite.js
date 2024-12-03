@@ -290,7 +290,7 @@ class WebScraper {
 
 
 (async () => {
-    const url = 'https://solvecc.org';
+    const url = 'https://futureofworkchallenge.com';
     // create or identify the website in the database
     let website = await getWebsiteByUrl(url);
     if (!website) {

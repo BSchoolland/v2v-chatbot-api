@@ -19,7 +19,7 @@ class Chatbot {
     // function that gives the AI relevant info 
     async init() {
         // get all urls related to this site
-        let baseUrl = 'https://solvecc.org'
+        let baseUrl = 'https://futureofworkchallenge.com';
         let website = await getWebsiteByUrl(baseUrl);
         let websiteId = website.id;
         let urls = await getUrlsByWebsiteId(websiteId);

@@ -1,5 +1,5 @@
 const {getPageByUrl, db} = require('./database.js');
-const defaultPath = "https://solvecc.org";
+const defaultPath = "https://www.futureofworkchallenge.com";
 
 // a set of tools the chatbot can use to find information for the user
 tools = [
@@ -54,9 +54,14 @@ async function readPageContent(params) {
     if (!path.startsWith("http")) {
         path = defaultPath + path;
     }
+    console.log(path);
     // if the path ends with #something, remove the #something
     if (path.includes("#")) {
         path = path.split("#")[0];
+    }
+    // if there's a //:www. in the path, remove it
+    if (path.includes("://www.")) {
+        path = path.replace("://www.", "://");
     }
     // if there's no / at the end add it
     if (path[path.length - 1] !== "/") {
