@@ -366,7 +366,9 @@ function summarizeAllPages(urlContentMap, website) {
 
 
 
-(async () => {
+
+
+async function crawlSite() {
     // create or identify the website in the database
     let website = await getWebsiteByUrl(url);
     if (!website) {
@@ -383,7 +385,7 @@ function summarizeAllPages(urlContentMap, website) {
     await scraper.browser.close();
     // summarize the content of all pages
     let allInternalPages = summarizeAllPages(urlContentMap, website);
-    
+
     // save all the pages to the database
     for (let page of allInternalPages) {
         console.log(`Inserting page: ${page.url}`);
@@ -401,4 +403,7 @@ function summarizeAllPages(urlContentMap, website) {
         console.log(`Inserting external page: ${url}`);
         await insertOrUpdatePage(website.id, url, content, '', true); // NOTE: External pages are not summarized
     }
-})();
+}
+
+
+module.exports = crawlSite;

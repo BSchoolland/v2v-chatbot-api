@@ -5,6 +5,8 @@ const showdown = require('showdown');
 
 const chatbot = new Chatbot();
 chatbot.init(); // FIXME: this needs to be awaited
+// run init every 10 minutes
+setInterval(chatbot.init, 10 * 60 * 3000);
 
 const sessions = {};
 const sessionTimestamps = {};

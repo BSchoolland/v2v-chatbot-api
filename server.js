@@ -1,7 +1,11 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const setupRoutes = require('./api/routes.js');
+const crawlSite = require('./api/crawlWebsite.js');
 
+// run crawlSite every 24 hours
+crawlSite();
+setInterval(crawlSite, 24 * 60 * 3000);
 
 const app = express();
 const port = 3000;
