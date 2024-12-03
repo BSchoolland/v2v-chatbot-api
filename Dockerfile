@@ -1,6 +1,6 @@
 FROM ghcr.io/puppeteer/puppeteer:22
 
-# Temporarily switch to root due to permission issues with the puppeteer image
+# Root user is required to install Chrome
 USER root
 
 WORKDIR /home/pptruser/app
@@ -15,7 +15,7 @@ COPY . .
 
 # Ensure correct permissions for npm and cache directories
 RUN mkdir -p $PUPPETEER_CACHE_DIR && \
-    chown -R pptruser:pptruser /home/pptruser /home/pptruser/.npm $PUPPETEER_CACHE_DIR
+    /home/pptruser /home/pptruser/.npm $PUPPETEER_CACHE_DIR
 
 # Install dependencies
 RUN npm install
@@ -25,13 +25,5 @@ RUN npx puppeteer browsers install chrome && \
     echo "Installed Chrome browsers:" && \
     ls -l $PUPPETEER_CACHE_DIR && \
     find $PUPPETEER_CACHE_DIR -name "chrome" -type f
-
-# Ensure correct ownership of installed browsers
-RUN chown -R pptruser:pptruser $PUPPETEER_CACHE_DIR
-# have the user own everything in the app directory
-RUN chown -R pptruser:pptruser /home/pptruser/app
-
-# Switch back to pptruser
-USER pptruser
 
 CMD ["node", "server.js"]

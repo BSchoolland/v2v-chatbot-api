@@ -58,10 +58,11 @@ class WebScraper {
             console.log('Trying without waiting for network idle...');
             try {
                 await this.page.goto(pageUrl, { timeout: 30000, waitUntil: 'domcontentloaded' });
+                console.log('Success!');
                 return await this.page.content();
             } catch (error) {
                 console.error('Error fetching page content:', error.message);
-                console.log('Giving up on page:', pageUrl);
+                console.log('Giving up on page:', pageUrl, ' :(');
                 return '';
             }
         }
@@ -401,6 +402,10 @@ async function crawlSite() {
     // add the external URLs to the database, with this site as the parent, and external set to true
     for (let [url, content] of externalUrlContentMap.entries()) {
         console.log(`Inserting external page: ${url}`);
+        // if it does not end with a /, add one
+        if (!url.endsWith('/')) {
+            url += '/';
+        }
         await insertOrUpdatePage(website.id, url, content, '', true); // NOTE: External pages are not summarized
     }
 }

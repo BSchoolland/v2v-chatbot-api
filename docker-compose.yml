@@ -3,6 +3,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    user: root # Run as root user because AHHHHH PERMISSIONS
     volumes:
       - .:/home/pptruser/app
       - /home/pptruser/app/node_modules

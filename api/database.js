@@ -78,16 +78,31 @@ async function insertOrUpdatePage(websiteId, url, content, summary, external = f
     });
 }
 
-async function getWebsiteByUrl(url) {
-    return new Promise((resolve, reject) => {
-        db.get('SELECT * FROM websites WHERE url = ?', [url], (err, row) => {
-            if (err) {
-                reject(err);
+const util = require('util');
+const setTimeoutPromise = util.promisify(setTimeout);
+
+async function getWebsiteByUrl(url, retries = 3, delay = 1000) {
+    for (let attempt = 1; attempt <= retries; attempt++) {
+        try {
+            return await new Promise((resolve, reject) => {
+                db.get('SELECT * FROM websites WHERE url = ?', [url], (err, row) => {
+                    if (err) {
+                        reject(err);
+                    } else {
+                        resolve(row);
+                    }
+                });
+            });
+        } catch (err) {
+            if (attempt < retries) {
+                console.log(`Attempt ${attempt} failed. Retrying in ${delay}ms...`);
+                await setTimeoutPromise(delay);
             } else {
-                resolve(row);
+                console.error('All attempts failed.');
+                throw err;
             }
-        });
-    });
+        }
+    }
 }
 
 async function getPageByUrl(url) {
