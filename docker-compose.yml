@@ -1,0 +1,17 @@
+services:
+  puppeteer-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - .:/home/pptruser/app
+      - /home/pptruser/app/node_modules
+    ports:
+      - "3000:3000" # Map container port 3000 to host port 3000
+    environment:
+      - PUPPETEER_CACHE_DIR=/home/pptruser/.cache/puppeteer
+    command: ["node", "--experimental-modules", "server.js"]
+    stdin_open: true # Keep standard input open
+    tty: true        # Allocate a pseudo-TTY
+    cap_add:
+      - SYS_ADMIN
