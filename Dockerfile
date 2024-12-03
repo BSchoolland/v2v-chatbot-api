@@ -28,6 +28,8 @@ RUN npx puppeteer browsers install chrome && \
 
 # Ensure correct ownership of installed browsers
 RUN chown -R pptruser:pptruser $PUPPETEER_CACHE_DIR
+# have the user own everything in the app directory
+RUN chown -R pptruser:pptruser /home/pptruser/app
 
 # Switch back to pptruser
 USER pptruser

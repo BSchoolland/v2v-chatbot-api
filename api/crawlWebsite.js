@@ -142,7 +142,7 @@ class WebScraper {
         for (let url of allExternalLinks) {
             try {
                 const content = await this.getPageContent(url);
-                const cleanedContent = await this.getCleanHtmlContent(content, ['href']);
+                let cleanedContent = await this.getCleanHtmlContent(content, ['href']);
                 if (this.verbose) {
                     console.log(`\n\n--- Processing External URL: ${url} ---`);
                     console.log(`Completed: ${externalUrlContentMap.size + 1} of ${allExternalLinks.size}`);
