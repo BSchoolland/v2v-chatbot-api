@@ -29,7 +29,6 @@ db.run(`
     }
 });
 // table for pages
-//TODO: add more columns to pages table
 db.run(`
     CREATE TABLE IF NOT EXISTS pages (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -38,6 +37,7 @@ db.run(`
         content TEXT NOT NULL,
         summary TEXT NOT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        external BOOLEAN DEFAULT 0,
         FOREIGN KEY (website_id) REFERENCES websites (id),
         UNIQUE (url)
     )
@@ -61,14 +61,14 @@ async function insertWebsite(url) {
     });
 }
 
-async function insertOrUpdatePage(websiteId, url, content, summary) {
+async function insertOrUpdatePage(websiteId, url, content, summary, external = false) {
     // if summary is not provided, use existing one or empty string
     if (!summary) {
         const existingPage = await getPageByUrl(url);
         summary = existingPage ? existingPage.summary : '';
     }
     return new Promise((resolve, reject) => {
-        db.run('INSERT OR REPLACE INTO pages (website_id, url, summary, content) VALUES (?, ?, ?, ?)', [websiteId, url, summary, content], function (err) {
+        db.run('INSERT OR REPLACE INTO pages (website_id, url, summary, content, external) VALUES (?, ?, ?, ?, ?)', [websiteId, url, summary, content, external], function (err) {
             if (err) {
                 reject(err);
             } else {

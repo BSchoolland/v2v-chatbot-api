@@ -1,5 +1,6 @@
 const {getPageByUrl, db} = require('./database.js');
-const defaultPath = "https://www.futureofworkchallenge.com";
+const url = require("./url.js");
+const defaultPath = url;
 
 // a set of tools the chatbot can use to find information for the user
 tools = [
@@ -76,6 +77,7 @@ async function readPageContent(params) {
     }
 }
 
+// FIXME: this function returns results from all pages in the database, not just the current website
 async function siteWideSearch(params) {
     // convert params to json
     params = JSON.parse(params);

@@ -20,7 +20,6 @@ class WebScraper {
         this.browser = null;
         this.page = null;
         this.visitedUrls = new Set();
-        // TODO add more stuff
         this.ready = false;
         this.verbose = true;
     }
@@ -29,6 +28,7 @@ class WebScraper {
             {
                 headless: true,
                 args: ['--no-sandbox', '--disable-setuid-sandbox'],
+                ignoreHTTPSErrors: true, // Ignore HTTPS errors (rare but some clients may have issues with SSL and we don't want to stop the process)
             }
         );
         this.page = await this.browser.newPage();
@@ -64,7 +64,7 @@ class WebScraper {
         let totalCompleted = 0;
         let totalStartTime = Date.now();
         const urlContentMap = new Map(); // Store URL and its content
-    
+        const allExternalLinks = new Set();
         while (queue.length > 0) {
             const { url, depth } = queue.shift();
             if (depth >= this.maxDepth) continue; // Skip if beyond max depth
@@ -91,26 +91,34 @@ class WebScraper {
             urlContentMap.set(url, pageContent);
     
             try {
-                // Filter for internal links only
+                // get internal links
                 let internalLinks = uniqueLinks.filter(link => link.startsWith(this.startUrl));
                 // Filter out pages with file extensions like .pdf, .jpg, etc.
                 internalLinks = internalLinks.filter(link => !link.match(/\.(pdf|jpg|jpeg|png|gif|doc|docx|xls|xlsx|ppt|pptx|webp|zip)$/i));
                 // Filter out already visited links adding to queue
-                const newLinks = internalLinks.filter(link => !this.visitedUrls.has(link));
+                const newInternalLinks = internalLinks.filter(link => !this.visitedUrls.has(link));
+
+                // get external links
+                let externalLinks = uniqueLinks.filter(link => !link.startsWith(this.startUrl));
+                // Filter out pages with file extensions like .pdf, .jpg, etc.
+                externalLinks = externalLinks.filter(link => !link.match(/\.(pdf|jpg|jpeg|png|gif|doc|docx|xls|xlsx|ppt|pptx|webp|zip)$/i));
+                // Add external links to the set
+                externalLinks.forEach(link => allExternalLinks.add(link));
     
                 const endTime = Date.now();
                 if (this.verbose) {
                     console.log(`\n\n--- Processing URL: ${url} ---`);
                     console.log(`Depth: ${depth}`);
                     console.log(`Unique Links Found: ${uniqueLinks.length}`);
-                    console.log(`New Links Added: ${newLinks.length}`);
+                    console.log(`New Internal Links Added: ${newInternalLinks.length}`);
                     console.log(`Queue Size: ${queue.length}`);
                     console.log(`Total Completed: ${totalCompleted}`);
                     console.log(`Time Taken: ${(endTime - startTime) / 1000} seconds`);
+                    console.log(`Total external links found: ${allExternalLinks.size}`);
                 }
     
                 // Add new links to the queue and mark them as visited
-                for (let link of newLinks) {
+                for (let link of newInternalLinks) {
                     this.visitedUrls.add(link); // Mark as visited immediately
                     queue.push({ url: link, depth: depth + 1 });
                 }
@@ -119,6 +127,23 @@ class WebScraper {
                 console.error(`Error: ${error.message}`);
                 console.error(error.stack);
                 continue; // Skip problematic link processing and move on
+            }
+        }
+        let externalUrlContentMap = new Map();
+        // Fetch content for external URLs
+        for (let url of allExternalLinks) {
+            try {
+                const content = await this.getPageContent(url);
+                const cleanedContent = await this.getCleanHtmlContent(content, ['href']);
+                if (this.verbose) {
+                    console.log(`\n\n--- Processing External URL: ${url} ---`);
+                    console.log(`Completed: ${externalUrlContentMap.size + 1} of ${allExternalLinks.size}`);
+                }
+                externalUrlContentMap.set(url, cleanedContent);
+            } catch (error) {
+                console.error(`Error fetching content for external URL: ${url}`);
+                console.error(`Error: ${error.message}`);
+                console.error(error.stack);
             }
         }
     
@@ -133,7 +158,7 @@ class WebScraper {
         }
     
         // Return the map with URLs and their content
-        return urlContentMap;
+        return { urlContentMap, externalUrlContentMap };
     }
     
     
@@ -288,27 +313,11 @@ class WebScraper {
 }
 
 
-
-(async () => {
-    const url = 'https://futureofworkchallenge.com';
-    // create or identify the website in the database
-    let website = await getWebsiteByUrl(url);
-    if (!website) {
-        console.log('Website does not exist in the database. Inserting...');
-        await insertWebsite(url);
-        website = await getWebsiteByUrl(url);
-    }
-    // scrape the website to find all pages
-    console.log('Website exists in the database.');
-    const scraper = new WebScraper(url, 7);
-    await scraper.init();
-    const result = await scraper.getAllPageUrls(url);
-    await scraper.browser.close();
-    // turn each entry into an object with a summary
+function summarizeAllPages(urlContentMap, website) {
     let allPages = [];
     // an array of all strings that appear in the summaries
     let allSummaries = [];
-    for (let [pageUrl, content] of result.entries()) {
+    for (let [pageUrl, content] of urlContentMap.entries()) {
         console.log(`Processing page: ${pageUrl}`);
         let summary = summarizePage(content);
         // loop through the summary and add each string to the array
@@ -325,10 +334,10 @@ class WebScraper {
         allPages.push(page);
     }
     let commonSummaryItems = new Set();
-    // items that appear more than 5% of the time
+    // items that appear more than 5% of the time (but not only once)
     for (let str of allSummaries) {
         let count = allSummaries.filter(s => s === str).length;
-        if (count > allPages.length / 20) {
+        if (count > allPages.length / 20 && count > 1) {
             commonSummaryItems.add(str);
         } 
     }
@@ -337,8 +346,31 @@ class WebScraper {
     for (let page of allPages) {
         page.summary = page.summary.filter(s => !commonSummaryItems.has(s));
     }
+    return allPages;
+}
+
+
+
+(async () => {
+    const url = 'https://solvecc.org';
+    // create or identify the website in the database
+    let website = await getWebsiteByUrl(url);
+    if (!website) {
+        console.log('Website does not exist in the database. Inserting...');
+        await insertWebsite(url);
+        website = await getWebsiteByUrl(url);
+    }
+    // scrape the website to find all pages
+    console.log('Website exists in the database.');
+    const scraper = new WebScraper(url, 7);
+    await scraper.init();
+    const { urlContentMap, externalUrlContentMap } = await scraper.getAllPageUrls(url);
+    await scraper.browser.close();
+    // summarize the content of all pages
+    let allInternalPages = summarizeAllPages(urlContentMap, website);
+    
     // save all the pages to the database
-    for (let page of allPages) {
+    for (let page of allInternalPages) {
         console.log(`Inserting page: ${page.url}`);
         let summaryStr = page.summary.join(', ');
         console.log(`Summary: ${summaryStr}`);
@@ -346,6 +378,12 @@ class WebScraper {
         if (!page.url.endsWith('/')) {
             page.url += '/';
         }
-        await insertOrUpdatePage(page.website_id, page.url, page.content, summaryStr);
+        await insertOrUpdatePage(page.website_id, page.url, page.content, summaryStr, false);
+    }
+    console.log('All pages inserted into the database.');
+    // add the external URLs to the database, with this site as the parent, and external set to true
+    for (let [url, content] of externalUrlContentMap.entries()) {
+        console.log(`Inserting external page: ${url}`);
+        await insertOrUpdatePage(website.id, url, content, '', true); // NOTE: External pages are not summarized
     }
 })();

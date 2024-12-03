@@ -4,6 +4,7 @@ const dotenv = require("dotenv");
 const {tools, readPageContent, siteWideSearch} = require("./tools.js");
 const { getWebsiteByUrl, getUrlsByWebsiteId, getPageByUrl} = require('./database.js');
 dotenv.config();
+const url = require("./url.js");
 
 const prompt = require("./systemPrompt.js");
 
@@ -19,7 +20,7 @@ class Chatbot {
     // function that gives the AI relevant info 
     async init() {
         // get all urls related to this site
-        let baseUrl = 'https://futureofworkchallenge.com';
+        let baseUrl = url;
         let website = await getWebsiteByUrl(baseUrl);
         let websiteId = website.id;
         let urls = await getUrlsByWebsiteId(websiteId);
@@ -32,12 +33,30 @@ class Chatbot {
             allPages.push(page);
         }
         // add the urls to the system message
-        this.systemMessage += "\nHere are all the resources you have access to on this site: \n"
+        this.systemMessage += "\nHere are all the pages that exist on this site: \n"
         for (let i = 0; i < allPages.length; i++) {
             let page = allPages[i];
+            if (page.external) {
+                console.log("Skipping external page:", page.url);
+                continue;
+            }
             this.systemMessage += page.url;
             if (page.summary) {
             this.systemMessage += "   notes: " + page.summary;
+            }
+            this.systemMessage += "\n";
+        }
+        // add external resources to the system message
+        this.systemMessage += "\nExternal resources referenced on this site: \n"
+        for (let i = 0; i < allPages.length; i++) {
+            let page = allPages[i];
+            if (!page.external) {
+                console.log("Skipping internal page:", page.url);
+                continue;
+            }
+            this.systemMessage += page.url;
+            if (page.summary) {
+                this.systemMessage += "   notes: " + page.summary;
             }
             this.systemMessage += "\n";
         }
