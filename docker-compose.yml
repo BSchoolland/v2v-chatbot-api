@@ -3,10 +3,11 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    user: root # Run as root user because AHHHHH PERMISSIONS
+    user: root # Run as root user because of permission issues
     volumes:
       - .:/home/pptruser/app
       - /home/pptruser/app/node_modules
+      - ./data:/home/pptruser/app/data
     ports:
       - "3000:3000" # Map container port 3000 to host port 3000
     environment:

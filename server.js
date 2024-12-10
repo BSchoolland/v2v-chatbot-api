@@ -1,11 +1,7 @@
 const express = require('express');
 const bodyParser = require('body-parser');
-const setupRoutes = require('./api/routes.js');
-const crawlSite = require('./api/crawlWebsite.js');
-
-// run crawlSite every 24 hours
-crawlSite();
-setInterval(crawlSite, 24 * 60 * 3000);
+const { initializeDatabase } = require('./database/database.js');
+const { registerUser } = require('./database/users.js');
 
 const app = express();
 const port = 3000;
@@ -14,17 +10,25 @@ const port = 3000;
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-
-setupRoutes(app); // Call the setupRoutes function and pass the app object
-
+// TODO: use development ui folder
 app.get('/', (req, res) => {
     res.sendFile(__dirname + '/index.html');
 });
 
-app.post('/api/chatbot', (req, res) => {
-    
-});
+console.log('Initializing database...');
+initializeDatabase()
+    .then(async () => {
+        app.listen(port, () => {
+            console.log(`Server is running on http://localhost:${port}`);
+        });
+        try {
+            await registerUser('test username', 'test password');
+            console.log('User registered successfully');
+        } catch (err) {
+            console.error('Failed to register user:', err);
+        }
+    })
+    .catch((err) => {
+        console.error('Failed to initialize database, exiting:', err);
+    });
 
-app.listen(port, () => {
-    console.log(`Server is running on http://localhost:${port}`);
-});
