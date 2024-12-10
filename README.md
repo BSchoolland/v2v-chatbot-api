@@ -8,6 +8,10 @@ https://docs.google.com/document/d/1Qz8tVQ3WSa1k4AHqGyFnYlJ2nyxTQLzgzQcGsNlcgsY/
 ## Project Requirements Doc
 https://docs.google.com/document/d/1ktSizXRecSuGVjeFcu6XElnkO5mh5ek4Nm6E1iimBlY/edit?tab=t.0#heading=h.gjdgxs
 
+## Entity Relationship Diagram
+The structure of the database can be found here:
+https://lucid.app/lucidchart/c15da861-ecc7-4e22-8b6e-408c1dbd6849/edit?invitationId=inv_7e9d5164-4fa2-4f40-b466-8b5405b0bd8c&page=0_0# 
+
 ## Setup 
 Pull the repo, make sure docker compose is installed then run docker-compose up.  
 
