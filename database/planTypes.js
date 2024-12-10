@@ -1,4 +1,4 @@
-import db from './database.js';
+import { db } from './database.js';
 // Create new plan type
 function createPlanType(monthlyCredits, costMonthly, costYearly, name, description) {
     return new Promise((resolve, reject) => {
@@ -41,7 +41,7 @@ function createPlanType(monthlyCredits, costMonthly, costYearly, name, descripti
     });
 }
 
-export default {
+module.exports = {
     createPlanType,
     getPlanTypes,
     deletePlanType,

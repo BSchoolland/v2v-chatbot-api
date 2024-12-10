@@ -1,4 +1,4 @@
-import db from './database.js';
+import { db } from './database.js';
 
 // Create a new chatbot
 function createChatbot(planId, modelId, systemPrompt) {
@@ -56,7 +56,7 @@ function createChatbot(planId, modelId, systemPrompt) {
     });
 }
 
-export default {
+module.exports = {
     createChatbot,
     getChatbotById,
     updateChatbot,

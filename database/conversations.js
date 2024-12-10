@@ -1,4 +1,4 @@
-import db from './database.js';
+import { db } from './database.js';
 
 // Store a recorded conversation
 function storeConversation(chatbotId, conversation, pageUrl, date) {
@@ -42,7 +42,7 @@ function storeConversation(chatbotId, conversation, pageUrl, date) {
     });
 }
 
-export default {
+module.exports = {
     storeConversation,
     getConversationsByChatbot,
     deleteConversation,

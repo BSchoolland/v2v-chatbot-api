@@ -42,7 +42,7 @@ function addPage(websiteId, internal, url, summary, content, lastSeen) {
     });
 }
 
-export default {
+module.exports = {
     addPage,
     getPagesByWebsite,
     deletePage,

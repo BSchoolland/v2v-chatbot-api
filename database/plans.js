@@ -65,7 +65,7 @@ function cancelUserPlan(planId) {
         );
     });
 }
-export default {
+module.exports = {
     assignPlanToUser,
     getUserPlan,
     updatePlanCredits,

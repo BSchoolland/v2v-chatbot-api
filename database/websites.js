@@ -1,4 +1,4 @@
-import db from './database.js';
+import { db } from './database.js';
 
 // Register a new website
 function addWebsite(chatbotId, domain, lastCrawled) {
@@ -43,7 +43,7 @@ function addWebsite(chatbotId, domain, lastCrawled) {
 
 }
 
-export default {
+module.exports = {
     addWebsite,
     getWebsiteById,
     deleteWebsite,

@@ -1,4 +1,4 @@
-import db from './database.js';
+import { db } from './database.js';
 
 // Add new model
 function addModel(maxContext, name, description, apiString, messageCost) {
@@ -42,7 +42,7 @@ function addModel(maxContext, name, description, apiString, messageCost) {
     });
 }
 
-export default {
+module.exports = {
     addModel,
     getModelById,
     deleteModel,

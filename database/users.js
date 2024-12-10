@@ -1,82 +1,91 @@
-import db from './database.js';
-// Register a new user
-function registerUser(email, password) {
-    const hashedPassword = bcrypt.hashSync(password, 10);
-    return new Promise((resolve, reject) => {
-        db.run(
-            `INSERT INTO users (email, password) VALUES (?, ?)`,
-            [email, hashedPassword],
-            function (err) {
-                if (err) reject(err);
-                else resolve(this.lastID);
-            }
-        );
+const { db } = require('./database.js');
+const bcrypt = require('bcrypt');
+
+// Promisify db methods to use with async/await
+const dbRun = (sql, params) => new Promise((resolve, reject) => {
+    db.run(sql, params, function(err) {
+        if (err) reject(err);
+        resolve(this.lastID);
     });
+});
+
+const dbGet = (sql, params) => new Promise((resolve, reject) => {
+    db.get(sql, params, (err, row) => {
+        if (err) reject(err);
+        resolve(row);
+    });
+});
+
+// Register a new user
+async function registerUser(email, password) {
+    try {
+        const hashedPassword = await bcrypt.hash(password, 10);
+        const userId = await dbRun(
+            `INSERT INTO users (email, password) VALUES (?, ?)`,
+            [email, hashedPassword]
+        );
+        return userId;
+    } catch (err) {
+        throw err;
+    }
 }
 
 // Authenticate user login
-function authenticateUser(email, password) {
-    return new Promise((resolve, reject) => {
-        db.get(
+async function authenticateUser(email, password) {
+    try {
+        const user = await dbGet(
             `SELECT * FROM users WHERE email = ?`,
-            [email],
-            (err, row) => {
-                if (err) reject(err);
-                else if (row && bcrypt.compareSync(password, row.password)) {
-                    resolve(row);
-                } else {
-                    reject(new Error('Invalid credentials'));
-                }
-            }
+            [email]
         );
-    });
+        
+        if (user && await bcrypt.compare(password, user.password)) {
+            return user;
+        }
+        throw new Error('Invalid credentials');
+    } catch (err) {
+        throw err;
+    }
 }
 
 // Retrieve user information
-function getUserById(userId) {
-    return new Promise((resolve, reject) => {
-        db.get(
+async function getUserById(userId) {
+    try {
+        const user = await dbGet(
             `SELECT user_id, email FROM users WHERE user_id = ?`,
-            [userId],
-            (err, row) => {
-                if (err) reject(err);
-                else resolve(row);
-            }
+            [userId]
         );
-    });
+        return user;
+    } catch (err) {
+        throw err;
+    }
 }
 
 // Update user details
-function updateUser(userId, email, password) {
-    const hashedPassword = bcrypt.hashSync(password, 10);
-    return new Promise((resolve, reject) => {
-        db.run(
+async function updateUser(userId, email, password) {
+    try {
+        const hashedPassword = await bcrypt.hash(password, 10);
+        await dbRun(
             `UPDATE users SET email = ?, password = ? WHERE user_id = ?`,
-            [email, hashedPassword, userId],
-            function (err) {
-                if (err) reject(err);
-                else resolve();
-            }
+            [email, hashedPassword, userId]
         );
-    });
+    } catch (err) {
+        throw err;
+    }
 }
 
 // Delete a user account
-function deleteUser(userId) {
-    return new Promise((resolve, reject) => {
-        db.run(
+async function deleteUser(userId) {
+    try {
+        await dbRun(
             `DELETE FROM users WHERE user_id = ?`,
-            [userId],
-            function (err) {
-                if (err) reject(err);
-                else resolve();
-            }
+            [userId]
         );
-    });
-
+    } catch (err) {
+        throw err;
+    }
 }
-// Export the functions
-export default {
+
+module.exports = {
     registerUser,
     authenticateUser,
     getUserById,
