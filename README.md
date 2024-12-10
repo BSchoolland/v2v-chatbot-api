@@ -5,7 +5,6 @@ This project aims to expand the products and services offered by Visions to Visu
 https://docs.google.com/document/d/1Qz8tVQ3WSa1k4AHqGyFnYlJ2nyxTQLzgzQcGsNlcgsY/edit?tab=t.0
 #### Expected MVP Completion date: Jan 4 2025
 
-
 ## Project Requirements Doc
 https://docs.google.com/document/d/1ktSizXRecSuGVjeFcu6XElnkO5mh5ek4Nm6E1iimBlY/edit?tab=t.0#heading=h.gjdgxs
 
