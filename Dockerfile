@@ -13,10 +13,6 @@ COPY package*.json ./
 # Copy the rest of the application
 COPY . .
 
-# Ensure correct permissions for npm and cache directories
-RUN mkdir -p $PUPPETEER_CACHE_DIR && \
-    /home/pptruser /home/pptruser/.npm $PUPPETEER_CACHE_DIR
-
 # Install dependencies
 RUN npm install
 
