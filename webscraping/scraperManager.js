@@ -120,19 +120,51 @@ class ScraperManager {
         this.browser = null;
         this.pages = [];
         this.minPageCount = 1;
-        this.maxPageCount = 5;
-        this.currentPageCount = 5; // here
-        this.ready = false;
+        this.maxPageCount = 10;
+        this.currentPageCount = 300; // here
         this.verbose = true;
         this.activeJobs = [];
         this.allJobs = [];
-        this.running = false;
+
+        // Flags to track the state of the scraper
+        this.isReady = false;
+        this.isRunning = false;
+        this.isInitializing = false;
+        this.isCleaning = false;
     }
 
     async init() {
-        
-        // Enable request interception to block unnecessary resources
+        if (this.isCleaning) {
+            // wait for cleanup to complete
+            while (this.isCleaning) {
+                await new Promise(resolve => setTimeout(resolve, 100));
+            }
+        }
+
+        if (this.isInitializing) {
+            // wait for initialization to complete
+            while (this.isInitializing) {
+                await new Promise(resolve => setTimeout(resolve, 100));
+            }
+            return;
+        }
+        this.isInitializing = true;
+        if (!this.browser) {
+            this.browser = await puppeteer.launch(
+                {
+                    headless: true,
+                    args: ['--no-sandbox', '--disable-setuid-sandbox'],
+                    ignoreHTTPSErrors: true, // Ignore HTTPS errors (rare but some clients may have issues with SSL and we don't want to stop the process)
+                }
+            );
+        } 
+
         for (let i = 0; i < this.currentPageCount; i++) {
+            this.pages.push({ page: await this.browser.newPage(), assigned: false });
+        }
+        try {
+            // Enable request interception to block unnecessary resources
+            for (let i = 0; i < this.currentPageCount; i++) {
             let page = this.pages[i].page;
             await page.setRequestInterception(true);
             page.on('request', (req) => {
@@ -142,13 +174,18 @@ class ScraperManager {
                     req.continue(); // Allow other requests
                 }
             });
+            }
         }
-
-        this.ready = true;
+        catch (error) {
+            console.error('Error setting up request interception:', error.message);
+        }
+        this.isReady = true;
+        this.isInitializing = false;
+        console.log('Scraper initialized.');
     }
 
     async addJob(baseUrl, maxDepth = 5, maxPages = 50) {
-        if (!this.ready) {
+        if (!this.isReady) {
             await this.init();
         }
         let job = new ActiveJob(baseUrl, maxDepth, maxPages);
@@ -158,11 +195,11 @@ class ScraperManager {
     }   
 
     async runJobs() {
-        if (this.running) return;
+        if (this.isRunning) return;
         console.log('Starting jobs...');
-        this.running = true;
+        this.isRunning = true;
         try {
-            while (this.running) {
+            while (this.isRunning) {
                 const availablePages = this.pages.filter(p => !p.assigned);
                 console.log('Available pages:', availablePages.length);
                 // No pages available, wait and try again
@@ -183,7 +220,7 @@ class ScraperManager {
                         job.isJobComplete();
                         console.log('\n\n\n');
                     }
-                    this.running = false;
+                    this.isRunning = false;
                     console.log('All jobs completed.');
                     break;
                 }
@@ -221,9 +258,45 @@ class ScraperManager {
                 await Promise.race(tasks);
             }
         } finally {
-            // await this.cleanup();
-            this.running = false;
+            await this.cleanup();
+            this.isRunning = false;
         }        
+    }
+
+
+    async cleanup() {
+        // set flag to prevent re-initialization during cleanup
+        this.isReady = false;
+        this.isCleaning = true;
+        this.isRunning = false;
+
+        console.log('Cleaning scraper resources...');
+
+        // close all pages
+        for (let page of this.pages) {
+            try {
+                await page.page.close();
+            } catch (error) {
+                console.error('Error closing page:', error.message);
+            }
+        }
+
+        // close the browser
+        try {
+            await this.browser.close();
+            this.browser = null;
+        } catch (error) {
+            console.error('Error closing browser:', error.message);
+        }
+
+        // clear the pages array
+        this.pages = [];
+        this.activeJobs = [];
+        this.allJobs = [];
+        // reset flags
+        this.isReady = false;
+        this.isInitializing = false;
+        this.isCleaning = false;
     }
     
     async processPage(page, job, pageInfo) {
@@ -249,7 +322,7 @@ class ScraperManager {
     }
 
     async getPageContent(pageUrl, page) {
-        if (!this.ready) {
+        if (!this.isReady) {
             await this.init();
         }
         try {
@@ -333,19 +406,14 @@ class ScraperManager {
 
 // test the scraper manager
 const scraperManager = new ScraperManager();
-scraperManager.init()
-    .then(() => {
-        scraperManager.addJob('https://www.example.com', 5, 5);
-        scraperManager.addJob('https://bschoolland.com', 5, 100);
-        setTimeout(() => {
-            scraperManager.addJob('https://solvecc.org', 5, 200);
-        }, 10000);
-        setTimeout(() => {
-            scraperManager.addJob('https://chalkwild.com', 5, 200);
-        }, 90000);
 
-    })
-    .catch(error => {
-        console.error('Error initializing scraper manager:', error.message);
-    });
+scraperManager.addJob('https://www.example.com', 5, 5);
+scraperManager.addJob('https://bschoolland.com', 5, 100);
+setTimeout(() => {
+    scraperManager.addJob('https://solvecc.org', 5, 200);
+}, 5040);
+setTimeout(() => {
+    scraperManager.addJob('https://chalkwild.com', 5, 200);
+}, 90000);
 
+    
