@@ -10,6 +10,15 @@ const port = 3000;
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
+// catch errors universally
+process.on('uncaughtException', (err) => {
+    console.error('Uncaught Exception:', err);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('Unhandled Rejection:', reason);
+});
+
 // TODO: use development ui folder
 app.get('/', (req, res) => {
     res.sendFile(__dirname + '/index.html');
