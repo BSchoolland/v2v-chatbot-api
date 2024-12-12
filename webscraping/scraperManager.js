@@ -1,7 +1,6 @@
 const getCleanHtmlContent = require('./htmlProcessing.js');
 const puppeteer = require('puppeteer');
 const { JSDOM } = require('jsdom');
-const { WebPageData } = require('./webPageData.js');
 const { ActiveJob } = require('./activeJob.js');
 
 class ScraperManager {
