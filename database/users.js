@@ -1,20 +1,6 @@
-const { db } = require('./database.js');
+const { dbRun, dbGet } = require('./database.js');
 const bcrypt = require('bcrypt');
 
-// Promisify db methods to use with async/await
-const dbRun = (sql, params) => new Promise((resolve, reject) => {
-    db.run(sql, params, function(err) {
-        if (err) reject(err);
-        resolve(this.lastID);
-    });
-});
-
-const dbGet = (sql, params) => new Promise((resolve, reject) => {
-    db.get(sql, params, (err, row) => {
-        if (err) reject(err);
-        resolve(row);
-    });
-});
 
 // Register a new user
 async function registerUser(email, password) {

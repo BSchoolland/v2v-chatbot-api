@@ -8,6 +8,21 @@ const db = new sqlite3.Database('data/api_database.db', (err) => {
   }
 });
 
+// Promisify db methods to use with async/await
+const dbRun = (sql, params) => new Promise((resolve, reject) => {
+  db.run(sql, params, function(err) {
+      if (err) reject(err);
+      resolve(this.lastID);
+  });
+});
+
+const dbGet = (sql, params) => new Promise((resolve, reject) => {
+  db.get(sql, params, (err, row) => {
+      if (err) reject(err);
+      resolve(row);
+  });
+});
+
 // Function to initialize the database
 const initializeDatabase = () => {
   return new Promise((resolve, reject) => {
@@ -104,7 +119,7 @@ const initializeDatabase = () => {
           url TEXT NOT NULL,
           summary TEXT,
           content TEXT,
-          last_seen TEXT,
+          date_updated TEXT,
           FOREIGN KEY (website_id) REFERENCES website(website_id)
         )
       `, (err) => {
@@ -119,4 +134,4 @@ const initializeDatabase = () => {
   });
 };
 
-module.exports = { db, initializeDatabase };
+module.exports = { initializeDatabase, dbRun, dbGet };
