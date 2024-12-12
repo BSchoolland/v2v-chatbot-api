@@ -72,10 +72,13 @@ class ActiveJob {
         externalLinks = externalLinks.join('\n');
         
         // clean the content
-        const cleanedContent = getCleanHtmlContent(content);
+        const cleanedContent = await getCleanHtmlContent(content);
 
         // summarize the content
-        const summary = summarizeContent(cleanedContent);
+        let summary = summarizeContent(cleanedContent);
+
+        // turn the summary into a string
+        summary = summary.join(', ');
 
         let internal
         if (url.startsWith(this.baseUrl)) {
