@@ -51,9 +51,22 @@ async function deletePage(pageId) {
     }
 }
 
+async function getPageSummariesBySiteId(websiteId) {
+    try {
+        const pages = await dbGet(
+            `SELECT url, summary FROM page WHERE website_id = ?`,
+            [websiteId]
+        );
+        return pages;
+    } catch (err) {
+        throw err;
+    }
+}
+
 module.exports = {
     addPage,
     getPagesByWebsite,
     getPageByUrlAndWebsiteId,
     deletePage,
+    getPageSummariesBySiteId
 };

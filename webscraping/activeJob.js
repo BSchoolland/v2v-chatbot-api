@@ -77,26 +77,24 @@ class ActiveJob {
         // summarize the content
         let summary = summarizeContent(cleanedContent);
 
-        // turn the summary into a string
-        summary = summary.join(', ');
-
         let internal
         if (url.startsWith(this.baseUrl)) {
             internal = true;
         } else {
             internal = false;
         }
-        // add the page to the database
-        addPage(this.websiteId, url, cleanedContent, summary, internal, internalLinks, externalLinks);
         // add the page to the completed pages
-        this.completedPages.push({url, internalLinks, externalLinks, cleanedContent, summary});
+        this.completedPages.push({url, summary, content: cleanedContent, internal, internalLinks, externalLinks});
     }
-    markPageComplete() {
+    async markPageComplete() {
         this.processing--;
         if (this.processing === 0 && this.queue.length === 0) {
+            await this.completeJob();
             this.done = true;
         }
     }
+
+
     // FIXME: this has O(n log n) time complexity, can be optimized to O(log n) using a priority queue
     queuePage(url, depth) {
         console.log(`Queueing page: ${url}`);
@@ -164,7 +162,59 @@ class ActiveJob {
             console.log('Job not complete');
             return false;
         }
-    }        
+    }     
+    
+    async completeJob() {
+        // summarize the internal pages
+        this.completedPages = summarizeInternalPages(this.completedPages);
+        // convert summaries to strings
+        for (let page of this.completedPages) {
+            page.summary = page.summary.join(', ');
+        }
+        // add the pages to the database
+        for (let page of this.completedPages) {
+            try {
+                await addPage(this.websiteId, page.url, page.summary, page.content, page.internal, page.internalLinks, page.externalLinks);
+            } catch (error) {
+                console.error(`Error adding page to database: ${error.message}`);
+            }
+        }
+    }
+}
+
+function summarizeInternalPages(pages) {
+    // an array of all strings that appear in the summaries
+    let allSummaries = [];
+    for (let page of pages) {
+        if (!page.internal) {
+            continue;
+        }
+        console.log(`Processing page: ${page}`);
+        let pageUrl = page.url;
+        let content = page.content;
+        console.log(`Processing page: ${pageUrl}`);
+        let summary = summarizeContent(content);
+        // loop through the summary and add each string to the array
+        for (let str of summary) {
+            allSummaries.push(str);
+        }
+        // create a new page object
+        page.summary = summary;
+    }
+    let commonSummaryItems = new Set();
+    // items that appear more than 10% of the time (but not only once)
+    for (let str of allSummaries) {
+        let count = allSummaries.filter(s => s === str).length;
+        if (count > pages.length / 10 && count > 1) {
+            commonSummaryItems.add(str);
+        } 
+    }
+    console.log("all these items will be removed from the summaries: ", Array.from(commonSummaryItems));
+    // remove any common items from the summaries
+    for (let page of pages) {
+        page.summary = page.summary.filter(s => !commonSummaryItems.has(s));
+    }
+    return pages;
 }
 
 module.exports = { ActiveJob };
