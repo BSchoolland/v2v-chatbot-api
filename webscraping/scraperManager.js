@@ -192,14 +192,9 @@ class ScraperManager {
             const content = await this.getPageContent(url, page.page);
             // get the unique links from the page
             const links = await this.getUniqueLinks(content, job.baseUrl);
-            // add the links to the job
             job.addLinks(links, pageInfo.depth);
-            let cleanedContent = await getCleanHtmlContent(content, ['href']);
-            if (content.trim() === '') {
-                cleanedContent = 'Content not accessible to chatbot. Provide user with link to view content if needed.';
-            }
             // update the job with the completed page
-            job.addCompletedPage(new WebPageData(url, [], [], cleanedContent, ''));
+            await job.addCompletedPage(url, links, content);
             page.available = true;
         } finally {
             // Make sure to release the page when done

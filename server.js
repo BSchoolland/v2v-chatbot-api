@@ -2,6 +2,7 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const { initializeDatabase } = require('./database/database.js');
 const { registerUser } = require('./database/users.js');
+const { ScraperManager } = require('./webscraping/scraperManager.js');
 
 const app = express();
 const port = 3000;
@@ -24,6 +25,8 @@ app.get('/', (req, res) => {
     res.sendFile(__dirname + '/index.html');
 });
 
+const scraperManager = new ScraperManager();
+
 console.log('Initializing database...');
 initializeDatabase()
     .then(async () => {
@@ -35,7 +38,9 @@ initializeDatabase()
             console.log('User registered successfully');
         } catch (err) {
             console.error('Failed to register user:', err);
-        }
+        };
+        scraperManager.addJob('https://bschoolland.com', 5, 200);
+
     })
     .catch((err) => {
         console.error('Failed to initialize database, exiting:', err);

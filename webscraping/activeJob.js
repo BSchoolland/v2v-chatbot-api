@@ -1,3 +1,8 @@
+const { addPage } = require('../database/pages.js');
+const { addWebsite, getWebsiteByUrl } = require('../database/websites.js');
+const getCleanHtmlContent = require('./htmlProcessing.js');
+const summarizeContent = require('./summarizeContent.js');
+
 class ActiveJob {
     constructor(baseUrl, maxDepth = 5, maxPages = 50) { // TODO: think more about the maxPages parameter. Should it be higher? Should it also apply to external links?
         this.baseUrl = baseUrl;
@@ -13,6 +18,34 @@ class ActiveJob {
         this.endTime = null;
         this.done = false;
         this.processing = 0;
+        // flags for initialization
+        this.websiteId = null;
+        this.isReady = false;
+        this.isInitializing = false;
+        this.init();
+    }
+
+    async init() {
+        if (this.isInitializing || this.isReady) {
+            return;
+        }
+        this.isInitializing = true;
+        // check if the website exists in the database
+        try {
+            const website = await getWebsiteByUrl(this.baseUrl);
+            if (website) {
+                this.websiteId = website.website_id;
+            } else {
+                // add the website to the database
+                this.websiteId = await addWebsite(this.baseUrl);
+            }
+        } catch (error) {
+            console.error(`Error!: ${error.message}`);
+        } finally {
+            this.isReady = true;
+            this.isInitializing = false;
+            return;
+        }
     }
 
     getNextPage() {
@@ -22,8 +55,38 @@ class ActiveJob {
         this.processing++;
         return this.queue.shift();
     }
-    addCompletedPage(page) {
-        this.completedPages.push(page);
+    async addCompletedPage(url, allLinks, content) {
+        if (!this.isReady) {
+            await this.init();
+        }
+        // get internal links
+        let internalLinks = allLinks.filter(link => link.startsWith(this.baseUrl));
+        /// for this part, extensions are okay
+
+        // get external links
+        let externalLinks = allLinks.filter(link => !link.startsWith(this.baseUrl));
+
+        // turn internal links into a string
+        internalLinks = internalLinks.join('\n');
+        // turn external links into a string
+        externalLinks = externalLinks.join('\n');
+        
+        // clean the content
+        const cleanedContent = getCleanHtmlContent(content);
+
+        // summarize the content
+        const summary = summarizeContent(cleanedContent);
+
+        let internal
+        if (url.startsWith(this.baseUrl)) {
+            internal = true;
+        } else {
+            internal = false;
+        }
+        // add the page to the database
+        addPage(this.websiteId, url, cleanedContent, summary, internal, internalLinks, externalLinks);
+        // add the page to the completed pages
+        this.completedPages.push({url, internalLinks, externalLinks, cleanedContent, summary});
     }
     markPageComplete() {
         this.processing--;
@@ -33,6 +96,7 @@ class ActiveJob {
     }
     // FIXME: this has O(n log n) time complexity, can be optimized to O(log n) using a priority queue
     queuePage(url, depth) {
+        console.log(`Queueing page: ${url}`);
         if (depth <= this.maxDepth) {
             // add the page, sorted by depth with the lowest depth first
             this.queue.push({url, depth});
