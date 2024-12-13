@@ -20,10 +20,8 @@ process.on('unhandledRejection', (reason, promise) => {
     console.error('Unhandled Rejection:', reason);
 });
 
-// TODO: use development ui folder
-app.get('/', (req, res) => {
-    res.sendFile(__dirname + '/index.html');
-});
+// set development-ui as the public folder
+app.use(express.static('development-ui'));
 
 const scraperManager = new ScraperManager();
 
@@ -39,7 +37,7 @@ initializeDatabase()
         } catch (err) {
             console.error('Failed to register user:', err);
         };
-        scraperManager.addJob('https://bschoolland.com', 5, 200);
+        // scraperManager.addJob('https://bschoolland.com', 5, 200);
 
     })
     .catch((err) => {
