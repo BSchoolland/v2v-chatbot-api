@@ -2,23 +2,23 @@ const { dbRun, dbGet } = require('./database.js');
 const bcrypt = require('bcrypt');
 
 // Register a new user
-async function registerUser(username, password) {
+async function registerUser(email, password) {
     try {
         await dbRun(
-            `INSERT INTO user (username, password) VALUES (?, ?)`,
-            [username, password]
+            `INSERT INTO users (email, password) VALUES (?, ?)`,
+            [email, password]
         );
     } catch (err) {
         throw err;
     }
 }
 
-// get a user by username
-async function getUserByUsername(username) {
+// get a user by email
+async function getUserByEmail(email) {
     try {
         const user = await dbGet(
-            `SELECT * FROM user WHERE username = ?`,
-            [username]
+            `SELECT * FROM users WHERE email = ?`,
+            [email]
         );
         return user;
     } catch (err) {
@@ -26,10 +26,10 @@ async function getUserByUsername(username) {
     }
 }
 
-// check if a username already exists
-async function checkUsernameExists(username) {
+// check if a email already exists
+async function checkEmailExists(email) {
     try {
-        const user = await getUserByUsername(username);
+        const user = await getUserByEmail(email);
         return user !== undefined;
     } catch (err) {
         throw err;
@@ -38,6 +38,6 @@ async function checkUsernameExists(username) {
 
 module.exports = {
     registerUser,
-    getUserByUsername,
-    checkUsernameExists
+    getUserByEmail,
+    checkEmailExists
 };

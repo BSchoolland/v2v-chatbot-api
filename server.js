@@ -4,6 +4,7 @@ const { initializeDatabase } = require('./database/database.js');
 const { registerUser } = require('./database/users.js');
 const { ScraperManager } = require('./webscraping/scraperManager.js');
 
+const websiteApiRoutes = require('./website-api/routes.js');
 const app = express();
 const port = 3000;
 
@@ -19,6 +20,12 @@ process.on('uncaughtException', (err) => {
 process.on('unhandledRejection', (reason, promise) => {
     console.error('Unhandled Rejection:', reason);
 });
+
+
+
+// Use website API routes
+app.use('/website/api', websiteApiRoutes);
+
 
 // set development-ui as the public folder
 app.use(express.static('development-ui'));
