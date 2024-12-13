@@ -1,44 +1,24 @@
 const { dbRun, dbGet } = require('./database.js');
 const bcrypt = require('bcrypt');
 
-
 // Register a new user
-async function registerUser(email, password) {
+async function registerUser(username, password) {
     try {
-        const hashedPassword = await bcrypt.hash(password, 10);
-        const userId = await dbRun(
-            `INSERT INTO users (email, password) VALUES (?, ?)`,
-            [email, hashedPassword]
+        await dbRun(
+            `INSERT INTO user (username, password) VALUES (?, ?)`,
+            [username, password]
         );
-        return userId;
     } catch (err) {
         throw err;
     }
 }
 
-// Authenticate user login
-async function authenticateUser(email, password) {
+// get a user by username
+async function getUserByUsername(username) {
     try {
         const user = await dbGet(
-            `SELECT * FROM users WHERE email = ?`,
-            [email]
-        );
-        
-        if (user && await bcrypt.compare(password, user.password)) {
-            return user;
-        }
-        throw new Error('Invalid credentials');
-    } catch (err) {
-        throw err;
-    }
-}
-
-// Retrieve user information
-async function getUserById(userId) {
-    try {
-        const user = await dbGet(
-            `SELECT user_id, email FROM users WHERE user_id = ?`,
-            [userId]
+            `SELECT * FROM user WHERE username = ?`,
+            [username]
         );
         return user;
     } catch (err) {
@@ -46,26 +26,11 @@ async function getUserById(userId) {
     }
 }
 
-// Update user details
-async function updateUser(userId, email, password) {
+// check if a username already exists
+async function checkUsernameExists(username) {
     try {
-        const hashedPassword = await bcrypt.hash(password, 10);
-        await dbRun(
-            `UPDATE users SET email = ?, password = ? WHERE user_id = ?`,
-            [email, hashedPassword, userId]
-        );
-    } catch (err) {
-        throw err;
-    }
-}
-
-// Delete a user account
-async function deleteUser(userId) {
-    try {
-        await dbRun(
-            `DELETE FROM users WHERE user_id = ?`,
-            [userId]
-        );
+        const user = await getUserByUsername(username);
+        return user !== undefined;
     } catch (err) {
         throw err;
     }
@@ -73,8 +38,6 @@ async function deleteUser(userId) {
 
 module.exports = {
     registerUser,
-    authenticateUser,
-    getUserById,
-    updateUser,
-    deleteUser,
+    getUserByUsername,
+    checkUsernameExists
 };
