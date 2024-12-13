@@ -4,6 +4,7 @@ const { initializeDatabase } = require('./database/database.js');
 const { registerUser } = require('./database/users.js');
 const { ScraperManager } = require('./webscraping/scraperManager.js');
 
+const websiteApiRoutes = require('./website-api/routes.js');
 const app = express();
 const port = 3000;
 
@@ -20,10 +21,14 @@ process.on('unhandledRejection', (reason, promise) => {
     console.error('Unhandled Rejection:', reason);
 });
 
-// TODO: use development ui folder
-app.get('/', (req, res) => {
-    res.sendFile(__dirname + '/index.html');
-});
+
+
+// Use website API routes
+app.use('/website/api', websiteApiRoutes);
+
+
+// set development-ui as the public folder
+app.use(express.static('development-ui'));
 
 const scraperManager = new ScraperManager();
 
@@ -39,7 +44,7 @@ initializeDatabase()
         } catch (err) {
             console.error('Failed to register user:', err);
         };
-        scraperManager.addJob('https://bschoolland.com', 5, 200);
+        // scraperManager.addJob('https://bschoolland.com', 5, 200);
 
     })
     .catch((err) => {
