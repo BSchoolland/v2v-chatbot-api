@@ -1,4 +1,4 @@
-const { dbAll, dbRun } = require('./database');
+const { dbAll, dbRun, dbGet } = require('./database');
 
 // Get all plans for a user
 async function getUserPlans(userId) {
@@ -22,7 +22,7 @@ async function addPlan(userId, chatbotId, planTypeId, planName) {
 
 // get a plan for a user
 async function getPlan(planId) {
-    const plan = await dbAll('SELECT * FROM plans WHERE plan_id = ?', [planId]);
+    const plan = await dbGet('SELECT * FROM plans WHERE plan_id = ?', [planId]);
     return plan;
 }
 

@@ -1,64 +1,32 @@
-import { db } from './database.js';
+const { dbRun, dbGet } = require('./database.js');
 
-// Create a new chatbot
-function createChatbot(planId, modelId, systemPrompt) {
-    return new Promise((resolve, reject) => {
-      db.run(
-        `INSERT INTO chatbot (plan_id, model_id, system_prompt) VALUES (?, ?, ?)`,
-        [planId, modelId, systemPrompt],
-        function (err) {
-          if (err) reject(err);
-          else resolve(this.lastID);
-        }
-      );
-    });
-  }
-  
-  // Retrieve chatbot details
-  function getChatbotById(chatbotId) {
-    return new Promise((resolve, reject) => {
-      db.get(
-        `SELECT * FROM chatbot WHERE chatbot_id = ?`,
-        [chatbotId],
-        (err, row) => {
-          if (err) reject(err);
-          else resolve(row);
-        }
-      );
-    });
-  }
-  
-  // Update chatbot settings
-  function updateChatbot(chatbotId, modelId, systemPrompt) {
-    return new Promise((resolve, reject) => {
-      db.run(
-        `UPDATE chatbot SET model_id = ?, system_prompt = ? WHERE chatbot_id = ?`,
-        [modelId, systemPrompt, chatbotId],
-        function (err) {
-          if (err) reject(err);
-          else resolve();
-        }
-      );
-    });
-  }
-  
-  // Delete a chatbot
-  function deleteChatbot(chatbotId) {
-    return new Promise((resolve, reject) => {
-      db.run(
-        `DELETE FROM chatbot WHERE chatbot_id = ?`,
-        [chatbotId],
-        function (err) {
-          if (err) reject(err);
-          else resolve();
-        }
-      );
-    });
+// create a chatbot
+async function createChatbot(plan_id, name, model_id, system_prompt) {
+    const chatbot = await dbRun('INSERT INTO chatbots (plan_id, name, model_id, system_prompt) VALUES (?, ?, ?, ?)', [plan_id, name, model_id, system_prompt]);
+    return chatbot;
+}
+
+// get a chatbot
+async function getChatbot(chatbotId) {
+    const chatbot = await dbGet('SELECT * FROM chatbots WHERE chatbot_id = ?', [chatbotId]);
+    return chatbot;
+}
+
+// update a chatbot
+async function updateChatbot(chatbotId, chatbotName) {
+    const chatbot = await dbRun('UPDATE chatbots SET name = ? WHERE chatbot_id = ?', [chatbotName, chatbotId]);
+    return chatbot;
+}
+
+// get a chatbot from a plan id
+async function getChatbotFromPlanId(planId) {
+    const chatbot = await dbGet('SELECT * FROM chatbots WHERE plan_id = ?', [planId]);
+    return chatbot;
 }
 
 module.exports = {
     createChatbot,
-    getChatbotById,
+    getChatbot,
     updateChatbot,
-    deleteChatbot,
+    getChatbotFromPlanId
 };

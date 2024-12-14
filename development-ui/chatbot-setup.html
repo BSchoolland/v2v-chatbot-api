@@ -63,6 +63,18 @@
             });
             document.querySelector(`[data-step="${stepNumber}"]`).classList.add('active');
         }
+        
+        // Step 0: Automatic creation of chatbot
+        const urlParams = new URLSearchParams(window.location.search);
+        const planId = urlParams.get('planId');
+        fetch('/website/api/chatbot-setup/create-chatbot', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                name: 'My Chatbot',
+                planId: planId
+            })
+        });
 
         // Step 1: URL Analysis
         document.getElementById('urlForm').addEventListener('submit', async (e) => {
@@ -80,7 +92,7 @@
 
             try {
                 // Set up SSE connection
-                const eventSource = new EventSource(`/website/api/chatbot-setup/scrape-site-progress?url=${encodeURIComponent(url)}`);
+                const eventSource = new EventSource(`/website/api/chatbot-setup/scrape-site-progress?url=${encodeURIComponent(url)}&planId=${planId}`);
                 
                 eventSource.onmessage = (event) => {
                     const data = JSON.parse(event.data);

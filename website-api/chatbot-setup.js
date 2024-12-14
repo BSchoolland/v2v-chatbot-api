@@ -4,29 +4,52 @@ require('dotenv').config();
 
 const {ScraperManager} = require('../webscraping/scraperManager');
 
+const { authMiddleware } = require('./middleware');
+
+const { createChatbot, getChatbotFromPlanId } = require('../database/chatbots');
+
+const { getPlan } = require('../database/plans');
+
 const scraper = new ScraperManager();
 
-// Sample website structure for simulation
-const samplePages = [
-    { url: '/home', title: 'Home Page', summary: 'This is the home page of the website.' },
-    { url: '/about', title: 'About Us', summary: 'This is the about us page of the website.' },
-    { url: '/products', title: 'Our Products', summary: 'This is the products page of the website.' },
-    { url: '/services', title: 'Services', summary: 'This is the services page of the website.' },
-    { url: '/contact', title: 'Contact Us', summary: 'This is the contact us page of the website.' },
-    { url: '/pricing', title: 'Pricing', summary: 'This is the pricing page of the website.' },
-    { url: '/faq', title: 'FAQ', summary: 'This is the FAQ page of the website.' }
-];
+// user owns plan
+async function userOwnsPlan(userId, planId) {
+    console.log('userOwnsPlan', userId, planId);
+    const plan = await getPlan(planId);
+    return plan.user_id === userId;
+}
 
 // create a chatbot
-router.post('/create-chatbot', async (req, res) => {
-    console.log('create-chatbot');
-    const chatbotData = req.body;
-    console.log(chatbotData);
-    res.status(200).json({ success: true });
+router.post('/create-chatbot', authMiddleware, async (req, res) => {
+    const userId = req.userId;
+    const planId = req.body.planId;
+    // make sure the user owns the plan
+    const ownsThisPlan = await userOwnsPlan(userId, planId);
+    if (!ownsThisPlan) {
+        return res.status(403).json({ success: false, message: 'Unauthorized' });
+    }
+    const chatbotName = req.body.name;
+    // make sure there is not already a chatbot with this planId
+    const existingChatbot = await getChatbotFromPlanId(planId);
+    if (existingChatbot) {
+        // return chatbot id
+        return res.status(200).json({ success: true, chatbotId: existingChatbot.chatbot_id });
+    }
+    // model and system prompt will be set later
+    const modelId = 0;
+    const systemPrompt = "You are a helpful assistant.";
+    const chatbot = await createChatbot(planId, chatbotName, modelId, systemPrompt);
+    res.status(200).json({ success: true, chatbotId: chatbot.chatbot_id });
 });
 
-router.get('/scrape-site-progress', async (req, res) => {
-    console.log('req.body', req.body);
+router.get('/scrape-site-progress', authMiddleware, async (req, res) => {
+    // make sure the user owns the plan
+    const userId = req.userId;
+    const planId = req.query.planId;
+    const ownsThisPlan = await userOwnsPlan(userId, planId);
+    if (!ownsThisPlan) {
+        return res.status(403).json({ success: false, message: 'Unauthorized' });
+    }
     const url = req.query.url;
     if (!url) {
         return res.status(400).send('URL is required');
@@ -42,7 +65,15 @@ router.get('/scrape-site-progress', async (req, res) => {
         res.write(`data: ${JSON.stringify(data)}\n\n`);
     };
 
-    const job = await scraper.addJob(url);
+    // get the id of the chatbot belonging to this plan
+    const chatbot = await getChatbotFromPlanId(planId);
+    console.log('chatbot', chatbot);
+    if (!chatbot) {
+        return res.status(404).json({ success: false, message: 'Chatbot not found' });
+    }
+    const chatbotId = chatbot.chatbot_id;
+
+    const job = await scraper.addJob(url, chatbotId);
     
     // Send initial status
     sendUpdate({ status: 'started', message: 'Starting website analysis...' });
@@ -77,14 +108,14 @@ router.get('/scrape-site-progress', async (req, res) => {
 
 });
 
-router.post('/save-chatbot-info', async (req, res) => {
+router.post('/save-chatbot-info', authMiddleware, async (req, res) => {
     console.log('save-chatbot-info');
     const chatbotData = req.body;
     console.log(chatbotData);
     res.status(200).json({ success: true });
 });
 
-router.post('/save-system-prompt', async (req, res) => {
+router.post('/save-system-prompt', authMiddleware, async (req, res) => {
     console.log('save-system-prompt');
     const chatbotData = req.body;
     console.log(chatbotData);
