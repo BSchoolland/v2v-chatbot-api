@@ -20,7 +20,22 @@ async function addPlan(userId, chatbotId, planTypeId, planName) {
     return plan;
 }
 
+// get a plan for a user
+async function getPlan(planId) {
+    const plan = await dbAll('SELECT * FROM plans WHERE plan_id = ?', [planId]);
+    return plan;
+}
+
+// update a plan for a user
+async function updatePlan(planId, userId, chatbotId, planName, planTypeId) {
+    // FIXME: this will overwrite other data in the plan
+    const plan = await dbRun('REPLACE INTO plans (user_id, chatbot_id, plan_id, name, plan_type_id) VALUES (?, ?, ?, ?, ?)', [userId, chatbotId, planId, planName, planTypeId]);
+    return plan;
+}
+
 module.exports = {
     getUserPlans,
     addPlan,
+    getPlan,
+    updatePlan
 };

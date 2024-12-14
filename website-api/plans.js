@@ -4,7 +4,9 @@ require('dotenv').config();
 
 const { 
     getUserPlans,
-    addPlan
+    addPlan,
+    getPlan,
+    updatePlan
 } = require('../database/plans.js');
 
 const { authMiddleware } = require('./middleware.js');
@@ -20,6 +22,21 @@ router.post('/add-plan', authMiddleware, async (req, res) => {
         console.error(err);
         res.status(500).json({ message: 'Internal server error' });
     }
+});
+
+// Get a plan for a user
+router.get('/user-plan/:planId', authMiddleware, async (req, res) => {
+    const { planId } = req.params;
+    const plan = await getPlan(planId);
+    res.status(200).json({ plan, success: true });
+});
+
+// Update a plan for a user
+router.put('/user-plan/:planId', authMiddleware, async (req, res) => {
+    const { planId } = req.params;
+    const { planName, planTypeId } = req.body;
+    const plan = await updatePlan(planId, req.userId, 0, planName, planTypeId);
+    res.status(200).json({ plan, success: true });
 });
 
 module.exports = router;

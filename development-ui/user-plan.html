@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Plan</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <h1>Edit Plan</h1>
+    <form id="planForm">
+        <label for="planName">Plan Name:</label>
+        <input type="text" id="planName" name="planName" required>
+        <div class="plan-options">
+        
+        <div class="plan-option">
+            <input type="radio" id="free" name="planType" value="free" required>
+            <label for="free">
+                    <h4>Free Plan</h4>
+                    <p>50 credits/month</p>
+                    <p>Access to our most basic model</p>
+                    <p>1 Chatbot</p>
+                    <p>Knowledge base of up to 10 documents and webpages</p>
+                    <p>$0/month</p>
+                </label>
+            </div>
+            <div class="plan-option">
+                <input type="radio" id="basic" name="planType" value="basic" required>
+                <label for="basic">
+                    <h4>Basic Plan</h4>
+                    <p>1 Chatbot</p>
+                    <p>1000 credits/month</p>
+                    <p>Access to all models</p>
+                    <p>Knowledge base of up to 100 documents and webpages</p>
+                    <p>Weekly updating of webpages</p>
+                    <p>$10/month</p>
+                </label>
+            </div>
+            <div class="plan-option">
+                <input type="radio" id="pro" name="planType" value="pro" required>
+                <label for="pro">
+                    <h4>Pro Plan</h4>
+                    <p>5 Chatbots</p>
+                    <p>10000 credits/month</p>
+                    <p>Access to all models</p>
+                    <p>Knowledge base of up to 300 documents and webpages (contact us if you need more)</p>
+                    <p>Daily updating of webpages</p>
+                    <p>$50/month</p>
+                </label>
+            </div>
+        </div>
+
+        <button type="submit">Save</button>
+    </form>
+    <script>
+        // Get plan ID from URL parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        const planId = urlParams.get('id');
+
+        if (!planId) {
+            alert('No plan ID provided');
+            window.location.href = '/dashboard.html';
+        }
+
+        // Fetch plan details
+        fetch(`http://localhost:3000/website/api/user-plan/${planId}`, {
+            method: 'GET',
+            credentials: 'include',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log('data:', data);
+            if (data.success) {
+                const plan = data.plan[0];
+                document.getElementById('planName').value = plan.name;
+                if (plan.plan_type_id === 0) {
+                    document.getElementById('free').checked = true;
+                } else if (plan.plan_type_id === 1) {
+                    document.getElementById('basic').checked = true;
+                } else if (plan.plan_type_id === 2) {
+                    document.getElementById('pro').checked = true;
+                }
+            } else {
+                alert('Error fetching plan details');
+                window.location.href = '/dashboard.html';
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An unknown error occurred');
+            window.location.href = '/dashboard.html';
+        });
+
+        document.getElementById('planForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const planName = document.getElementById('planName').value;
+            const planType = document.querySelector('input[name="planType"]:checked').value;
+            console.log('planName:', planName);
+            console.log('planType:', planType);
+            let planTypeId = 0;
+            if (planType === 'free') {
+                planTypeId = 0;
+            } else if (planType === 'basic') {
+                planTypeId = 1;
+            } else if (planType === 'pro') {
+                planTypeId = 2;
+            }
+
+            fetch(`http://localhost:3000/website/api/user-plan/${planId}`, {
+                method: 'PUT',
+                credentials: 'include',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    planName: planName,
+                    planTypeId: planTypeId
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('data:', data);
+                if (data.success) {
+                    alert('Plan updated successfully');
+                    window.location.reload();
+                } else {
+                    alert('Error updating plan');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An unknown error occurred');
+            });
+        });
+    </script>
+</body>
+</html>
