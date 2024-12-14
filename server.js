@@ -40,7 +40,6 @@ initializeDatabase()
             console.log(`Server is running on http://localhost:${port}`);
         });
         try {
-            await registerUser('test username', 'test password');
             console.log('User registered successfully');
         } catch (err) {
             console.error('Failed to register user:', err);

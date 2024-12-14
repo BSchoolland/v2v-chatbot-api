@@ -1,10 +1,14 @@
-const { dbGet, dbRun } = require('./database');
+const { dbAll, dbRun } = require('./database');
 
 // Get all plans for a user
 async function getUserPlans(userId) {
-    const plans = await dbGet('SELECT * FROM plans WHERE user_id = ?', [userId]);
+    const plans = await dbAll('SELECT * FROM plans WHERE user_id = ?', [userId]);
     if (!plans) {
         return [];
+    }
+    // if there is just one plan, return it as an array
+    if (!Array.isArray(plans)) {
+        return [plans];
     }
     return plans;
 }

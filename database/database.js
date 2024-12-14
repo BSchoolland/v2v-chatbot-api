@@ -23,6 +23,13 @@ const dbGet = (sql, params) => new Promise((resolve, reject) => {
   });
 });
 
+const dbAll = (sql, params) => new Promise((resolve, reject) => {
+  db.all(sql, params, (err, rows) => {
+      if (err) reject(err);
+      resolve(rows);
+  });
+});
+
 // Function to initialize the database
 const initializeDatabase = () => {
   return new Promise((resolve, reject) => {
@@ -45,11 +52,13 @@ const initializeDatabase = () => {
         CREATE TABLE IF NOT EXISTS plans (
           plan_id INTEGER PRIMARY KEY AUTOINCREMENT,
           chatbot_id INTEGER,
+          plan_type_id INTEGER NOT NULL,
           user_id INTEGER NOT NULL,
           remaining_credits INTEGER DEFAULT 0,
           additional_credits INTEGER DEFAULT 0,
           rate_limiting_policy TEXT,
           FOREIGN KEY (chatbot_id) REFERENCES chatbot(chatbot_id),
+          FOREIGN KEY (plan_type_id) REFERENCES plan_type(plan_type_id),
           FOREIGN KEY (user_id) REFERENCES users(user_id)
         )
       `);
@@ -134,4 +143,4 @@ const initializeDatabase = () => {
   });
 };
 
-module.exports = { initializeDatabase, dbRun, dbGet };
+module.exports = { initializeDatabase, dbRun, dbGet, dbAll };
