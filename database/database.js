@@ -42,7 +42,7 @@ const initializeDatabase = () => {
         )
       `);
       db.run(`
-        CREATE TABLE IF NOT EXISTS plan (
+        CREATE TABLE IF NOT EXISTS plans (
           plan_id INTEGER PRIMARY KEY AUTOINCREMENT,
           chatbot_id INTEGER,
           user_id INTEGER NOT NULL,

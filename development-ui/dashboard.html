@@ -8,5 +8,44 @@
 </head>
 <body>
     <h1>Dashboard Page</h1>
+    <!-- add new plan -->
+    <button onclick="window.location.href = '/add-plan.html';">Add New Plan</button>
+    <!-- existing plans -->
+    <h2>Existing Plans</h2>
+    <ul id="plans">
+        <!-- list of plans will be added here by javascript -->
+    </ul>
+    <script>
+        fetch('http://localhost:3000/website/api/user-plans', {
+                method: 'GET',
+                credentials: 'include',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    console.log(data);
+                    const plans = data.plans;
+                    const plansList = document.getElementById('plans');
+                    plans.forEach(plan => {
+                        const planItem = document.createElement('li');
+                        planItem.textContent = plan.name;
+                        plansList.appendChild(planItem);
+                        // when the user clicks on a plan, redirect to the plan page with the plan id
+                        planItem.addEventListener('click', function() {
+                            window.location.href = `/user-plan.html?id=${plan.id}`;
+                        });
+                    });
+                } else {
+                    alert('Error fetching plans');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An unknown error occurred');
+            });
+    </script>
 </body>
 </html>
