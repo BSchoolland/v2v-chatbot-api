@@ -40,7 +40,7 @@ router.post('/login', validateInput, async (req, res) => {
                 // Generate JWT
                 const token = jwt.sign(
                     { 
-                        userId: user.id,
+                        userId: user.user_id,
                         email: user.email 
                     },
                     process.env.JWT_SECRET,
