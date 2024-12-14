@@ -57,6 +57,7 @@ const initializeDatabase = () => {
           remaining_credits INTEGER DEFAULT 0,
           additional_credits INTEGER DEFAULT 0,
           rate_limiting_policy TEXT,
+          name TEXT,
           FOREIGN KEY (chatbot_id) REFERENCES chatbot(chatbot_id),
           FOREIGN KEY (plan_type_id) REFERENCES plan_type(plan_type_id),
           FOREIGN KEY (user_id) REFERENCES users(user_id)

@@ -31,11 +31,11 @@
                     const plansList = document.getElementById('plans');
                     plans.forEach(plan => {
                         const planItem = document.createElement('li');
-                        planItem.textContent = plan.name;
+                        planItem.textContent = plan.name + ' - ' + plan.plan_type_id;
                         plansList.appendChild(planItem);
                         // when the user clicks on a plan, redirect to the plan page with the plan id
                         planItem.addEventListener('click', function() {
-                            window.location.href = `/user-plan.html?id=${plan.id}`;
+                            window.location.href = `/user-plan.html?id=${plan.plan_id}`;
                         });
                     });
                 } else {
