@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add New Plan</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <h1>Create New Plan</h1>
+    <form id="planForm">
+        <div>
+            <label for="planName">Optional Plan Name:</label>
+            <input type="text" id="planName" name="planName">
+        </div>
+        <h3>Select Plan Type:</h3>
+
+        <div class="plan-options">
+            
+            <div class="plan-option">
+                <input type="radio" id="free" name="planType" value="free" required>
+                <label for="free">
+                    <h4>Free Plan</h4>
+                    <p>50 credits/month</p>
+                    <p>Access to our most basic model</p>
+                    <p>1 Chatbot</p>
+                    <p>Knowledge base of up to 10 documents and webpages</p>
+                    <p>$0/month</p>
+                </label>
+            </div>
+            <div class="plan-option">
+                <input type="radio" id="basic" name="planType" value="basic" required>
+                <label for="basic">
+                    <h4>Basic Plan</h4>
+                    <p>1 Chatbot</p>
+                    <p>1000 credits/month</p>
+                    <p>Access to all models</p>
+                    <p>Knowledge base of up to 100 documents and webpages</p>
+                    <p>Weekly updating of webpages</p>
+                    <p>$10/month</p>
+                </label>
+            </div>
+            <div class="plan-option">
+                <input type="radio" id="pro" name="planType" value="pro" required>
+                <label for="pro">
+                    <h4>Pro Plan</h4>
+                    <p>5 Chatbots</p>
+                    <p>10000 credits/month</p>
+                    <p>Access to all models</p>
+                    <p>Knowledge base of up to 300 documents and webpages (contact us if you need more)</p>
+                    <p>Daily updating of webpages</p>
+                    <p>$50/month</p>
+                </label>
+            </div>
+        </div>
+
+        <button type="submit">Create Plan</button>
+    </form>
+
+    <script>
+        document.getElementById('planForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const planName = document.getElementById('planName').value || 'plan'
+            const planType = document.querySelector('input[name="planType"]:checked').value;
+            let planTypeId = 0;
+            if (planType === 'free') {
+                planTypeId = 0;
+            } else if (planType === 'basic') {
+                planTypeId = 1;
+            } else if (planType === 'pro') {
+                planTypeId = 2;
+            }
+            fetch('http://localhost:3000/website/api/add-plan', {
+                method: 'POST',
+                credentials: 'include',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    planName: planName,
+                    planTypeId: planTypeId
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Plan created successfully!');
+                    window.location.href = '/dashboard.html';
+                } else {
+                    alert(data.message || 'Error creating plan');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An unknown error occurred');
+            });
+        });
+    </script>
+</body>
+</html>
