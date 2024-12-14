@@ -1,4 +1,3 @@
-const getCleanHtmlContent = require('./htmlProcessing.js');
 const puppeteer = require('puppeteer');
 const { JSDOM } = require('jsdom');
 const { ActiveJob } = require('./activeJob.js');
@@ -78,6 +77,7 @@ class ScraperManager {
         this.activeJobs.push(job);
         this.allJobs.push(job);
         this.runJobs();
+        return job;
     }   
 
     async runJobs() {

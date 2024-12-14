@@ -2,22 +2,31 @@ const express = require('express');
 const router = express.Router();
 require('dotenv').config();
 
+const {ScraperManager} = require('../webscraping/scraperManager');
+
+const scraper = new ScraperManager();
+
 // Sample website structure for simulation
 const samplePages = [
-    { url: '/home', title: 'Home Page' },
-    { url: '/about', title: 'About Us' },
-    { url: '/products', title: 'Our Products' },
-    { url: '/services', title: 'Services' },
-    { url: '/blog', title: 'Blog' },
-    { url: '/blog/post-1', title: 'Blog Post 1' },
-    { url: '/blog/post-2', title: 'Blog Post 2' },
-    { url: '/contact', title: 'Contact Us' },
-    { url: '/pricing', title: 'Pricing' },
-    { url: '/faq', title: 'FAQ' }
+    { url: '/home', title: 'Home Page', summary: 'This is the home page of the website.' },
+    { url: '/about', title: 'About Us', summary: 'This is the about us page of the website.' },
+    { url: '/products', title: 'Our Products', summary: 'This is the products page of the website.' },
+    { url: '/services', title: 'Services', summary: 'This is the services page of the website.' },
+    { url: '/contact', title: 'Contact Us', summary: 'This is the contact us page of the website.' },
+    { url: '/pricing', title: 'Pricing', summary: 'This is the pricing page of the website.' },
+    { url: '/faq', title: 'FAQ', summary: 'This is the FAQ page of the website.' }
 ];
 
+// create a chatbot
+router.post('/create-chatbot', async (req, res) => {
+    console.log('create-chatbot');
+    const chatbotData = req.body;
+    console.log(chatbotData);
+    res.status(200).json({ success: true });
+});
+
 router.get('/scrape-site-progress', async (req, res) => {
-    console.log('scrape-site-progress');
+    console.log('req.body', req.body);
     const url = req.query.url;
     if (!url) {
         return res.status(400).send('URL is required');
@@ -33,82 +42,39 @@ router.get('/scrape-site-progress', async (req, res) => {
         res.write(`data: ${JSON.stringify(data)}\n\n`);
     };
 
-    // Simulate crawling process
-    const simulateCrawling = async () => {
-        const baseUrl = new URL(url).origin;
-        let processedPages = [];
+    const job = await scraper.addJob(url);
+    
+    // Send initial status
+    sendUpdate({ status: 'started', message: 'Starting website analysis...' });
 
-        // Initial discovery phase
-        sendUpdate({
-            totalPages: 0,
-            currentPage: baseUrl,
-            newPage: baseUrl,
-            status: "Starting crawl...",
-            complete: false
-        });
-
-        // Simulate finding and processing each page
-        for (let page of samplePages) {
-            const fullUrl = `${baseUrl}${page.url}`;
-            
-            // Simulate page discovery
-            await new Promise(resolve => setTimeout(resolve, 500));
+    let completedPages = [];
+    // Set up interval to check job status
+    const statusInterval = setInterval(async () => {
+        if (job.isJobComplete()) {
+            clearInterval(statusInterval);
+            sendUpdate({ 
+                complete: true,
+                message: 'Website analysis complete',
+                pagesScraped: job.getScrapedPagesCount(),
+                newlyCompletedPages: []
+            });
+        } else {
             sendUpdate({
-                totalPages: processedPages.length + 1,
-                currentPage: fullUrl,
-                newPage: fullUrl,
-                status: `Discovered: ${page.title}`,
-                complete: false
+                complete: false,
+                status: 'in_progress', 
+                message: 'Analyzing website...',
+                pagesScraped: job.getScrapedPagesCount(),
+                newlyCompletedPages: job.getCompletedPagesExcludingList(completedPages)
             });
-
-            // Simulate page processing
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            processedPages.push({
-                url: fullUrl,
-                title: page.title,
-                content: `Sample content for ${page.title}`
-            });
-
-            sendUpdate({
-                totalPages: processedPages.length,
-                currentPage: fullUrl,
-                newPage: null,
-                status: `Processed: ${page.title}`,
-                complete: false
-            });
+            completedPages.push(...job.getCompletedPagesExcludingList(completedPages));
         }
-
-        // Send final update with results
-        sendUpdate({
-            totalPages: processedPages.length,
-            currentPage: null,
-            newPage: null,
-            status: "Crawl completed",
-            complete: true,
-            result: {
-                pages: processedPages,
-                metadata: {
-                    totalPages: processedPages.length,
-                    baseUrl: baseUrl,
-                    crawlDuration: `${processedPages.length * 1.5} seconds`
-                }
-            }
-        });
-    };
+    }, 1000);
 
     // Handle client disconnect
     req.on('close', () => {
         console.log('Client disconnected');
     });
 
-    // Start the simulation
-    simulateCrawling().catch(error => {
-        console.error('Simulation error:', error);
-        sendUpdate({
-            error: error.message,
-            complete: true
-        });
-    });
 });
 
 router.post('/save-chatbot-info', async (req, res) => {

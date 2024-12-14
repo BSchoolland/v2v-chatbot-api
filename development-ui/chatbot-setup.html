@@ -23,6 +23,7 @@
                 <input type="url" id="websiteUrl" required placeholder="Enter website URL">
                 <button type="submit">Analyze Website</button>
             </form>
+            <div id="processStatus"></div>
             <div id="urlAnalysisStatus"></div>
         </div>
 
@@ -67,12 +68,12 @@
         document.getElementById('urlForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const url = document.getElementById('websiteUrl').value;
+            const processStatusDiv = document.getElementById('processStatus');
             const statusDiv = document.getElementById('urlAnalysisStatus');
-            
+            processStatusDiv.textContent = 'Analyzing website. This may take a few minutes...' 
             // Clear previous status
             statusDiv.innerHTML = `
-                <div>Analyzing website. This may take a few minutes...</div>
-                <div id="pagesFound">Pages found: 0</div>
+                <div id="pagesCompleted">Pages Found: 0</div>
                 <div id="currentPage"></div>
                 <div id="pagesList" style="margin-top: 10px; max-height: 200px; overflow-y: auto;"></div>
             `;
@@ -85,28 +86,30 @@
                     const data = JSON.parse(event.data);
                     
                     // Update pages count
-                    document.getElementById('pagesFound').textContent = `Pages found: ${data.totalPages}`;
-                    
+                    document.getElementById('pagesCompleted').textContent = `Pages Completed: ${data.pagesScraped || 0}`;
                     // Update current page being processed
                     if (data.currentPage) {
-                        document.getElementById('currentPage').textContent = `Currently processing: ${data.currentPage}`;
+                        document.getElementById('currentPage').textContent = `Currently processing: ${data.currentPage.url || ''}`;
                     }
                     
                     // Add new page to the list
-                    if (data.newPage) {
-                        const pagesList = document.getElementById('pagesList');
-                        const pageElement = document.createElement('div');
-                        pageElement.textContent = `✓ ${data.newPage}`;
-                        pageElement.style.color = '#28a745'; // Green color for completed
-                        pagesList.appendChild(pageElement);
-                        pagesList.scrollTop = pagesList.scrollHeight; // Auto-scroll to bottom
+                    if (data.newlyCompletedPages) {
+                        for (let page of data.newlyCompletedPages) {
+                            const pagesList = document.getElementById('pagesList');
+                            const pageElement = document.createElement('div');
+                            pageElement.textContent = `✓ ${page.url}`;
+                            pageElement.style.color = '#28a745'; // Green color for completed
+                            pagesList.appendChild(pageElement);
+                            pagesList.scrollTop = pagesList.scrollHeight; // Auto-scroll to bottom
+                        }
                     }
                     
                     // If process is complete
                     if (data.complete) {
                         eventSource.close();
                         chatbotData.urlAnalysis = data.result;
-                        
+                        // change from "analyzing website" to "website analysis complete"
+                        processStatusDiv.textContent = 'Website analysis complete';
                         // Add OK button
                         const okButton = document.createElement('button');
                         okButton.textContent = 'Next Step';
@@ -121,11 +124,11 @@
 
                 eventSource.onerror = (error) => {
                     eventSource.close();
-                    statusDiv.textContent = 'Error analyzing website: Connection lost';
+                    processStatusDiv.textContent = 'Error analyzing website: Connection lost';
                 };
 
             } catch (error) {
-                statusDiv.textContent = 'Error analyzing website: ' + error.message;
+                processStatusDiv.textContent = 'Error analyzing website: ' + error.message;
             }
         });
 

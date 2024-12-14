@@ -48,6 +48,22 @@ class ActiveJob {
         }
     }
 
+    getCurrentPage() {
+        return this.queue[0];
+    }
+
+    getCompletedPagesExcludingList(list) {
+        return [...this.completedPages.filter(page => !list.some(p => p.url === page.url))];
+    }
+
+    getTotalPagesFound() {
+        return this.queue.length + this.completedPages.length;
+    }
+
+    getScrapedPagesCount() {
+        return this.completedPages.length;
+    }
+
     getNextPage() {
         if (this.queue.length === 0 || this.completedPages.length >= this.maxPages) {
             return null;
