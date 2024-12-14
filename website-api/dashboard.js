@@ -30,6 +30,7 @@ const authMiddleware = (req, res, next) => {
 // Get all plans for a user
 router.get('/user-plans', authMiddleware, async (req, res) => {
     try {
+        console.log('userId:', req.userId);
         const plans = await getUserPlans(req.userId);
         res.status(200).json({ plans, success: true });
     } catch (err) {
