@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chatbot Setup</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <h1>Chatbot Setup</h1>
+    <div id="setup-progress">
+        <div class="step-indicator" data-step="1">1. URL Setup</div>
+        <div class="step-indicator" data-step="2">2. Basic Info</div>
+        <div class="step-indicator" data-step="3">3. System Prompt</div>
+        <div class="step-indicator" data-step="4">4. Test Chatbot</div>
+    </div>
+
+    <div id="setup-forms">
+        <!-- Step 1: URL Input -->
+        <div class="setup-step" id="step1">
+            <h2>Step 1: Enter Website URL</h2>
+            <form id="urlForm">
+                <input type="url" id="websiteUrl" required placeholder="Enter website URL">
+                <button type="submit">Analyze Website</button>
+            </form>
+            <div id="urlAnalysisStatus"></div>
+        </div>
+
+        <!-- Step 2: Basic Info -->
+        <div class="setup-step" id="step2" style="display: none;">
+            <h2>Step 2: Basic Information</h2>
+            <form id="basicInfoForm">
+                <input type="text" id="chatbotName" required placeholder="Chatbot Name">
+                <button type="submit">Save and Continue</button>
+            </form>
+        </div>
+
+        <!-- Step 3: System Prompt -->
+        <div class="setup-step" id="step3" style="display: none;">
+            <h2>Step 3: System Prompt</h2>
+            <form id="promptForm">
+                <textarea id="systemPrompt" rows="6" required></textarea>
+                <button type="submit">Save Prompt</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        let currentStep = 1;
+        let chatbotData = {};
+
+        // Show active step and update progress indicators
+        function showStep(stepNumber) {
+            document.querySelectorAll('.setup-step').forEach(step => step.style.display = 'none');
+            document.getElementById(`step${stepNumber}`).style.display = 'block';
+            
+            document.querySelectorAll('.step-indicator').forEach(indicator => {
+                indicator.classList.remove('active');
+                if (parseInt(indicator.dataset.step) <= stepNumber) {
+                    indicator.classList.add('completed');
+                }
+            });
+            document.querySelector(`[data-step="${stepNumber}"]`).classList.add('active');
+        }
+
+        // Step 1: URL Analysis
+        document.getElementById('urlForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const url = document.getElementById('websiteUrl').value;
+            const statusDiv = document.getElementById('urlAnalysisStatus');
+            
+            // Clear previous status
+            statusDiv.innerHTML = `
+                <div>Analyzing website. This may take a few minutes...</div>
+                <div id="pagesFound">Pages found: 0</div>
+                <div id="currentPage"></div>
+                <div id="pagesList" style="margin-top: 10px; max-height: 200px; overflow-y: auto;"></div>
+            `;
+
+            try {
+                // Set up SSE connection
+                const eventSource = new EventSource(`/website/api/chatbot-setup/scrape-site-progress?url=${encodeURIComponent(url)}`);
+                
+                eventSource.onmessage = (event) => {
+                    const data = JSON.parse(event.data);
+                    
+                    // Update pages count
+                    document.getElementById('pagesFound').textContent = `Pages found: ${data.totalPages}`;
+                    
+                    // Update current page being processed
+                    if (data.currentPage) {
+                        document.getElementById('currentPage').textContent = `Currently processing: ${data.currentPage}`;
+                    }
+                    
+                    // Add new page to the list
+                    if (data.newPage) {
+                        const pagesList = document.getElementById('pagesList');
+                        const pageElement = document.createElement('div');
+                        pageElement.textContent = `✓ ${data.newPage}`;
+                        pageElement.style.color = '#28a745'; // Green color for completed
+                        pagesList.appendChild(pageElement);
+                        pagesList.scrollTop = pagesList.scrollHeight; // Auto-scroll to bottom
+                    }
+                    
+                    // If process is complete
+                    if (data.complete) {
+                        eventSource.close();
+                        chatbotData.urlAnalysis = data.result;
+                        
+                        // Add OK button
+                        const okButton = document.createElement('button');
+                        okButton.textContent = 'Next Step';
+                        okButton.style.marginTop = '20px';
+                        okButton.onclick = () => {
+                            currentStep++;
+                            showStep(currentStep);
+                        };
+                        statusDiv.appendChild(okButton);
+                    }
+                };
+
+                eventSource.onerror = (error) => {
+                    eventSource.close();
+                    statusDiv.textContent = 'Error analyzing website: Connection lost';
+                };
+
+            } catch (error) {
+                statusDiv.textContent = 'Error analyzing website: ' + error.message;
+            }
+        });
+
+        // Step 2: Basic Info
+        document.getElementById('basicInfoForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const name = document.getElementById('chatbotName').value;
+            
+            try {
+                const response = await fetch('/website/api/chatbot-setup/save-chatbot-info', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name })
+                });
+                
+                if (response.ok) {
+                    chatbotData.basicInfo = await response.json();
+                    currentStep++;
+                    showStep(currentStep);
+                }
+            } catch (error) {
+                alert('Error saving chatbot info: ' + error.message);
+            }
+        });
+
+        // Step 3: System Prompt
+        document.getElementById('promptForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const prompt = document.getElementById('systemPrompt').value;
+            
+            try {
+                    const response = await fetch('/website/api/chatbot-setup/save-system-prompt', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ prompt })
+                });
+                
+                if (response.ok) {
+                    chatbotData.systemPrompt = await response.json();
+                    currentStep++;
+                    // add a button to go to the test chatbot page
+                    const testChatbotButton = document.createElement('button');
+                    testChatbotButton.textContent = 'Test Chatbot';
+                    testChatbotButton.style.marginTop = '20px';
+                    testChatbotButton.onclick = () => {
+                        window.location.href = `/chatbot-demo.html?planId=${chatbotData.basicInfo.plan_id}`;
+                    };
+                    // add the button to document.body
+                    document.body.appendChild(testChatbotButton);
+                }
+            } catch (error) {
+                alert('Error saving system prompt: ' + error.message);
+            }
+        });
+
+        // Initialize first step
+        showStep(currentStep);
+    </script>
+
+    <style>
+        input {
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            margin: 5px;
+            font-size: 14px;
+        }
+
+        .setup-step {
+            margin: 20px;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        #setup-progress {
+            display: flex;
+            justify-content: space-between;
+            margin: 20px;
+            padding: 10px;
+        }
+
+        .step-indicator {
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        .step-indicator.active {
+            background-color: #007bff;
+            color: white;
+        }
+
+        .step-indicator.completed {
+            background-color: #28a745;
+            color: white;
+        }
+
+        #chatMessages {
+            height: 300px;
+            overflow-y: auto;
+            border: 1px solid #ccc;
+            margin-bottom: 10px;
+            padding: 10px;
+        }
+
+        .user-message, .bot-message {
+            margin: 5px;
+            padding: 10px;
+            border-radius: 5px;
+        }
+
+        .user-message {
+            background-color: #007bff;
+            color: white;
+            margin-left: 20%;
+        }
+
+        .bot-message {
+            background-color: #e9ecef;
+            margin-right: 20%;
+        }
+
+        button {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+            font-size: 14px
+        }
+    </style>
+</body>
+</html>

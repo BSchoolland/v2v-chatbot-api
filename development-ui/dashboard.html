@@ -32,11 +32,32 @@
                     plans.forEach(plan => {
                         const planItem = document.createElement('li');
                         planItem.textContent = plan.name + ' - ' + plan.plan_type_id;
-                        plansList.appendChild(planItem);
-                        // when the user clicks on a plan, redirect to the plan page with the plan id
-                        planItem.addEventListener('click', function() {
+                        
+                        // Create container for buttons
+                        const buttonContainer = document.createElement('div');
+                        buttonContainer.style.marginTop = '10px';
+                        
+                        // Create Plan Details button
+                        const planDetailsBtn = document.createElement('button');
+                        planDetailsBtn.textContent = 'Plan Details';
+                        planDetailsBtn.onclick = () => {
                             window.location.href = `/user-plan.html?id=${plan.plan_id}`;
-                        });
+                        };
+                        
+                        // Create Chatbot Setup button
+                        const chatbotSetupBtn = document.createElement('button');
+                        chatbotSetupBtn.textContent = 'Chatbot Setup';
+                        chatbotSetupBtn.onclick = () => {
+                            window.location.href = `/chatbot-setup.html?planId=${plan.plan_id}`;
+                        };
+                        
+                        // Add buttons to container
+                        buttonContainer.appendChild(planDetailsBtn);
+                        buttonContainer.appendChild(chatbotSetupBtn);
+                        
+                        // Add plan item and button container to the list
+                        planItem.appendChild(buttonContainer);
+                        plansList.appendChild(planItem);
                     });
                 } else {
                     alert('Error fetching plans');
