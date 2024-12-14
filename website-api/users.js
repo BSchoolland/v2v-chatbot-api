@@ -14,20 +14,8 @@ const {
     checkEmailExists 
 } = require('../database/users.js');
 // Input validation middleware
-const validateInput = (req, res, next) => {
-    let { email, password } = req.body;
-    
-    // Trim inputs
-    email = email.trim();
-    
-    // Password validation
-    if (!password || password.length < 8) {
-        console.log('password not long enough')
-        return res.status(400).json({ message: 'Password must be at least 8 characters long' });
-    }
-    
-    next();
-};
+
+const { validateInput } = require('./middleware.js');
 
 // login
 router.post('/login', validateInput, async (req, res) => {
