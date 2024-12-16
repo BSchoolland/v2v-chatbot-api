@@ -188,7 +188,9 @@
                     testChatbotButton.textContent = 'Test Chatbot';
                     testChatbotButton.style.marginTop = '20px';
                     testChatbotButton.onclick = () => {
-                        window.location.href = `/chatbot-demo.html?planId=${chatbotData.basicInfo.plan_id}`;
+                        console.log(chatbotData);
+                        alert('test chatbot button clicked');
+                        window.location.href = `/test-chatbot.html?chatbotId=${chatbotData.chatbotId}`;
                     };
                     // add the button to document.body
                     document.body.appendChild(testChatbotButton);

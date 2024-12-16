@@ -119,7 +119,7 @@ router.post('/save-chatbot-info', authMiddleware, async (req, res) => {
 router.post('/save-system-prompt', authMiddleware, async (req, res) => {
     const chatbotId = req.body.chatbotId;
     const systemPrompt = req.body.systemPrompt;
-    console.log('systemPrompt', systemPrompt);
+    console.log('systemPrompt: ', systemPrompt);
     await editChatbotSystemPrompt(chatbotId, systemPrompt);
     res.status(200).json({ success: true });
 });
