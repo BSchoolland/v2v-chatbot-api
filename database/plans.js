@@ -33,9 +33,16 @@ async function updatePlan(planId, userId, chatbotId, planName, planTypeId) {
     return plan;
 }
 
+// set chatbot id for a plan
+async function setChatbotIdForPlan(planId, chatbotId) {
+    console.log('Setting chatbot id for plan:', planId, chatbotId);
+    await dbRun('UPDATE plans SET chatbot_id = ? WHERE plan_id = ?', [chatbotId, planId]);
+}   
+
 module.exports = {
     getUserPlans,
     addPlan,
     getPlan,
-    updatePlan
+    updatePlan,
+    setChatbotIdForPlan
 };

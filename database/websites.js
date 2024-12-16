@@ -1,12 +1,11 @@
 const { dbRun, dbGet } = require('./database.js');
 
 // Add a new website to the database
-async function addWebsite(url) { // FIXME: add a chatbot_id parameter
+async function addWebsite(url, chatbotId) {
     try {
-      let chatbot_id = 1;
         const websiteId = await dbRun(
             `INSERT INTO website (domain, chatbot_id) VALUES (?, ?)`,
-            [url, chatbot_id]
+            [url, chatbotId]
         );
         return websiteId;
     } catch (err) {

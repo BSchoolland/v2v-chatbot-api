@@ -74,6 +74,8 @@
                 name: 'My Chatbot',
                 planId: planId
             })
+        }).then(response => response.json()).then(data => {
+            chatbotData.chatbotId = data.chatbotId;
         });
 
         // Step 1: URL Analysis
@@ -153,7 +155,7 @@
                 const response = await fetch('/website/api/chatbot-setup/save-chatbot-info', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name })
+                    body: JSON.stringify({ chatbotId: chatbotData.chatbotId, name })
                 });
                 
                 if (response.ok) {
@@ -175,7 +177,7 @@
                     const response = await fetch('/website/api/chatbot-setup/save-system-prompt', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ prompt })
+                    body: JSON.stringify({ chatbotId: chatbotData.chatbotId, systemPrompt: prompt })
                 });
                 
                 if (response.ok) {

@@ -24,9 +24,23 @@ async function getChatbotFromPlanId(planId) {
     return chatbot;
 }
 
+// edit a chatbot's name
+async function editChatbotName(chatbotId, name) {
+    const chatbot = await dbRun('UPDATE chatbots SET name = ? WHERE chatbot_id = ?', [name, chatbotId]);
+    return chatbot;
+}
+
+// edit a chatbot's system prompt
+async function editChatbotSystemPrompt(chatbotId, systemPrompt) {
+    const chatbot = await dbRun('UPDATE chatbots SET system_prompt = ? WHERE chatbot_id = ?', [systemPrompt, chatbotId]);
+    return chatbot;
+}
+
 module.exports = {
     createChatbot,
     getChatbot,
     updateChatbot,
-    getChatbotFromPlanId
+    getChatbotFromPlanId,
+    editChatbotName,
+    editChatbotSystemPrompt
 };

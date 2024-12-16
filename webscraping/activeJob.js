@@ -4,8 +4,9 @@ const getCleanHtmlContent = require('./htmlProcessing.js');
 const summarizeContent = require('./summarizeContent.js');
 
 class ActiveJob {
-    constructor(baseUrl, maxDepth = 5, maxPages = 50) { // TODO: think more about the maxPages parameter. Should it be higher? Should it also apply to external links?
+    constructor(baseUrl, chatbotId, maxDepth = 5, maxPages = 50) { // TODO: think more about the maxPages parameter. Should it be higher? Should it also apply to external links?
         this.baseUrl = baseUrl;
+        this.chatbotId = chatbotId;
         this.completedPages = [];
         this.queue = [{url: baseUrl, depth: 0}];
         this.externalLinks = new Set();
@@ -37,7 +38,7 @@ class ActiveJob {
                 this.websiteId = website.website_id;
             } else {
                 // add the website to the database
-                this.websiteId = await addWebsite(this.baseUrl);
+                this.websiteId = await addWebsite(this.baseUrl, this.chatbotId);
             }
         } catch (error) {
             console.error(`Error!: ${error.message}`);

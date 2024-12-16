@@ -6,9 +6,9 @@ const {ScraperManager} = require('../webscraping/scraperManager');
 
 const { authMiddleware } = require('./middleware');
 
-const { createChatbot, getChatbotFromPlanId } = require('../database/chatbots');
+const { createChatbot, getChatbotFromPlanId, editChatbotName, editChatbotSystemPrompt } = require('../database/chatbots');
 
-const { getPlan } = require('../database/plans');
+const { getPlan, setChatbotIdForPlan } = require('../database/plans');
 
 const scraper = new ScraperManager();
 
@@ -32,14 +32,15 @@ router.post('/create-chatbot', authMiddleware, async (req, res) => {
     // make sure there is not already a chatbot with this planId
     const existingChatbot = await getChatbotFromPlanId(planId);
     if (existingChatbot) {
-        // return chatbot id
+        
         return res.status(200).json({ success: true, chatbotId: existingChatbot.chatbot_id });
     }
     // model and system prompt will be set later
     const modelId = 0;
     const systemPrompt = "You are a helpful assistant.";
-    const chatbot = await createChatbot(planId, chatbotName, modelId, systemPrompt);
-    res.status(200).json({ success: true, chatbotId: chatbot.chatbot_id });
+    const chatbotId = await createChatbot(planId, chatbotName, modelId, systemPrompt);
+    await setChatbotIdForPlan(planId, chatbotId);
+    res.status(200).json({ success: true, chatbotId: chatbotId });
 });
 
 router.get('/scrape-site-progress', authMiddleware, async (req, res) => {
@@ -105,20 +106,21 @@ router.get('/scrape-site-progress', authMiddleware, async (req, res) => {
     req.on('close', () => {
         console.log('Client disconnected');
     });
-
 });
 
 router.post('/save-chatbot-info', authMiddleware, async (req, res) => {
-    console.log('save-chatbot-info');
-    const chatbotData = req.body;
-    console.log(chatbotData);
+    // TODO: add more fields than just name
+    const chatbotId = req.body.chatbotId;
+    const name = req.body.name;
+    await editChatbotName(chatbotId, name);
     res.status(200).json({ success: true });
 });
 
 router.post('/save-system-prompt', authMiddleware, async (req, res) => {
-    console.log('save-system-prompt');
-    const chatbotData = req.body;
-    console.log(chatbotData);
+    const chatbotId = req.body.chatbotId;
+    const systemPrompt = req.body.systemPrompt;
+    console.log('systemPrompt', systemPrompt);
+    await editChatbotSystemPrompt(chatbotId, systemPrompt);
     res.status(200).json({ success: true });
 });
 
