@@ -100,8 +100,15 @@ const initializeDatabase = () => {
           name TEXT NOT NULL,
           description TEXT,
           api_string TEXT,
+          service TEXT,
           message_cost REAL
         )
+      `);
+      // add the gpt-4o-mini model if it doesn't exist yet
+      db.run(`
+        INSERT INTO models (max_context, name, description, api_string, service, message_cost)
+        SELECT 8192, 'gpt-4o-mini', 'OpenAIs GPT-4o-mini model', 'gpt-4o-mini', 'openai', 1
+        WHERE NOT EXISTS (SELECT 1 FROM models WHERE name = 'gpt-4o-mini')
       `);
       db.run(`
         CREATE TABLE IF NOT EXISTS recorded_conversations (

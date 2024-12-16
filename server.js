@@ -1,10 +1,10 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const { initializeDatabase } = require('./database/database.js');
-const { registerUser } = require('./database/users.js');
 const { ScraperManager } = require('./webscraping/scraperManager.js');
 
 const websiteApiRoutes = require('./website-api/routes.js');
+const chatbotApiRoutes = require('./chatbot-api/routes.js');
 const app = express();
 const port = 3000;
 
@@ -21,11 +21,9 @@ process.on('unhandledRejection', (reason, promise) => {
     console.error('Unhandled Rejection:', reason);
 });
 
-
-
-// Use website API routes
+// Use chatbot and website API routes
 app.use('/website/api', websiteApiRoutes);
-
+app.use('/chatbot/api', chatbotApiRoutes);
 
 
 // set development-ui as the public folder

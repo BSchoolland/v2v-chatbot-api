@@ -36,7 +36,7 @@ router.post('/create-chatbot', authMiddleware, async (req, res) => {
         return res.status(200).json({ success: true, chatbotId: existingChatbot.chatbot_id });
     }
     // model and system prompt will be set later
-    const modelId = 0;
+    const modelId = 1;
     const systemPrompt = "You are a helpful assistant.";
     const chatbotId = await createChatbot(planId, chatbotName, modelId, systemPrompt);
     await setChatbotIdForPlan(planId, chatbotId);
