@@ -83,17 +83,18 @@ const initializeDatabase = () => {
         )
       `);
       db.run(`
-        CREATE TABLE IF NOT EXISTS chatbot (
+        CREATE TABLE IF NOT EXISTS chatbots (
           chatbot_id INTEGER PRIMARY KEY AUTOINCREMENT,
           plan_id INTEGER,
           model_id INTEGER NOT NULL,
+          name TEXT,
           system_prompt TEXT,
-          FOREIGN KEY (plan_id) REFERENCES plan(plan_id),
-          FOREIGN KEY (model_id) REFERENCES model(model_id)
+          FOREIGN KEY (plan_id) REFERENCES plans(plan_id),
+          FOREIGN KEY (model_id) REFERENCES models(model_id)
         )
       `);
       db.run(`
-        CREATE TABLE IF NOT EXISTS model (
+        CREATE TABLE IF NOT EXISTS models (
           model_id INTEGER PRIMARY KEY AUTOINCREMENT,
           max_context INTEGER NOT NULL,
           name TEXT NOT NULL,
@@ -103,13 +104,13 @@ const initializeDatabase = () => {
         )
       `);
       db.run(`
-        CREATE TABLE IF NOT EXISTS recorded_conversation (
+        CREATE TABLE IF NOT EXISTS recorded_conversations (
           recorded_conversation_id INTEGER PRIMARY KEY AUTOINCREMENT,
           chatbot_id INTEGER NOT NULL,
           conversation TEXT NOT NULL,
           page_url TEXT,
           date TEXT,
-          FOREIGN KEY (chatbot_id) REFERENCES chatbot(chatbot_id)
+          FOREIGN KEY (chatbot_id) REFERENCES chatbots(chatbot_id)
         )
       `);
       db.run(`
@@ -118,7 +119,7 @@ const initializeDatabase = () => {
           chatbot_id INTEGER NOT NULL,
           domain TEXT NOT NULL,
           last_crawled TEXT,
-          FOREIGN KEY (chatbot_id) REFERENCES chatbot(chatbot_id)
+          FOREIGN KEY (chatbot_id) REFERENCES chatbots(chatbot_id)
         )
       `);
       db.run(`

@@ -1,4 +1,3 @@
-const getCleanHtmlContent = require('./htmlProcessing.js');
 const puppeteer = require('puppeteer');
 const { JSDOM } = require('jsdom');
 const { ActiveJob } = require('./activeJob.js');
@@ -70,14 +69,15 @@ class ScraperManager {
         console.log('Scraper initialized.');
     }
 
-    async addJob(baseUrl, maxDepth = 5, maxPages = 50) {
+    async addJob(baseUrl, chatbotId, maxDepth = 5, maxPages = 50) {
         if (!this.isReady) {
             await this.init();
         }
-        let job = new ActiveJob(baseUrl, maxDepth, maxPages);
+        let job = new ActiveJob(baseUrl, chatbotId, maxDepth, maxPages);
         this.activeJobs.push(job);
         this.allJobs.push(job);
         this.runJobs();
+        return job;
     }   
 
     async runJobs() {

@@ -1,4 +1,4 @@
-const { dbAll, dbRun } = require('./database');
+const { dbAll, dbRun, dbGet } = require('./database');
 
 // Get all plans for a user
 async function getUserPlans(userId) {
@@ -22,7 +22,7 @@ async function addPlan(userId, chatbotId, planTypeId, planName) {
 
 // get a plan for a user
 async function getPlan(planId) {
-    const plan = await dbAll('SELECT * FROM plans WHERE plan_id = ?', [planId]);
+    const plan = await dbGet('SELECT * FROM plans WHERE plan_id = ?', [planId]);
     return plan;
 }
 
@@ -33,9 +33,16 @@ async function updatePlan(planId, userId, chatbotId, planName, planTypeId) {
     return plan;
 }
 
+// set chatbot id for a plan
+async function setChatbotIdForPlan(planId, chatbotId) {
+    console.log('Setting chatbot id for plan:', planId, chatbotId);
+    await dbRun('UPDATE plans SET chatbot_id = ? WHERE plan_id = ?', [chatbotId, planId]);
+}   
+
 module.exports = {
     getUserPlans,
     addPlan,
     getPlan,
-    updatePlan
+    updatePlan,
+    setChatbotIdForPlan
 };

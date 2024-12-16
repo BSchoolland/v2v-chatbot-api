@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chatbot</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <h1>Test Your Chatbot</h1>
+
+    <p>Enter a message below to chat with the chatbot.  If you're happy with the results, click the "Deploy Chatbot" button to move on to the final step.  Otherwise, you can always go back and edit the chatbot's settings to make sure it works the way you want.</p>
+    <div id="chatbox"></div>
+    <input type="text" id="userInput" placeholder="Type your message here..." onkeydown="if(event.key === 'Enter') sendMessage()">
+    <br></br>
+    <button onclick="window.location.href = '/chatbot-setup.html'">Edit Chatbot</button>
+    <button onclick="window.location.href = '/deploy-chatbot.html'">Deploy Chatbot</button>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.2.1/purify.min.js" integrity="sha512-PBUtfPzExa/FxBEi6tr884CPkb9Wh0kjchdWPECubdH16+G0JjkGQHgWCO7zgINZlXtmVnpII7KnZctAPUAZWg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script>
+        let chatId = -1;
+        async function sendMessage() {
+            const userInput = document.getElementById('userInput');
+            const chatbox = document.getElementById('chatbox');
+            const message = userInput.value;
+
+            if (message.trim() === '') return;
+
+            // Display user's message
+            const userMessage = document.createElement('div');
+            userMessage.textContent = 'You: ' + message;
+            chatbox.appendChild(userMessage);
+
+            // Clear input field
+            userInput.value = '';
+            const chatbotId = new URLSearchParams(window.location.search).get('chatbotId');
+            try {
+                const response = await fetch('/api/chatbot?chatbotId=' + chatbotId, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ message, chatId })
+                });
+                console.log(response);
+                const data = await response.json();
+                console.log(data);
+                // Display chatbot's reply
+                const botMessage = document.createElement('div');
+                try {
+                    // Sanitize the message
+                    const cleanMessage = DOMPurify.sanitize(data.message);
+                    // set innerHTML to display the message as HTML
+                    botMessage.innerHTML = 'Chatbot: ' + cleanMessage;
+                } catch (error) {
+                    console.error('Error sanitizing message:', error);
+                    // TODO: determine if this slightly less secure method is acceptable
+                    botMessage.innerHTML = 'Chatbot: ' + data.message;
+                }
+                
+                // set chatId
+                chatId = data.chatId;
+                chatbox.appendChild(botMessage);
+
+                // Scroll to the bottom of the chatbox
+                chatbox.scrollTop = chatbox.scrollHeight;
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+    </script>
+</body>
+</html>
