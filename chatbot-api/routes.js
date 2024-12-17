@@ -5,6 +5,8 @@ const router = express.Router();
 const { getSessionId, appendMessageToSession } = require('./sessions.js');
 const { getChatbotResponse } = require('./chatbotResponse.js');
 
+const showdown = require('showdown');
+
 router.post('/chat/:chatbotId', async (req, res) => {
     const chatId = getSessionId(req.body.chatId);
     appendMessageToSession(chatId, req.body.message, 'user');

@@ -13,6 +13,11 @@ const { getSystemPrompt } = require('../database/chatbots.js');
 // use tool requires tool name and params
 const { getTools, useTool } = require('./builtInTools.js');
 
+// showdown converts the ai's markdown to html
+const showdown = require('showdown');
+const converter = new showdown.Converter();
+
+
 // gets the model name from the database (e.g. gpt-4o-mini, claude-3-5-sonnet...)
 async function getChatbotModel(chatbotId) {
     const chatbot = await dbGet(`SELECT * FROM chatbots WHERE chatbot_id = ?`, [chatbotId]);
@@ -115,7 +120,7 @@ async function getChatbotResponse(sessionId, chatbotId) {
     const lastMessage = finalHistory[finalHistory.length - 1];
 
     return {
-        message: lastMessage.content,
+        message: converter.makeHtml(lastMessage.content),
         chatId: sessionId
     };
 }
