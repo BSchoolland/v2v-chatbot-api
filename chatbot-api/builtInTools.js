@@ -1,7 +1,6 @@
-const {getPageByUrl, db} = require('../database/database.js');
-const defaultPath = 'https://example.com';
+const {db} = require('../database/database.js');
 const { getPageByUrlAndWebsiteId } = require('../database/pages.js');
-
+const {getWebsiteById} = require('../database/websites.js');
 // a set of tools the chatbot can use to find information for the user
 tools = [
     {
@@ -47,7 +46,8 @@ async function readPageContent(params, metadata) {
     let path = params.path;
     // if the path does not begin with http, add the default path
     if (!path.startsWith("http")) {
-        path = defaultPath + path;
+        const website = await getWebsiteById(metadata.websiteId);
+        path = website.domain + path;
     }
     // if the path ends with #something, remove the #something
     if (path.includes("#")) {
@@ -72,6 +72,7 @@ async function readPageContent(params, metadata) {
         if (page) {
             return page.content;
         }
+        console.warn('No information found for path', path);
         return `No information found for path ${path}.  Are you sure you entered it correctly?`;
     }
 }

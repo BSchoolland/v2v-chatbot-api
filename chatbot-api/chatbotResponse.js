@@ -8,6 +8,8 @@ dotenv.config();
 const { appendMessageToSession, getSession } = require('./sessions.js');
 const { dbGet } = require('../database/database.js');
 
+const { getSystemPrompt } = require('../database/chatbots.js');
+
 // use tool requires tool name and params
 const { getTools, useTool } = require('./builtInTools.js');
 
@@ -65,8 +67,10 @@ async function getWebsiteId(chatbotId) {
 async function getChatbotResponse(sessionId, chatbotId) {
     const history = getSession(sessionId);
     let toolCallsExist = true;
+    // get the system prompt
+    const systemPrompt = await getSystemPrompt(chatbotId);
     while (toolCallsExist) {
-        const {message, tool_calls} = await llmCall('you are a helpful assistant', history, chatbotId);
+        const {message, tool_calls} = await llmCall(systemPrompt, history, chatbotId);
         
         // Add the assistant's message to the history
         appendMessageToSession(sessionId, message, 'assistant', tool_calls);

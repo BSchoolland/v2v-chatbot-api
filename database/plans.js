@@ -15,7 +15,6 @@ async function getUserPlans(userId) {
 
 // add a plan for a user
 async function addPlan(userId, chatbotId, planTypeId, planName) {
-    console.log('Adding plan:', userId, chatbotId, planTypeId, planName);   
     const plan = await dbRun('INSERT INTO plans (user_id, chatbot_id, plan_type_id, rate_limiting_policy, name) VALUES (?, ?, ?, ?, ?)', [userId, chatbotId, planTypeId, "default", planName]);
     return plan;
 }

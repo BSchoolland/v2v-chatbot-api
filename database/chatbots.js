@@ -42,6 +42,12 @@ async function editChatbotSystemPrompt(chatbotId, systemPrompt) {
     return chatbot;
 }
 
+// get system prompt
+async function getSystemPrompt(chatbotId) {
+    const chatbot = await dbGet('SELECT system_prompt FROM chatbots WHERE chatbot_id = ?', [chatbotId]);
+    return chatbot.system_prompt;
+}
+
 module.exports = {
     createChatbot,
     getChatbot,
@@ -49,5 +55,6 @@ module.exports = {
     getChatbotFromPlanId,
     editChatbotName,
     editChatbotSystemPrompt,
-    assignWebsiteIdToChatbot
+    assignWebsiteIdToChatbot,
+    getSystemPrompt
 };
