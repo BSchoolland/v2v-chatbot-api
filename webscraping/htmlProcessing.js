@@ -2,7 +2,8 @@
 const { JSDOM } = require('jsdom');
 
 // Define the function
-async function getCleanHtmlContent(content, keepAttributes = []) {
+async function getCleanHtmlContent(content, keepAttributes = ['href', 'alt', 'id']) {
+    // href allows for navigation, alt allows for accessibility, id allows for identification
     const dom = new JSDOM(content);
     const { document, Node } = dom.window; // Define Node for easier reference
 

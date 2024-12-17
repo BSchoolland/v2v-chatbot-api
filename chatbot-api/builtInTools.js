@@ -61,7 +61,7 @@ async function readPageContent(params, metadata) {
     if (path[path.length - 1] === "/") {
         path = path.slice(0, -1);
     }
-
+    console.log('Chatbot referenced:', path);
     const page = await getPageByUrlAndWebsiteId(metadata.websiteId, path);
     if (page) {
         return page.content;
