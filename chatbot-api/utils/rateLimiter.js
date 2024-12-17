@@ -1,10 +1,11 @@
 const { dbGet, dbRun } = require('../../database/database.js');
 
 // Rate limit window in milliseconds
-// (2 requests per minute for testing)
-// TODO: change to 10 requests per hour, or allow client to set
+// (10 requests per minute for testing)
+// TODO: allow client to set
+// TODO: return how long until next request is allowed
 const WINDOW_MS = 60 * 1000;
-const MAX_REQUESTS = 2; 
+const MAX_REQUESTS = 10; 
 
 async function generateVisitorId(req) {
     const ip = req.ip || req.connection.remoteAddress;
