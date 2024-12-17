@@ -132,6 +132,16 @@ const initializeDatabase = () => {
         )
       `);
       db.run(`
+        CREATE TABLE IF NOT EXISTS rate_limits (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          visitor_id TEXT NOT NULL,
+          timestamp INTEGER NOT NULL
+        )
+      `);
+      db.run(`
+        CREATE INDEX IF NOT EXISTS idx_visitor_timestamp ON rate_limits(visitor_id, timestamp);
+      `);
+      db.run(`
         CREATE TABLE IF NOT EXISTS page (
           page_id INTEGER PRIMARY KEY AUTOINCREMENT,
           website_id INTEGER NOT NULL,
