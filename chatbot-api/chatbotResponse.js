@@ -39,7 +39,7 @@ async function openAiCall(systemPrompt, history, chatbotId, model) {
         }),
     });
     const responseData = await response.json();
-    const message = responseData.choices[0].message.content
+    const message = responseData.choices[0].message.content;
     const tool_calls = responseData.choices[0].message.tool_calls;
     return {message, tool_calls};
 }

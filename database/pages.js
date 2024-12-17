@@ -1,4 +1,4 @@
-const { dbRun, dbGet } = require('./database.js');
+const { dbRun, dbGet, dbAll } = require('./database.js');
 
 // Add a new page to the database
 async function addPage(websiteId, url, summary, content, internal = true, internalLinks = '', externalLinks = '') {
@@ -16,10 +16,13 @@ async function addPage(websiteId, url, summary, content, internal = true, intern
 // Retrieve pages for a website
 async function getPagesByWebsite(websiteId) {
     try {
-        const pages = await dbGet(
+        const pages = await dbAll(
             `SELECT * FROM page WHERE website_id = ?`,
             [websiteId]
         );
+        if (!Array.isArray(pages)) {
+            return [pages];
+        }
         return pages;
     } catch (err) {
         throw err;
