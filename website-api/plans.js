@@ -13,7 +13,6 @@ const { authMiddleware } = require('./middleware.js');
 
 // Add a plan for a user
 router.post('/add-plan', authMiddleware, async (req, res) => {
-    console.log('req.body:', req.body);
     try {
         const { chatbotId, planTypeId, planName } = req.body;
         const plan = await addPlan(req.userId, chatbotId, planTypeId, planName);

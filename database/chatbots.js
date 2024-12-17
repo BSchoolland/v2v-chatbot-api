@@ -8,9 +8,7 @@ async function createChatbot(plan_id, name, model_id, system_prompt, website_id)
 
 // assign a website id to a chatbot
 async function assignWebsiteIdToChatbot(chatbotId, websiteId) {
-    console.log(`Assigning website ID ${websiteId} to chatbot ${chatbotId}`);
     const chatbot = await dbRun('UPDATE chatbots SET website_id = ? WHERE chatbot_id = ?', [websiteId, chatbotId]);
-    console.log('Website ID assignment complete');
     return chatbot;
 }
 

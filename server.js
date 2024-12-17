@@ -37,13 +37,6 @@ initializeDatabase()
         app.listen(port, () => {
             console.log(`Server is running on http://localhost:${port}`);
         });
-        try {
-            console.log('User registered successfully');
-        } catch (err) {
-            console.error('Failed to register user:', err);
-        };
-        // scraperManager.addJob('https://bschoolland.com', 5, 200);
-
     })
     .catch((err) => {
         console.error('Failed to initialize database, exiting:', err);

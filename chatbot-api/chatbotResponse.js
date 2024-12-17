@@ -20,7 +20,6 @@ async function getChatbotModel(chatbotId) {
 
 // make an openai call
 async function openAiCall(systemPrompt, history, chatbotId, model) {
-    console.log("sending request to openai's", model);
     const historyWithSystemPrompt = [
         { role: "system", content: systemPrompt },
         ...history
@@ -60,7 +59,6 @@ async function llmCall(systemPrompt, history, chatbotId) {
 
 async function getWebsiteId(chatbotId) {
     const chatbot = await dbGet(`SELECT * FROM chatbots WHERE chatbot_id = ?`, [chatbotId]);
-    console.log(chatbot);
     return chatbot.website_id;
 }
 

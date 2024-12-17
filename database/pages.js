@@ -29,7 +29,6 @@ async function getPagesByWebsite(websiteId) {
 // retrieve page by url and website id
 async function getPageByUrlAndWebsiteId(websiteId, url) {
     try {
-        console.log('SELECT * FROM page WHERE website_id =', websiteId, 'AND url =', url);
         const page = await dbGet(
             `SELECT * FROM page WHERE website_id = ? AND url = ?`,
             [websiteId, url]

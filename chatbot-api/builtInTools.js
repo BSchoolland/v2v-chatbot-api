@@ -62,9 +62,7 @@ async function readPageContent(params, metadata) {
         path = path.slice(0, -1);
     }
 
-    console.log(metadata.websiteId, path);
     const page = await getPageByUrlAndWebsiteId(metadata.websiteId, path);
-    console.log('page', page);
     if (page) {
         return page.content;
     } else {
