@@ -28,9 +28,12 @@ class ActiveJob {
 
     async init() {
         if (this.isInitializing || this.isReady) {
-            return;
+            // wait for ready
+            await new Promise(resolve => setTimeout(resolve, 100));
+            return this.websiteId;
         }
         this.isInitializing = true;
+        console.log('ActiveJob init');
         // check if the website exists in the database
         try {
             const website = await getWebsiteByUrl(this.baseUrl);
@@ -40,13 +43,26 @@ class ActiveJob {
                 // add the website to the database
                 this.websiteId = await addWebsite(this.baseUrl, this.chatbotId);
             }
+            console.log('ActiveJob websiteId created', this.websiteId);
         } catch (error) {
             console.error(`Error!: ${error.message}`);
         } finally {
             this.isReady = true;
             this.isInitializing = false;
-            return;
+            return this.websiteId;
         }
+    }
+
+    async getWebsiteId() {
+        if (!this.isReady) {
+            await this.init();
+        }
+        // if the website id is not set, throw an error
+        if (!this.websiteId) {
+            throw new Error('Website ID not found');
+        }
+        console.log('ActiveJob websiteId', this.websiteId);
+        return this.websiteId;
     }
 
     getCurrentPage() {

@@ -1,5 +1,6 @@
 const {getPageByUrl, db} = require('../database/database.js');
 const defaultPath = 'https://example.com';
+const { getPageByUrlAndWebsiteId } = require('../database/pages.js');
 
 // a set of tools the chatbot can use to find information for the user
 tools = [
@@ -44,12 +45,10 @@ async function readPageContent(params, metadata) {
     // convert params to json
     params = JSON.parse(params);
     let path = params.path;
-    console.log(path);
     // if the path does not begin with http, add the default path
     if (!path.startsWith("http")) {
         path = defaultPath + path;
     }
-    console.log(path);
     // if the path ends with #something, remove the #something
     if (path.includes("#")) {
         path = path.split("#")[0];
@@ -58,13 +57,14 @@ async function readPageContent(params, metadata) {
     if (path.includes("://www.")) {
         path = path.replace("://www.", "://");
     }
-    // if there's no / at the end add it
-    if (path[path.length - 1] !== "/") {
-        path = path + "/";
+    // if there's a / at the end remove it
+    if (path[path.length - 1] === "/") {
+        path = path.slice(0, -1);
     }
 
-    console.log(path);
+    console.log(metadata.websiteId, path);
     const page = await getPageByUrlAndWebsiteId(metadata.websiteId, path);
+    console.log('page', page);
     if (page) {
         return page.content;
     } else {

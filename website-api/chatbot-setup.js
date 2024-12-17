@@ -6,7 +6,7 @@ const {ScraperManager} = require('../webscraping/scraperManager');
 
 const { authMiddleware } = require('./middleware');
 
-const { createChatbot, getChatbotFromPlanId, editChatbotName, editChatbotSystemPrompt } = require('../database/chatbots');
+const { createChatbot, getChatbotFromPlanId, editChatbotName, editChatbotSystemPrompt, assignWebsiteIdToChatbot } = require('../database/chatbots');
 
 const { getPlan, setChatbotIdForPlan } = require('../database/plans');
 
@@ -38,7 +38,8 @@ router.post('/create-chatbot', authMiddleware, async (req, res) => {
     // model and system prompt will be set later
     const modelId = 1;
     const systemPrompt = "You are a helpful assistant.";
-    const chatbotId = await createChatbot(planId, chatbotName, modelId, systemPrompt);
+    const websiteId = -1;
+    const chatbotId = await createChatbot(planId, chatbotName, modelId, systemPrompt, websiteId);
     await setChatbotIdForPlan(planId, chatbotId);
     res.status(200).json({ success: true, chatbotId: chatbotId });
 });
@@ -74,8 +75,10 @@ router.get('/scrape-site-progress', authMiddleware, async (req, res) => {
     }
     const chatbotId = chatbot.chatbot_id;
 
-    const job = await scraper.addJob(url, chatbotId);
-    
+    const {job, websiteId} = await scraper.addJob(url, chatbotId);
+    console.log('websiteId', websiteId);
+    // assign the website id to the chatbot
+    await assignWebsiteIdToChatbot(chatbotId, websiteId);
     // Send initial status
     sendUpdate({ status: 'started', message: 'Starting website analysis...' });
 

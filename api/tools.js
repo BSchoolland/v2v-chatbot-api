@@ -16,10 +16,6 @@ tools = [
                         "type": "string",
                         "description": "The path to read from, for example '/' for the landing page of the website.",
                     }
-                    // "queryString": {
-                    //     "type": "string",
-                    //     "description": "The query string to append to the path, for example '?id=123'.",
-                    // },
                 },
                 "required": ["path"],
             },

@@ -86,10 +86,12 @@ const initializeDatabase = () => {
         CREATE TABLE IF NOT EXISTS chatbots (
           chatbot_id INTEGER PRIMARY KEY AUTOINCREMENT,
           plan_id INTEGER,
+          website_id INTEGER,
           model_id INTEGER NOT NULL,
           name TEXT,
           system_prompt TEXT,
           FOREIGN KEY (plan_id) REFERENCES plans(plan_id),
+          FOREIGN KEY (website_id) REFERENCES website(website_id),
           FOREIGN KEY (model_id) REFERENCES models(model_id)
         )
       `);

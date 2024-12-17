@@ -1,8 +1,16 @@
 const { dbRun, dbGet } = require('./database.js');
 
 // create a chatbot
-async function createChatbot(plan_id, name, model_id, system_prompt) {
-    const chatbot = await dbRun('INSERT INTO chatbots (plan_id, name, model_id, system_prompt) VALUES (?, ?, ?, ?)', [plan_id, name, model_id, system_prompt]);
+async function createChatbot(plan_id, name, model_id, system_prompt, website_id) {
+    const chatbot = await dbRun('INSERT INTO chatbots (plan_id, name, model_id, system_prompt, website_id) VALUES (?, ?, ?, ?, ?)', [plan_id, name, model_id, system_prompt, website_id]);
+    return chatbot;
+}
+
+// assign a website id to a chatbot
+async function assignWebsiteIdToChatbot(chatbotId, websiteId) {
+    console.log(`Assigning website ID ${websiteId} to chatbot ${chatbotId}`);
+    const chatbot = await dbRun('UPDATE chatbots SET website_id = ? WHERE chatbot_id = ?', [websiteId, chatbotId]);
+    console.log('Website ID assignment complete');
     return chatbot;
 }
 
@@ -42,5 +50,6 @@ module.exports = {
     updateChatbot,
     getChatbotFromPlanId,
     editChatbotName,
-    editChatbotSystemPrompt
+    editChatbotSystemPrompt,
+    assignWebsiteIdToChatbot
 };

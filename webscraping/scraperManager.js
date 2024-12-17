@@ -74,10 +74,12 @@ class ScraperManager {
             await this.init();
         }
         let job = new ActiveJob(baseUrl, chatbotId, maxDepth, maxPages);
+        const websiteId = await job.getWebsiteId();
         this.activeJobs.push(job);
         this.allJobs.push(job);
         this.runJobs();
-        return job;
+        console.log('Job added:', job, websiteId);
+        return {job, websiteId};
     }   
 
     async runJobs() {

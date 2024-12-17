@@ -38,8 +38,8 @@ function getSessionId(chatId) {
     return chatId;
 }
 
-function appendMessageToSession(chatId, message, role = 'user') {
-    sessions[chatId].push({ role: role, content: message });
+function appendMessageToSession(chatId, message, role = 'user', tool_calls = null, tool_call_id = null, tool_name = null) {
+    sessions[chatId].push({ role: role, content: message, tool_calls: tool_calls, tool_call_id: tool_call_id, tool_name: tool_name });
 }
 
 function getSession(chatId) {
