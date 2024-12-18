@@ -9,12 +9,10 @@ WORKDIR /home/pptruser/app
 ENV PUPPETEER_CACHE_DIR=/home/pptruser/.cache/puppeteer
 
 COPY package*.json ./
-
-# Copy the rest of the application
-COPY . .
-
 # Install dependencies
 RUN npm install
+# Copy the rest of the application
+COPY . .
 
 # Install Chrome browser and verify installation
 RUN npx puppeteer browsers install chrome && \
