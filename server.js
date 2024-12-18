@@ -7,6 +7,9 @@ const websiteApiRoutes = require('./website-api/routes.js');
 const chatbotApiRoutes = require('./chatbot-api/routes.js');
 const app = express();
 const port = 3000;
+// allow all cors origins as this is a public api
+const cors = require('cors');
+app.use(cors());
 
 // Use bodyParser middleware before defining routes
 app.use(bodyParser.json());

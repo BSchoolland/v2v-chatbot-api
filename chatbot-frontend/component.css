@@ -1,0 +1,23 @@
+#v2v-chatbot-component-63v93w6d11sj {
+    all: initial;
+    position: fixed;
+    bottom: 0;
+    right: 0;
+    width: 300px;
+    height: 400px;
+    background-color: white;
+    border: 1px solid black;
+}
+
+#v2v-chatbot-component-63v93w6d11sj h1 {
+    font-size: 20px;
+    font-weight: bold;
+    margin: 0;
+    padding: 0;
+}
+
+#v2v-chatbot-component-63v93w6d11sj p {
+    font-size: 16px;
+    margin: 0;
+    padding: 0;
+}
