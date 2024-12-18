@@ -20,7 +20,7 @@ async function addPage(websiteId, url, summary, content, internal = true, intern
             const pageId = await dbRun(
                 `INSERT INTO page (website_id, internal, url, summary, content, date_updated) 
                 VALUES (?, ?, ?, ?, ?, ?)`,
-                [websiteId, true, url, summary, content, new Date().toISOString()]
+                [websiteId, internal, url, summary, content, new Date().toISOString()]
             );
             return pageId;
         }

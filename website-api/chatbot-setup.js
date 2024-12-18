@@ -51,7 +51,7 @@ router.get('/scrape-site-progress', authMiddleware, async (req, res) => {
     if (!ownsThisPlan) {
         return res.status(403).json({ success: false, message: 'Unauthorized' });
     }
-    const url = req.query.url;
+    let url = req.query.url;
     if (!url) {
         return res.status(400).send('URL is required');
     }
