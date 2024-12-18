@@ -1,0 +1,33 @@
+name: Deploy to VPS
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install SSH key
+        uses: shimataro/ssh-key-action@v2
+        with:
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          known_hosts: ${{ secrets.SSH_KNOWN_HOSTS }}
+          
+      - name: Deploy to VPS
+        run: |
+          ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} '\
+            cd /v2v-chatbot-api && \
+            git pull origin main && \
+            # Build the new image
+            docker-compose build --no-cache && \
+            # Start the new container while the old one is still running
+            docker-compose up -d --scale puppeteer-app=2 --no-recreate && \
+            # Wait for the new container to be ready
+            sleep 10 && \
+            # Remove the old container
+            docker-compose up -d --scale puppeteer-app=1 --no-recreate' 

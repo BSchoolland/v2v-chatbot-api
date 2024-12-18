@@ -1,5 +1,5 @@
 const { dbRun, dbGet } = require('./database.js');
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 
 // Register a new user
 async function registerUser(email, password) {
