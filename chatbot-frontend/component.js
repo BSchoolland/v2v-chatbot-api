@@ -15,7 +15,6 @@ document.addEventListener('DOMContentLoaded', () => {
     
     script.onload = () => {
         console.log('DOMPurify loaded!');
-        // Use DOMPurify or execute any logic depending on the library
     };
     
     script.onerror = () => {
