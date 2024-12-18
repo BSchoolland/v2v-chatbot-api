@@ -56,6 +56,7 @@ const initializeDatabase = () => {
           user_id INTEGER NOT NULL,
           remaining_credits INTEGER DEFAULT 0,
           additional_credits INTEGER DEFAULT 0,
+          renews_at TEXT,
           rate_limiting_policy TEXT,
           name TEXT,
           FOREIGN KEY (chatbot_id) REFERENCES chatbot(chatbot_id),
@@ -86,10 +87,12 @@ const initializeDatabase = () => {
         CREATE TABLE IF NOT EXISTS chatbots (
           chatbot_id INTEGER PRIMARY KEY AUTOINCREMENT,
           plan_id INTEGER,
+          website_id INTEGER,
           model_id INTEGER NOT NULL,
           name TEXT,
           system_prompt TEXT,
           FOREIGN KEY (plan_id) REFERENCES plans(plan_id),
+          FOREIGN KEY (website_id) REFERENCES website(website_id),
           FOREIGN KEY (model_id) REFERENCES models(model_id)
         )
       `);
@@ -100,8 +103,15 @@ const initializeDatabase = () => {
           name TEXT NOT NULL,
           description TEXT,
           api_string TEXT,
-          message_cost REAL
+          service TEXT,
+          message_cost INTEGER NOT NULL
         )
+      `);
+      // add the gpt-4o-mini model if it doesn't exist yet
+      db.run(`
+        INSERT INTO models (max_context, name, description, api_string, service, message_cost)
+        SELECT 8192, 'gpt-4o-mini', 'OpenAIs GPT-4o-mini model', 'gpt-4o-mini', 'openai', 1
+        WHERE NOT EXISTS (SELECT 1 FROM models WHERE name = 'gpt-4o-mini')
       `);
       db.run(`
         CREATE TABLE IF NOT EXISTS recorded_conversations (
@@ -121,6 +131,16 @@ const initializeDatabase = () => {
           last_crawled TEXT,
           FOREIGN KEY (chatbot_id) REFERENCES chatbots(chatbot_id)
         )
+      `);
+      db.run(`
+        CREATE TABLE IF NOT EXISTS rate_limits (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          visitor_id TEXT NOT NULL,
+          timestamp INTEGER NOT NULL
+        )
+      `);
+      db.run(`
+        CREATE INDEX IF NOT EXISTS idx_visitor_timestamp ON rate_limits(visitor_id, timestamp);
       `);
       db.run(`
         CREATE TABLE IF NOT EXISTS page (

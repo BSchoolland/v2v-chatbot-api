@@ -34,7 +34,7 @@
             userInput.value = '';
             const chatbotId = new URLSearchParams(window.location.search).get('chatbotId');
             try {
-                const response = await fetch('/api/chatbot?chatbotId=' + chatbotId, {
+                const response = await fetch(`/chatbot/api/chat/${chatbotId}`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'

@@ -1,13 +1,29 @@
-const { dbRun, dbGet } = require('./database.js');
+const { dbRun, dbGet, dbAll } = require('./database.js');
 
-// Add a new page to the database
+// Add a new page to the database or update if exists
 async function addPage(websiteId, url, summary, content, internal = true, internalLinks = '', externalLinks = '') {
     try {
-        const pageId = await dbRun(
-            `INSERT INTO page (website_id, internal, url, summary, content, date_updated) VALUES (?, ?, ?, ?, ?, ?)`,
-            [websiteId, true, url, summary, content, new Date().toISOString()]
+        const existingPage = await dbGet(
+            `SELECT page_id FROM page WHERE website_id = ? AND url = ?`,
+            [websiteId, url]
         );
-        return pageId;
+
+        if (existingPage) {
+            await dbRun(
+                `UPDATE page 
+                SET summary = ?, content = ?, date_updated = ?
+                WHERE website_id = ? AND url = ?`,
+                [summary, content, new Date().toISOString(), websiteId, url]
+            );
+            return existingPage.page_id;
+        } else {
+            const pageId = await dbRun(
+                `INSERT INTO page (website_id, internal, url, summary, content, date_updated) 
+                VALUES (?, ?, ?, ?, ?, ?)`,
+                [websiteId, true, url, summary, content, new Date().toISOString()]
+            );
+            return pageId;
+        }
     } catch (err) {
         throw err;
     }
@@ -16,10 +32,13 @@ async function addPage(websiteId, url, summary, content, internal = true, intern
 // Retrieve pages for a website
 async function getPagesByWebsite(websiteId) {
     try {
-        const pages = await dbGet(
+        const pages = await dbAll(
             `SELECT * FROM page WHERE website_id = ?`,
             [websiteId]
         );
+        if (!Array.isArray(pages)) {
+            return [pages];
+        }
         return pages;
     } catch (err) {
         throw err;

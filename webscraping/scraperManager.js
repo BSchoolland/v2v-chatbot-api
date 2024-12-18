@@ -66,7 +66,7 @@ class ScraperManager {
         }
         this.isReady = true;
         this.isInitializing = false;
-        console.log('Scraper initialized.');
+        console.log('Scraper initialized');
     }
 
     async addJob(baseUrl, chatbotId, maxDepth = 5, maxPages = 50) {
@@ -74,10 +74,12 @@ class ScraperManager {
             await this.init();
         }
         let job = new ActiveJob(baseUrl, chatbotId, maxDepth, maxPages);
+        const websiteId = await job.getWebsiteId();
         this.activeJobs.push(job);
         this.allJobs.push(job);
         this.runJobs();
-        return job;
+        console.log('Job added:', job, websiteId);
+        return {job, websiteId};
     }   
 
     async runJobs() {
@@ -87,7 +89,6 @@ class ScraperManager {
         try {
             while (this.isRunning) {
                 const availablePages = this.pages.filter(p => !p.assigned);
-                console.log('Available pages:', availablePages.length);
                 // No pages available, wait and try again
                 if (availablePages.length === 0) {
                     await new Promise(resolve => setTimeout(resolve, 100));
@@ -96,18 +97,14 @@ class ScraperManager {
         
                 // Filter out completed jobs
                 this.activeJobs = this.activeJobs.filter(job => !job.isJobComplete());
-                console.log('Active jobs:', this.activeJobs.length);
                 // Stop if no more jobs
                 if (this.activeJobs.length === 0) {
                     // wait n seconds for any remaining pages to complete
                     // call the log completion function on all jobs
-                    console.log('\n\n\n\n\n\n -----ALL JOBS COMPLETED-----');
                     for (let job of this.allJobs) {
                         job.isJobComplete();
-                        console.log('\n\n\n');
                     }
                     this.isRunning = false;
-                    console.log('All jobs completed.');
                     break;
                 }
                 const tasks = [];
@@ -133,9 +130,7 @@ class ScraperManager {
                         attempts++;
                     }
                 }
-                console.log('Tasks:', tasks.length);
                 if (tasks.length === 0) {
-                    console.log('No work to do, waiting...');
                     await new Promise(resolve => setTimeout(resolve, 100));
                     continue;
                 }
@@ -211,15 +206,11 @@ class ScraperManager {
             const content = await page.content();
             return content;
         } catch (error) {
-            console.error('Error fetching page content:', error.message);
-            console.log('Trying without waiting for network idle...');
             try {
                 await page.goto(pageUrl, { timeout: 30000, waitUntil: 'domcontentloaded' });
-                console.log('Success!');
                 return await page.content();
             } catch (error) {
-                console.error('Error fetching page content:', error.message);
-                console.log('Giving up on page:', pageUrl, ' :(');
+                console.warn('Error fetching page content:', error.message);
                 return '';
             }
         }

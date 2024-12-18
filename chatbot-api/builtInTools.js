@@ -1,7 +1,6 @@
-const {getPageByUrl, db} = require('./database.js');
-const url = require("./url.js");
-const defaultPath = url;
-
+const {db} = require('../database/database.js');
+const { getPageByUrlAndWebsiteId } = require('../database/pages.js');
+const {getWebsiteById} = require('../database/websites.js');
 // a set of tools the chatbot can use to find information for the user
 tools = [
     {
@@ -21,37 +20,35 @@ tools = [
             },
         },
     },
-    {
-        "type": "function",
-        "function": {
-            "name": "siteWideSearch",
-            "description": "Searches the entire website for a specific term, returning a list of pages that contain the term.  Useful if you're not sure where the information the user is looking for might be located.",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "term": {
-                        "type": "string",
-                        "description": "The term to search for.",
-                    },
-                },
-                "required": ["term"],
-            },
-        },
-    },
+    // {
+    //     "type": "function",
+    //     "function": {
+    //         "name": "siteWideSearch",
+    //         "description": "Searches the entire website for a specific term, returning a list of pages that contain the term.  Useful if you're not sure where the information the user is looking for might be located.",
+    //         "parameters": {
+    //             "type": "object",
+    //             "properties": {
+    //                 "term": {
+    //                     "type": "string",
+    //                     "description": "The term to search for.",
+    //                 },
+    //             },
+    //             "required": ["term"],
+    //         },
+    //     },
+    // },
 ]
 
-
-
-async function readPageContent(params) {
+// read the content of a page
+async function readPageContent(params, metadata) {
     // convert params to json
     params = JSON.parse(params);
     let path = params.path;
-    console.log(path);
     // if the path does not begin with http, add the default path
     if (!path.startsWith("http")) {
-        path = defaultPath + path;
+        const website = await getWebsiteById(metadata.websiteId);
+        path = website.domain + path;
     }
-    console.log(path);
     // if the path ends with #something, remove the #something
     if (path.includes("#")) {
         path = path.split("#")[0];
@@ -60,32 +57,33 @@ async function readPageContent(params) {
     if (path.includes("://www.")) {
         path = path.replace("://www.", "://");
     }
-    // if there's no / at the end add it
-    if (path[path.length - 1] !== "/") {
-        path = path + "/";
+    // if there's a / at the end remove it
+    if (path[path.length - 1] === "/") {
+        path = path.slice(0, -1);
     }
-    console.log(path);
-    const page = await getPageByUrl(path);
+    console.log('Chatbot referenced:', path);
+    const page = await getPageByUrlAndWebsiteId(metadata.websiteId, path);
     if (page) {
         return page.content;
     } else {
         // try with www. instead
         path = path.replace("://", "://www.");
-        const page = await getPageByUrl(path);
+        const page = await getPageByUrlAndWebsiteId(metadata.websiteId, path);
         if (page) {
             return page.content;
         }
+        console.warn('No information found for path', path);
         return `No information found for path ${path}.  Are you sure you entered it correctly?`;
     }
 }
 
-// FIXME: this function returns results from all pages in the database, not just the current website
-async function siteWideSearch(params) {
+// search the entire website for a term
+async function siteWideSearch(params, metadata) {
     // convert params to json
     params = JSON.parse(params);
     const searchString = params.term;
     return new Promise((resolve, reject) => {
-        db.all('SELECT url, content FROM pages', (err, rows) => {
+        db.all('SELECT url, content FROM page WHERE website_id = ?', [metadata.websiteId], (err, rows) => {
             if (err) {
                 reject(err);
             } else {
@@ -100,4 +98,17 @@ async function siteWideSearch(params) {
     });
 }
 
-module.exports = {readPageContent, siteWideSearch, tools};
+async function getTools(chatbotId) {
+    // TODO: allow different tools for different chatbots
+    return tools;
+}
+
+function useTool(toolName, params, metadata = {}) {
+    if (toolName === "readPageContent") {
+        return readPageContent(params, metadata);
+    } else if (toolName === "siteWideSearch") {
+        return siteWideSearch(params, metadata);
+    }
+}
+
+module.exports = {getTools, useTool};

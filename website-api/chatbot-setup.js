@@ -6,7 +6,7 @@ const {ScraperManager} = require('../webscraping/scraperManager');
 
 const { authMiddleware } = require('./middleware');
 
-const { createChatbot, getChatbotFromPlanId, editChatbotName, editChatbotSystemPrompt } = require('../database/chatbots');
+const { createChatbot, getChatbotFromPlanId, editChatbotName, editChatbotSystemPrompt, assignWebsiteIdToChatbot } = require('../database/chatbots');
 
 const { getPlan, setChatbotIdForPlan } = require('../database/plans');
 
@@ -14,7 +14,6 @@ const scraper = new ScraperManager();
 
 // user owns plan
 async function userOwnsPlan(userId, planId) {
-    console.log('userOwnsPlan', userId, planId);
     const plan = await getPlan(planId);
     return plan.user_id === userId;
 }
@@ -36,9 +35,10 @@ router.post('/create-chatbot', authMiddleware, async (req, res) => {
         return res.status(200).json({ success: true, chatbotId: existingChatbot.chatbot_id });
     }
     // model and system prompt will be set later
-    const modelId = 0;
+    const modelId = 1;
     const systemPrompt = "You are a helpful assistant.";
-    const chatbotId = await createChatbot(planId, chatbotName, modelId, systemPrompt);
+    const websiteId = -1;
+    const chatbotId = await createChatbot(planId, chatbotName, modelId, systemPrompt, websiteId);
     await setChatbotIdForPlan(planId, chatbotId);
     res.status(200).json({ success: true, chatbotId: chatbotId });
 });
@@ -56,6 +56,11 @@ router.get('/scrape-site-progress', authMiddleware, async (req, res) => {
         return res.status(400).send('URL is required');
     }
 
+    // if the url ends with a /, remove it
+    if (url.endsWith('/')) {
+        url = url.slice(0, -1);
+    }
+
     // Set headers for SSE
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
@@ -68,14 +73,14 @@ router.get('/scrape-site-progress', authMiddleware, async (req, res) => {
 
     // get the id of the chatbot belonging to this plan
     const chatbot = await getChatbotFromPlanId(planId);
-    console.log('chatbot', chatbot);
     if (!chatbot) {
         return res.status(404).json({ success: false, message: 'Chatbot not found' });
     }
     const chatbotId = chatbot.chatbot_id;
 
-    const job = await scraper.addJob(url, chatbotId);
-    
+    const {job, websiteId} = await scraper.addJob(url, chatbotId);
+    // assign the website id to the chatbot
+    await assignWebsiteIdToChatbot(chatbotId, websiteId);
     // Send initial status
     sendUpdate({ status: 'started', message: 'Starting website analysis...' });
 
@@ -104,7 +109,7 @@ router.get('/scrape-site-progress', authMiddleware, async (req, res) => {
 
     // Handle client disconnect
     req.on('close', () => {
-        console.log('Client disconnected');
+
     });
 });
 
@@ -119,7 +124,6 @@ router.post('/save-chatbot-info', authMiddleware, async (req, res) => {
 router.post('/save-system-prompt', authMiddleware, async (req, res) => {
     const chatbotId = req.body.chatbotId;
     const systemPrompt = req.body.systemPrompt;
-    console.log('systemPrompt: ', systemPrompt);
     await editChatbotSystemPrompt(chatbotId, systemPrompt);
     res.status(200).json({ success: true });
 });

@@ -28,7 +28,9 @@ class ActiveJob {
 
     async init() {
         if (this.isInitializing || this.isReady) {
-            return;
+            // wait for ready
+            await new Promise(resolve => setTimeout(resolve, 100));
+            return this.websiteId;
         }
         this.isInitializing = true;
         // check if the website exists in the database
@@ -45,8 +47,19 @@ class ActiveJob {
         } finally {
             this.isReady = true;
             this.isInitializing = false;
-            return;
+            return this.websiteId;
         }
+    }
+
+    async getWebsiteId() {
+        if (!this.isReady) {
+            await this.init();
+        }
+        // if the website id is not set, throw an error
+        if (!this.websiteId) {
+            throw new Error('Website ID not found');
+        }
+        return this.websiteId;
     }
 
     getCurrentPage() {
@@ -114,7 +127,6 @@ class ActiveJob {
 
     // FIXME: this has O(n log n) time complexity, can be optimized to O(log n) using a priority queue
     queuePage(url, depth) {
-        console.log(`Queueing page: ${url}`);
         if (depth <= this.maxDepth) {
             // add the page, sorted by depth with the lowest depth first
             this.queue.push({url, depth});
@@ -167,16 +179,8 @@ class ActiveJob {
                 this.endTime = new Date();
             }
             const elapsedTime = this.endTime - this.startTime;
-            console.log(`Job completed in ${elapsedTime}ms`);
-            console.log(`seconds: ${elapsedTime / 1000}`);
-            console.log(`total pages: ${this.completedPages.length}`);
-            console.log(`all pages visited`);
-            for (let page of this.completedPages) {
-                console.log(page.url);
-            }
             return true;
         } else {
-            console.log('Job not complete');
             return false;
         }
     }     
@@ -206,10 +210,8 @@ function summarizeInternalPages(pages) {
         if (!page.internal) {
             continue;
         }
-        console.log(`Processing page: ${page}`);
         let pageUrl = page.url;
         let content = page.content;
-        console.log(`Processing page: ${pageUrl}`);
         let summary = summarizeContent(content);
         // loop through the summary and add each string to the array
         for (let str of summary) {
@@ -226,7 +228,6 @@ function summarizeInternalPages(pages) {
             commonSummaryItems.add(str);
         } 
     }
-    console.log("all these items will be removed from the summaries: ", Array.from(commonSummaryItems));
     // remove any common items from the summaries
     for (let page of pages) {
         page.summary = page.summary.filter(s => !commonSummaryItems.has(s));
