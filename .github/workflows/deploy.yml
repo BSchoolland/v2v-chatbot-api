@@ -21,7 +21,7 @@ jobs:
       - name: Deploy to VPS
         run: |
           ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} '\
-            cd /v2v-chatbot-api && \
+            cd /root/v2v-chatbot-api/ && \
             git pull origin main && \
             # Build the new image
             docker-compose build --no-cache && \
