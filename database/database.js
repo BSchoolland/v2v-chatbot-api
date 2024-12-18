@@ -1,4 +1,5 @@
 const sqlite3 = require('sqlite3').verbose();
+const crypto = require('crypto');
 
 const db = new sqlite3.Database('data/api_database.db', (err) => {
   if (err) {
@@ -83,9 +84,10 @@ const initializeDatabase = () => {
           FOREIGN KEY (model_id) REFERENCES model(model_id)
         )
       `);
+      // chatbot id is a string so we can use the generateUniqueId function
       db.run(`
         CREATE TABLE IF NOT EXISTS chatbots (
-          chatbot_id INTEGER PRIMARY KEY AUTOINCREMENT,
+          chatbot_id TEXT PRIMARY KEY,
           plan_id INTEGER,
           website_id INTEGER,
           model_id INTEGER NOT NULL,
@@ -165,4 +167,24 @@ const initializeDatabase = () => {
   });
 };
 
-module.exports = { initializeDatabase, dbRun, dbGet, dbAll };
+// Add this helper function for guaranteed unique IDs
+const generateUniqueId = async (tableName, idColumn) => {
+  let id;
+  let isUnique = false;
+  
+  while (!isUnique) {
+    id = crypto.randomBytes(16).toString('hex');
+    try {
+      await dbGet(`SELECT ${idColumn} FROM ${tableName} WHERE ${idColumn} = ?`, [id]);
+      // If we get here and row is null, the ID is unique
+      isUnique = true;
+    } catch (err) {
+      // If there's a unique constraint violation, try again (even though this should never happen)
+      console.warn('WOW! This event was so astronomically unlikely, it should probably be studied, or win a spot in the Guinness Book of World Records!');
+      continue;
+    }
+  }
+  return id;
+};
+
+module.exports = { initializeDatabase, dbRun, dbGet, dbAll, generateUniqueId };
