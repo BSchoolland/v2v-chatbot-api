@@ -8,6 +8,8 @@ dotenv.config();
 const { appendMessageToSession, getSession } = require('./sessions.js');
 const { dbGet } = require('../database/database.js');
 
+const { getPlanFromChatbotId, subtractFromPlan } = require('../database/plans.js');
+
 const { getSystemPrompt } = require('../database/chatbots.js');
 
 // use tool requires tool name and params
@@ -22,7 +24,7 @@ const converter = new showdown.Converter();
 async function getChatbotModel(chatbotId) {
     const chatbot = await dbGet(`SELECT * FROM chatbots WHERE chatbot_id = ?`, [chatbotId]);
     const model = await dbGet(`SELECT * FROM models WHERE model_id = ?`, [chatbot.model_id]);
-    return {model: model.api_string, service: model.service};
+    return model;
 }
 
 // make an openai call
@@ -49,9 +51,7 @@ async function openAiCall(systemPrompt, history, chatbotId, model) {
     return {message, tool_calls};
 }
 
-async function llmCall(systemPrompt, history, chatbotId) {
-    // get the model name from the database
-    const {model, service} = await getChatbotModel(chatbotId);
+async function llmCall(systemPrompt, history, chatbotId, model, service) {
     // call the model
     let message, tool_calls;
     if (service === "openai") {
@@ -74,9 +74,23 @@ async function getChatbotResponse(sessionId, chatbotId) {
     let toolCallsExist = true;
     // get the system prompt
     const systemPrompt = await getSystemPrompt(chatbotId);
+    const model = await getChatbotModel(chatbotId);
+    // check if the plan has enough tokens
+    const plan = await getPlanFromChatbotId(chatbotId);
+    // TODO: email the client in a variety of different situations
+    // If they get below 10% of their credits, send an email
+    // If they cross into their additional credits, send an email
+    // If they completely run out of credits, send an email
+    // If they had run low on credits and then credits are added or the plan is renewed, send an email
+    if (plan.remaining_credits + plan.additional_credits < model.message_cost) {
+        console.warn("Plan:", plan.plan_id, "is out of credits, chatbot will be paused until the plan is renewed or additional credits are added.");
+        return {
+            error: "Plan out of credits, chatbot will be paused until the plan is renewed or additional credits are added.",
+            chatId: sessionId
+        };
+    }
     while (toolCallsExist) {
-        const {message, tool_calls} = await llmCall(systemPrompt, history, chatbotId);
-        
+        const {message, tool_calls} = await llmCall(systemPrompt, history, chatbotId, model.api_string, model.service);
         // Add the assistant's message to the history
         appendMessageToSession(sessionId, message, 'assistant', tool_calls);
         
@@ -118,6 +132,9 @@ async function getChatbotResponse(sessionId, chatbotId) {
     // Get the final history after all tool calls are processed
     const finalHistory = getSession(sessionId);
     const lastMessage = finalHistory[finalHistory.length - 1];
+
+    // update the plan with the cost of the message
+    subtractFromPlan(plan.plan_id, model.message_cost); // not await because this can happen after the response is sent
 
     return {
         message: converter.makeHtml(lastMessage.content),

@@ -56,6 +56,7 @@ const initializeDatabase = () => {
           user_id INTEGER NOT NULL,
           remaining_credits INTEGER DEFAULT 0,
           additional_credits INTEGER DEFAULT 0,
+          renews_at TEXT,
           rate_limiting_policy TEXT,
           name TEXT,
           FOREIGN KEY (chatbot_id) REFERENCES chatbot(chatbot_id),
@@ -103,7 +104,7 @@ const initializeDatabase = () => {
           description TEXT,
           api_string TEXT,
           service TEXT,
-          message_cost REAL
+          message_cost INTEGER NOT NULL
         )
       `);
       // add the gpt-4o-mini model if it doesn't exist yet

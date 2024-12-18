@@ -56,6 +56,11 @@ router.get('/scrape-site-progress', authMiddleware, async (req, res) => {
         return res.status(400).send('URL is required');
     }
 
+    // if the url ends with a /, remove it
+    if (url.endsWith('/')) {
+        url = url.slice(0, -1);
+    }
+
     // Set headers for SSE
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
