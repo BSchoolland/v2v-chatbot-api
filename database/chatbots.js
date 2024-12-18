@@ -1,11 +1,15 @@
-const { dbRun, dbGet } = require('./database.js');
+const { dbRun, dbGet, generateUniqueId } = require('./database.js');
 const { getWebsiteById } = require('./websites.js');
-const { getPagesByWebsite, getPageByUrl } = require('./pages.js');
+const { getPagesByWebsite } = require('./pages.js');
 
 // create a chatbot
 async function createChatbot(plan_id, name, model_id, system_prompt, website_id) {
-    const chatbot = await dbRun('INSERT INTO chatbots (plan_id, name, model_id, system_prompt, website_id) VALUES (?, ?, ?, ?, ?)', [plan_id, name, model_id, system_prompt, website_id]);
-    return chatbot;
+    const chatbot_id = await generateUniqueId('chatbots', 'chatbot_id');
+    const chatbot = await dbRun(
+        'INSERT INTO chatbots (chatbot_id, plan_id, name, model_id, system_prompt, website_id) VALUES (?, ?, ?, ?, ?, ?)', 
+        [chatbot_id, plan_id, name, model_id, system_prompt, website_id]
+    );
+    return chatbot_id;
 }
 
 // assign a website id to a chatbot

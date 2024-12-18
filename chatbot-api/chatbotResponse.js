@@ -73,8 +73,15 @@ async function getChatbotResponse(sessionId, chatbotId) {
     const history = getSession(sessionId);
     let toolCallsExist = true;
     // get the system prompt
-    const systemPrompt = await getSystemPrompt(chatbotId);
+    const chatbot = await dbGet(`SELECT * FROM chatbots WHERE chatbot_id = ?`, [chatbotId]);
+    if (!chatbot) {
+        return {
+            error: "Chatbot not found.  If you're the owner of this chatbot, please make sure you correctly copied the script.  If you need help, please email us at contact@visionstovisuals.com",
+            chatId: sessionId
+        };
+    }
     const model = await getChatbotModel(chatbotId);
+    const systemPrompt = await getSystemPrompt(chatbotId);
     // check if the plan has enough tokens
     const plan = await getPlanFromChatbotId(chatbotId);
     // TODO: email the client in a variety of different situations
