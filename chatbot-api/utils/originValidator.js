@@ -1,11 +1,12 @@
 const { dbGet } = require('../../database/database');
 
-
+const dotenv = require('dotenv');
+dotenv.config();
 // if not production, allow localhost:3000 to access the chatbot
-const isProduction = process.env.NODE_ENV === 'production';
+const isProduction = process.env.ENV != 'development';
 let extraAllowedOrigins = [];
 if (!isProduction) {
-    extraAllowedOrigins = ['http://localhost:3000'];
+    extraAllowedOrigins = ['http://localhost:3000', 'null'];
 }
 
 // add the chatbot site to the allowed origins so that the client can test the chatbot on our site as well as their own
@@ -13,6 +14,7 @@ extraAllowedOrigins.push('https://chatbot.visionstovisuals.com');
 
 
 async function isValidOrigin(origin, chatbotId) {
+    // if origin is null it will still be a string
     if (!origin) return false;
     if (extraAllowedOrigins.includes(origin)) return true;
     // Extract domain from origin

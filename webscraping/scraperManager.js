@@ -78,7 +78,6 @@ class ScraperManager {
         this.activeJobs.push(job);
         this.allJobs.push(job);
         this.runJobs();
-        console.log('Job added:', job, websiteId);
         return {job, websiteId};
     }   
 

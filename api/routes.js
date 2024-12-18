@@ -52,7 +52,6 @@ function convertMarkdownToHtml(markdown) {
     return converter.makeHtml(markdown);
 }
 
-
 async function handleChatbotRequest(req, res) {
     try {
         const { message, chatId } = req.body;

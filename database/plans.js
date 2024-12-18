@@ -74,8 +74,6 @@ async function getPlanFromChatbotId(chatbotId) {
     return plan;
 }
 
-
-
 module.exports = {
     getUserPlans,
     addPlan,
