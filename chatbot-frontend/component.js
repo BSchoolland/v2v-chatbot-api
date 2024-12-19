@@ -6,7 +6,7 @@ let chatbotId = null;
 try {
     chatbotId = scriptTag.getAttribute('chatbot-id');
 } catch (e) {
-    chatbotId = '395105c267799fd33cade778671d1fa6';
+    chatbotId = '9c80e92f232b8542b22ec31744221aa8';
 }
 
 // Determine the base URL from the script's source
@@ -15,7 +15,7 @@ const getBaseUrl = () => {
     try {
         scriptSrc = scriptTag.src;
     } catch (e) {
-        scriptSrc = 'http://localhost:3000';
+        scriptSrc = 'https://chatbot.visionstovisuals.com';
     }
     // If the script is loaded from localhost, use localhost
     if (scriptSrc.includes('localhost')) {
