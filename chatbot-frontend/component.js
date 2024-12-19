@@ -91,6 +91,28 @@ function chatbotComponent(chatbotId) {
                     wrapper.innerHTML = html;
                     shadow.appendChild(wrapper);
                     
+                    // Add initial welcome message
+                    const chatbox = shadow.querySelector('.chatbox');
+                    const botMessageContainer = document.createElement('div');
+                    botMessageContainer.classList.add('message-container');
+
+                    const botImage = document.createElement('img');
+                    botImage.src = 'https://cdn-icons-png.flaticon.com/512/8943/8943377.png';
+                    botImage.alt = 'Chatbot';
+                    botImage.classList.add('message-image');
+
+                    const botMessage = document.createElement('div');
+                    botMessage.classList.add('message-text');
+                    botMessage.innerHTML = "Welcome to the Future of Work Challenge! If you have any questions about the site or need help finding information, just let me know! I'm here to assist you with anything related to the challenge, resources, or how to participate. What would you like to know?<br><br>Here are some common questions we get -<br></br><button class='faq-button'>What is the Future of Work Challenge, and how can I participate?</button><button class='faq-button'>What are the judging criteria for submissions to the challenge?</button><button class='faq-button'>When is the registration deadline for the Future of Work Challenge?</button>";
+
+                    botMessageContainer.appendChild(botImage);
+                    botMessageContainer.appendChild(botMessage);
+                    chatbox.appendChild(botMessageContainer);
+
+                    const botDivider = document.createElement('hr');
+                    botDivider.classList.add('message-divider');
+                    chatbox.appendChild(botDivider);
+
                     // Update selectors to use classes
                     const container = shadow.querySelector('.v2v-chatbot-container');
                     const button = shadow.querySelector('.v2v-chatbot-button');
@@ -116,9 +138,17 @@ function chatbotComponent(chatbotId) {
                         overlay.style.display = 'none';
                     });
 
-
-
                     submitButton.addEventListener('click', (e) => sendMessage(e, shadow));
+
+                    // if a button is clicked, add it's text to the input field, then automatically click the submit button
+                    const faqButtons = shadow.querySelectorAll('.faq-button');
+                    faqButtons.forEach(button => {
+                        button.addEventListener('click', (e) => {
+                            const userInput = shadow.querySelector('.user-input');
+                            userInput.value = e.target.textContent;
+                            submitButton.click();
+                        });
+                    });
                 });
         });
 }

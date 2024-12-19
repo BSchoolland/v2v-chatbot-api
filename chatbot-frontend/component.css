@@ -233,3 +233,36 @@
     border-top: 1px solid #eee;
     margin: 50px 10px;
 }
+
+.faq-button {
+    display: block;
+    width: 100%;
+    padding: 10px 15px;
+    margin: 15px 0;
+    background-color: #e9f0ff;
+    border: none;
+    border-radius: 50px;
+    text-align: left;
+    font-size: 14px;
+    color: #212529;
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+}
+
+.faq-button:hover {
+    background-color: #e9ecef;
+    border-color: #ced4da;
+    transform: translateY(-1px);
+}
+
+.faq-button:active {
+    background-color: #dee2e6;
+    transform: translateY(0);
+}
+
+.v2v-chatbot-button-text {
+    background: none;
+    border: none;
+    font-size: 16px;
+    font-weight: bold;
+}
