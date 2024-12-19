@@ -94,18 +94,29 @@ function chatbotComponent(chatbotId) {
                     // Update selectors to use classes
                     const container = shadow.querySelector('.v2v-chatbot-container');
                     const button = shadow.querySelector('.v2v-chatbot-button');
+                    const overlay = shadow.querySelector('.overlay');
                     const closeButton = shadow.querySelector('.v2v-chatbot-close');
                     const submitButton = shadow.querySelector('.submit-button');
 
                     button.addEventListener('click', () => {
-                        container.style.display = 'block';
+                        container.style.display = 'flex';
                         button.style.display = 'none';
+                        overlay.style.display = 'block';
                     });
 
                     closeButton.addEventListener('click', () => {
                         container.style.display = 'none';
                         button.style.display = 'flex';
+                        overlay.style.display = 'none';
                     });
+
+                    overlay.addEventListener('click', () => {
+                        container.style.display = 'none';
+                        button.style.display = 'flex';
+                        overlay.style.display = 'none';
+                    });
+
+
 
                     submitButton.addEventListener('click', (e) => sendMessage(e, shadow));
                 });
