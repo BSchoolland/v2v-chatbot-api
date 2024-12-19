@@ -6,7 +6,7 @@ class ScraperManager {
     constructor() {
         this.browser = null;
         this.pages = [];
-        this.currentPageCount = 10;
+        this.currentPageCount = 5;
         this.verbose = true;
         this.activeJobs = [];
         this.allJobs = [];
@@ -182,39 +182,80 @@ class ScraperManager {
     async processPage(page, job, pageInfo) {
         try {
             const url = pageInfo.url;
-            const content = await this.getPageContent(url, page.page);
-            // get the unique links from the page
+            let content = '';
+            try {
+                content = await this.getPageContent(url, page.page);
+            } catch (error) {
+                console.warn(`Failed to get content for ${url}: ${error.message}`);
+                // Continue with empty content rather than failing the whole page
+            }
+
             let links = [];
             if (!pageInfo.external) {
-                links = await this.getUniqueLinks(content, job.baseUrl);
-                job.addLinks(links, pageInfo.depth);
+                try {
+                    links = await this.getUniqueLinks(content, job.baseUrl);
+                } catch (error) {
+                    console.warn(`Failed to extract links from ${url}: ${error.message}`);
+                    // Continue with empty links rather than failing
+                }
+                try {
+                    job.addLinks(links, pageInfo.depth);
+                } catch (error) {
+                    console.warn(`Failed to add links for ${url}: ${error.message}`);
+                }
             }
-            // update the job with the completed page
-            await job.addCompletedPage(url, links, content);
-            page.available = true;
+
+            try {
+                await job.addCompletedPage(url, links, content);
+            } catch (error) {
+                console.error(`Failed to add completed page ${url}: ${error.message}`);
+            }
+        } catch (error) {
+            console.error(`Error processing page ${pageInfo.url}: ${error.message}`);
         } finally {
-            // Make sure to release the page when done
+            // Always release the page and mark as complete
             page.assigned = false;
-            job.markPageComplete();
+            try {
+                job.markPageComplete();
+            } catch (error) {
+                console.error(`Error marking page complete: ${error.message}`);
+            }
         }
     }
 
     async getPageContent(pageUrl, page) {
         if (!this.isReady) {
-            await this.init();
-        }
-        try {
-            await page.goto(pageUrl, { timeout: 30000, waitUntil: 'networkidle0' });
-            const content = await page.content();
-            return content;
-        } catch (error) {
             try {
-                await page.goto(pageUrl, { timeout: 30000, waitUntil: 'domcontentloaded' });
-                return await page.content();
+                await this.init();
             } catch (error) {
-                console.warn('Error fetching page content:', error.message);
+                console.error(`Failed to initialize scraper: ${error.message}`);
                 return '';
             }
+        }
+
+        try {
+            try {
+                await page.goto(pageUrl, { 
+                    timeout: 30000, 
+                    waitUntil: 'networkidle0' 
+                });
+            } catch (timeoutError) {
+                // If networkidle0 times out, try with just domcontentloaded
+                await page.goto(pageUrl, { 
+                    timeout: 30000, 
+                    waitUntil: 'domcontentloaded' 
+                });
+            }
+
+            try {
+                return await page.content();
+            } catch (contentError) {
+                console.warn(`Error getting page content: ${contentError.message}`);
+                return '';
+            }
+        } catch (error) {
+            console.warn(`Failed to load page ${pageUrl}: ${error.message}`);
+            return '';
         }
     }
 

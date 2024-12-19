@@ -87,35 +87,66 @@ class ActiveJob {
         return this.queue.shift();
     }
     async addCompletedPage(url, allLinks, content) {
-        if (!this.isReady) {
-            await this.init();
+        try {
+            if (!this.isReady) {
+                await this.init();
+            }
+
+            // Safely process links
+            let internalLinks = [];
+            let externalLinks = [];
+            try {
+                internalLinks = allLinks.filter(link => link && link.startsWith(this.baseUrl));
+                externalLinks = allLinks.filter(link => link && !link.startsWith(this.baseUrl));
+            } catch (error) {
+                console.warn(`Error processing links for ${url}: ${error.message}`);
+            }
+
+            // Convert links to strings safely
+            let internalLinksStr = '';
+            let externalLinksStr = '';
+            try {
+                internalLinksStr = internalLinks.join('\n');
+                externalLinksStr = externalLinks.join('\n');
+            } catch (error) {
+                console.warn(`Error converting links to string for ${url}: ${error.message}`);
+            }
+
+            // Clean and summarize content
+            let cleanedContent = '';
+            let summary = [];
+            try {
+                cleanedContent = await getCleanHtmlContent(content);
+                summary = summarizeContent(cleanedContent);
+            } catch (error) {
+                console.warn(`Error cleaning/summarizing content for ${url}: ${error.message}`);
+                cleanedContent = content; // Use original content if cleaning fails
+                summary = ['Failed to summarize content'];
+            }
+
+            const internal = url.startsWith(this.baseUrl);
+            
+            // Add to completed pages even if some processing failed
+            this.completedPages.push({
+                url, 
+                summary, 
+                content: cleanedContent, 
+                internal, 
+                internalLinks: internalLinksStr, 
+                externalLinks: externalLinksStr
+            });
+        } catch (error) {
+            console.error(`Failed to add completed page ${url}: ${error.message}`);
+            // Add minimal page data to ensure the process continues
+            this.completedPages.push({
+                url,
+                summary: ['Failed to process page'],
+                content: '',
+                internal: url.startsWith(this.baseUrl),
+                internalLinks: '',
+                externalLinks: ''
+            });
         }
-        // get internal links
-        let internalLinks = allLinks.filter(link => link.startsWith(this.baseUrl));
-        /// for this part, extensions are okay
-
-        // get external links
-        let externalLinks = allLinks.filter(link => !link.startsWith(this.baseUrl));
-
-        // turn internal links into a string
-        internalLinks = internalLinks.join('\n');
-        // turn external links into a string
-        externalLinks = externalLinks.join('\n');
-        
-        // clean the content
-        const cleanedContent = await getCleanHtmlContent(content);
-
-        // summarize the content
-        let summary = summarizeContent(cleanedContent);
-
-        let internal
-        if (url.startsWith(this.baseUrl)) {
-            internal = true;
-        } else {
-            internal = false;
-        }
-        // add the page to the completed pages
-        this.completedPages.push({url, summary, content: cleanedContent, internal, internalLinks, externalLinks});
     }
     async markPageComplete() {
         this.processing--;
@@ -196,19 +227,45 @@ class ActiveJob {
     }     
     
     async completeJob() {
-        // summarize the internal pages
-        this.completedPages = summarizeInternalPages(this.completedPages);
-        // convert summaries to strings
-        for (let page of this.completedPages) {
-            page.summary = page.summary.join(', ');
-        }
-        // add the pages to the database
-        for (let page of this.completedPages) {
+        try {
+            // Safely summarize internal pages
             try {
-                await addPage(this.websiteId, page.url, page.summary, page.content, page.internal, page.internalLinks, page.externalLinks);
+                this.completedPages = summarizeInternalPages(this.completedPages);
             } catch (error) {
-                console.error(`Error adding page to database: ${error.message}`);
+                console.error(`Error summarizing internal pages: ${error.message}`);
             }
+
+            // Convert summaries to strings safely
+            for (let page of this.completedPages) {
+                try {
+                    page.summary = Array.isArray(page.summary) ? 
+                        page.summary.join(', ') : 
+                        'Failed to process summary';
+                } catch (error) {
+                    console.warn(`Error converting summary to string: ${error.message}`);
+                    page.summary = 'Failed to process summary';
+                }
+            }
+
+            // Add pages to database, continuing even if some fail
+            for (let page of this.completedPages) {
+                try {
+                    await addPage(
+                        this.websiteId,
+                        page.url,
+                        page.summary,
+                        page.content,
+                        page.internal,
+                        page.internalLinks,
+                        page.externalLinks
+                    );
+                } catch (error) {
+                    console.error(`Error adding page ${page.url} to database: ${error.message}`);
+                    // Continue with next page
+                }
+            }
+        } catch (error) {
+            console.error(`Error in completeJob: ${error.message}`);
         }
     }
 }
