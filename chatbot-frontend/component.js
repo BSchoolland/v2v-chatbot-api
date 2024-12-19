@@ -2,12 +2,21 @@
 // it will load the component.html file and inject it into the client's DOM, along with the component.css file
 const scriptTag = document.currentScript;
 
-const chatbotId = scriptTag.getAttribute('chatbot-id');
+let chatbotId = null;
+try {
+    chatbotId = scriptTag.getAttribute('chatbot-id');
+} catch (e) {
+    chatbotId = '395105c267799fd33cade778671d1fa6';
+}
 
 // Determine the base URL from the script's source
 const getBaseUrl = () => {
-    const scriptSrc = scriptTag.src;
-    console.log(scriptSrc);
+    let scriptSrc = null
+    try {
+        scriptSrc = scriptTag.src;
+    } catch (e) {
+        scriptSrc = 'http://localhost:3000';
+    }
     // If the script is loaded from localhost, use localhost
     if (scriptSrc.includes('localhost')) {
         return 'http://localhost:3000';
@@ -21,8 +30,7 @@ const getBaseUrl = () => {
         return 'http://localhost:3000'; // Fallback to localhost
     }
 };
-
-document.addEventListener('DOMContentLoaded', () => {
+function initChatbotComponent() {
     // domPurify
     const script = document.createElement('script');
     script.src = 'https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.2.3/purify.min.js';
@@ -64,8 +72,16 @@ document.addEventListener('DOMContentLoaded', () => {
                     chatbotComponent(chatbotId);
                 });
         });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    initChatbotComponent();
 });
 
+// if the dom is already loaded, initialize the chatbot component
+if (document.readyState === 'complete') {
+    initChatbotComponent();
+}
 
 
 function chatbotComponent(chatbotId) {
@@ -73,7 +89,8 @@ function chatbotComponent(chatbotId) {
     const baseUrl = getBaseUrl();
     console.log("connected to chatbot:", chatbotId);
     let chatId = -1;
-    async function sendMessage() {
+    async function sendMessage(e) {
+        e.preventDefault();
         const userInput = document.getElementById('userInput-63v93w6d11sj');
         const chatbox = document.getElementById('chatbox-63v93w6d11sj');
         const message = userInput.value;

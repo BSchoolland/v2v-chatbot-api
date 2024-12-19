@@ -21,8 +21,8 @@ router.post('/chat/:chatbotId', async (req, res) => {
     }
     const chatId = getSessionId(req.body.chatId);
     appendMessageToSession(chatId, req.body.message, 'user');
-    const response = await getChatbotResponse(chatId, req.params.chatbotId);
-    res.json(response);
+    // const response = await getChatbotResponse(chatId, req.params.chatbotId);
+    res.json({ message: 'Hello, world!', chatId: chatId });
 });
 
 router.get('/frontend/component.html', (req, res) => {
