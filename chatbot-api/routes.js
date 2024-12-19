@@ -37,4 +37,8 @@ router.get('/frontend/component.js', (req, res) => {
     res.sendFile(path.join(__dirname, '../chatbot-frontend/component.js'));
 });
 
+router.get('/frontend/user.png', (req, res) => {
+    res.sendFile(path.join(__dirname, '../chatbot-frontend/user.png'));
+});
+
 module.exports = router;
