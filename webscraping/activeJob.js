@@ -23,6 +23,7 @@ class ActiveJob {
         this.websiteId = null;
         this.isReady = false;
         this.isInitializing = false;
+        this.externalQueued = false;
         this.init();
     }
 
@@ -119,8 +120,17 @@ class ActiveJob {
     async markPageComplete() {
         this.processing--;
         if (this.processing === 0 && this.queue.length === 0) {
-            await this.completeJob();
-            this.done = true;
+            if (!this.externalQueued) {
+                console.log('Adding external links to the queue');
+                // add all the external links to the queue
+                for (let link of this.externalLinks) {
+                    this.queue.push({url: link, depth: 0, external: true});
+                }
+                this.externalQueued = true;
+            } else {
+                await this.completeJob();
+                this.done = true;
+            }
         }
     }
 
@@ -204,10 +214,15 @@ class ActiveJob {
 }
 
 function summarizeInternalPages(pages) {
+    // if any summary item ends with :, ., or , remove it
+    for (let page of pages) {
+        page.summary = page.summary.filter(s => !s.endsWith(':') && !s.endsWith('.') && !s.endsWith(','));
+    }
     // an array of all strings that appear in the summaries
     let allSummaries = [];
     for (let page of pages) {
         if (!page.internal) {
+            page.summary = [];
             continue;
         }
         let pageUrl = page.url;
@@ -221,10 +236,10 @@ function summarizeInternalPages(pages) {
         page.summary = summary;
     }
     let commonSummaryItems = new Set();
-    // items that appear more than 10% of the time (but not only once)
+    // items that appear more than once
     for (let str of allSummaries) {
         let count = allSummaries.filter(s => s === str).length;
-        if (count > pages.length / 10 && count > 1) {
+        if (count > 1) {
             commonSummaryItems.add(str);
         } 
     }
