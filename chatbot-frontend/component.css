@@ -266,3 +266,53 @@
     font-size: 16px;
     font-weight: bold;
 }
+
+.loading-dots {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+}
+
+.loading-dots span {
+    display: block;
+    width: 8px;
+    height: 8px;
+    margin: 0 2px;
+    background-color: #555;
+    border-radius: 50%;
+    animation: bounce 1.4s infinite ease-in-out both;
+}
+
+.loading-dots span:nth-child(1) {
+    animation-delay: -0.32s;
+}
+
+.loading-dots span:nth-child(2) {
+    animation-delay: -0.16s;
+}
+
+.loading-dots span:nth-child(3) {
+    animation-delay: 0s;
+}
+
+@keyframes bounce {
+    0%, 80%, 100% {
+        transform: scale(0);
+    }
+    40% {
+        transform: scale(1);
+    }
+}
+
+.loading-container .loading-dots {
+    margin-left: 10px;
+}
+
+.error-message .message-text {
+    color: red;
+    font-weight: bold;
+}
+
+.error-message .message-image {
+    opacity: 0.5;
+}

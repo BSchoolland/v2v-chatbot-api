@@ -183,6 +183,30 @@ async function sendMessage(e, shadow) {
     divider.classList.add('message-divider');
     chatbox.appendChild(divider);
 
+    // Add loading animation
+    const loadingContainer = document.createElement('div');
+    loadingContainer.classList.add('message-container', 'loading-container');
+
+    const botImage = document.createElement('img');
+    botImage.src = 'https://cdn-icons-png.flaticon.com/512/8943/8943377.png'; 
+    botImage.alt = 'Chatbot';
+    botImage.classList.add('message-image');
+
+    const loadingDots = document.createElement('div');
+    loadingDots.classList.add('loading-dots');
+    loadingDots.innerHTML = `
+        <span></span>
+        <span></span>
+        <span></span>
+    `;
+
+    loadingContainer.appendChild(botImage);
+    loadingContainer.appendChild(loadingDots);
+    chatbox.appendChild(loadingContainer);
+
+    // Scroll to the bottom of the chatbox
+    chatbox.scrollTop = chatbox.scrollHeight;
+
     let chatId = -1;
     userInput.value = '';
     
@@ -198,14 +222,17 @@ async function sendMessage(e, shadow) {
         const data = await response.json();
         console.log(data);
         
+        // Remove loading animation
+        chatbox.removeChild(loadingContainer);
+        
         // Display chatbot's reply with image and divider
         const botMessageContainer = document.createElement('div');
         botMessageContainer.classList.add('message-container');
 
-        const botImage = document.createElement('img');
-        botImage.src = 'https://cdn-icons-png.flaticon.com/512/8943/8943377.png'; 
-        botImage.alt = 'Chatbot';
-        botImage.classList.add('message-image');
+        const botReplyImage = document.createElement('img');
+        botReplyImage.src = 'https://cdn-icons-png.flaticon.com/512/8943/8943377.png'; 
+        botReplyImage.alt = 'Chatbot';
+        botReplyImage.classList.add('message-image');
 
         const botMessage = document.createElement('div');
         botMessage.classList.add('message-text');
@@ -220,7 +247,7 @@ async function sendMessage(e, shadow) {
             botMessage.textContent = data.message;
         }
         
-        botMessageContainer.appendChild(botImage);
+        botMessageContainer.appendChild(botReplyImage);
         botMessageContainer.appendChild(botMessage);
         chatbox.appendChild(botMessageContainer);
 
@@ -235,5 +262,32 @@ async function sendMessage(e, shadow) {
         chatbox.scrollTop = chatbox.scrollHeight;
     } catch (error) {
         console.error('Error:', error);
+        // Remove loading animation in case of error
+        chatbox.removeChild(loadingContainer);
+        
+        // Optionally, display an error message to the user
+        const errorContainer = document.createElement('div');
+        errorContainer.classList.add('message-container', 'error-message');
+
+        const errorImage = document.createElement('img');
+        errorImage.src = 'https://cdn-icons-png.flaticon.com/512/753/753345.png'; 
+        errorImage.alt = 'Error';
+        errorImage.classList.add('message-image');
+
+        const errorMessage = document.createElement('div');
+        errorMessage.classList.add('message-text');
+        errorMessage.textContent = 'Sorry, something went wrong. Please try again later.';
+
+        errorContainer.appendChild(errorImage);
+        errorContainer.appendChild(errorMessage);
+        chatbox.appendChild(errorContainer);
+
+        // Add divider
+        const errorDivider = document.createElement('hr');
+        errorDivider.classList.add('message-divider');
+        chatbox.appendChild(errorDivider);
+
+        // Scroll to the bottom of the chatbox
+        chatbox.scrollTop = chatbox.scrollHeight;
     }
 }
