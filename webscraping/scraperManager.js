@@ -6,7 +6,7 @@ class ScraperManager {
     constructor() {
         this.browser = null;
         this.pages = [];
-        this.currentPageCount = 5;
+        this.currentPageCount = 15;
         this.verbose = true;
         this.activeJobs = [];
         this.allJobs = [];
@@ -85,6 +85,7 @@ class ScraperManager {
         if (this.isRunning) return;
         console.log('Starting jobs...');
         this.isRunning = true;
+        this.waited = 0;
         try {
             while (this.isRunning) {
                 const availablePages = this.pages.filter(p => !p.assigned);
@@ -108,7 +109,8 @@ class ScraperManager {
                 }
                 const tasks = [];
                 let jobIndex = 0;
-                
+                console.log('Available pages:', availablePages.length);
+                console.log("work to do:", this.activeJobs.length);
                 // Distribute pages across jobs evenly
                 for (const page of availablePages) {
                     // Try each job once
@@ -129,13 +131,44 @@ class ScraperManager {
                         attempts++;
                     }
                 }
+                console.log('Tasks:', tasks);
                 if (tasks.length === 0) {
+                    this.waited += 100;
+                    // FIXME: this is a hack to prevent the scraper from hanging indefinitely, which it sometimes does for unknown reasons.  This is a temporary fix, and would not be effective if many jobs are running since it only detects when all jobs hang, meaning one job could hang for an indefinite amount of time as long as the other jobs are making progress, and clients might be caught waiting for a response from a job that is stuck.
+                    if (this.waited > 90000) {
+                        console.error('CRITICAL ERROR: Scraper not making progress, forcibly stopping all jobs');
+                        // mark all jobs as complete
+                        for (let job of this.allJobs) {
+                            job.processing = 0;
+                            job.done = true;
+                            job.completeJob();
+                            job.isJobComplete();
+                        }
+                        this.isRunning = false;
+                        break;
+                    }
                     await new Promise(resolve => setTimeout(resolve, 100));
                     continue;
                 }
+                this.waited = 0;
         
-                // Execute tasks in parallel, and once one is done, start the next one
-                await Promise.race(tasks);
+                // Execute tasks in parallel with timeout, and once one is done, start the next one
+                await Promise.race([
+                    Promise.race(tasks),
+                    new Promise((resolve, reject) => {
+                        setTimeout(() => {
+                            // Free up pages that timed out
+                            this.pages.forEach(p => p.assigned = false);
+                            reject(new Error('Tasks timed out after 60 seconds'));
+                        }, 60000);
+                    })
+                ]).catch(error => {
+                    if (error.message === 'Tasks timed out after 60 seconds') {
+                        console.warn('Some tasks timed out and were cancelled');
+                    } else {
+                        throw error;
+                    }
+                });
             }
         } finally {
             await this.cleanup();
