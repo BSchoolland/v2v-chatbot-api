@@ -238,13 +238,23 @@ async function sendMessage(e, shadow) {
         botMessage.classList.add('message-text');
         try {
             // Sanitize the message
-            const cleanMessage = DOMPurify.sanitize(data.message);
             // set innerHTML to display the message as HTML
-            botMessage.innerHTML = cleanMessage;
+            if (!data.message) {
+                botMessage.classList.add('error-message-text');
+                botMessage.textContent = data.error;
+            } else {
+                const cleanMessage = DOMPurify.sanitize(data.message);
+                botMessage.innerHTML = cleanMessage;
+            }
         } catch (error) {
             console.error('Error sanitizing message:', error);
             // Fallback if sanitization fails
-            botMessage.textContent = data.message;
+            if (!data.message) {
+                botMessage.classList.add('error-message-text');
+                botMessage.textContent = data.error;
+            } else {
+                botMessage.textContent = data.message;
+            }
         }
         
         botMessageContainer.appendChild(botReplyImage);
