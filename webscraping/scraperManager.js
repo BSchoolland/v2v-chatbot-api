@@ -6,7 +6,7 @@ class ScraperManager {
     constructor() {
         this.browser = null;
         this.pages = [];
-        this.currentPageCount = 5;
+        this.currentPageCount = 10;
         this.verbose = true;
         this.activeJobs = [];
         this.allJobs = [];
@@ -184,8 +184,11 @@ class ScraperManager {
             const url = pageInfo.url;
             const content = await this.getPageContent(url, page.page);
             // get the unique links from the page
-            const links = await this.getUniqueLinks(content, job.baseUrl);
-            job.addLinks(links, pageInfo.depth);
+            let links = [];
+            if (!pageInfo.external) {
+                links = await this.getUniqueLinks(content, job.baseUrl);
+                job.addLinks(links, pageInfo.depth);
+            }
             // update the job with the completed page
             await job.addCompletedPage(url, links, content);
             page.available = true;

@@ -351,12 +351,16 @@ function summarizeAllPages(urlContentMap, website) {
         let count = allSummaries.filter(s => s === str).length;
         if (count > allPages.length / 20 && count > 1) {
             commonSummaryItems.add(str);
+            console.log(`Common summary item: ${str}`);
         } 
     }
     console.log("all these items will be removed from the summaries: ", Array.from(commonSummaryItems));
-    // remove any common items from the summaries
+    // remove any common items from the summaries, and limit to 3 sections
     for (let page of allPages) {
         page.summary = page.summary.filter(s => !commonSummaryItems.has(s));
+        if (page.summary.length > 3) {
+            page.summary = page.summary.slice(0, 3);
+        }
     }
     return allPages;
 }
