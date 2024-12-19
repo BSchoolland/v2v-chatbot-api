@@ -63,7 +63,7 @@
         }
 
         // Fetch plan details
-        fetch(`http://localhost:3000/website/api/user-plan/${planId}`, {
+        fetch(`/website/api/user-plan/${planId}`, {
             method: 'GET',
             credentials: 'include',
             headers: {
@@ -109,7 +109,7 @@
                 planTypeId = 2;
             }
 
-            fetch(`http://localhost:3000/website/api/user-plan/${planId}`, {
+            fetch(`${API_URL}/website/api/user-plan/${planId}`, {
                 method: 'PUT',
                 credentials: 'include',
                 headers: {

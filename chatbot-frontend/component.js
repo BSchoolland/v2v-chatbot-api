@@ -4,6 +4,23 @@ const scriptTag = document.currentScript;
 
 const chatbotId = scriptTag.getAttribute('chatbot-id');
 
+// Determine the base URL from the script's source
+const getBaseUrl = () => {
+    const scriptSrc = scriptTag.src;
+    console.log(scriptSrc);
+    // If the script is loaded from localhost, use localhost
+    if (scriptSrc.includes('localhost')) {
+        return 'http://localhost:3000';
+    }
+    // Otherwise, extract the origin from the script's source URL
+    try {
+        const url = new URL(scriptSrc);
+        return url.origin;
+    } catch (e) {
+        console.error('Failed to parse script URL:', e);
+        return 'http://localhost:3000'; // Fallback to localhost
+    }
+};
 
 document.addEventListener('DOMContentLoaded', () => {
     // domPurify
@@ -23,16 +40,18 @@ document.addEventListener('DOMContentLoaded', () => {
     
     document.head.appendChild(script);
 
+    // get the base url
+    const baseUrl = getBaseUrl();
     
     const container = document.createElement('div');
     container.id = 'v2v-chatbot-component-63v93w6d11sj';
-    fetch('http://localhost:3000/chatbot/api/frontend/component.html')
+    fetch(`${baseUrl}/chatbot/api/frontend/component.html`)
         .then(response => response.text())
         .then(html => {
             document.body.appendChild(container);
 
             // load the component.css file
-            fetch('http://localhost:3000/chatbot/api/frontend/component.css')
+            fetch(`${baseUrl}/chatbot/api/frontend/component.css`)
                 .then(response => response.text())
                 .then(css => {
                     const style = document.createElement('style');
@@ -48,7 +67,10 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 
+
 function chatbotComponent(chatbotId) {
+
+    const baseUrl = getBaseUrl();
     console.log("connected to chatbot:", chatbotId);
     let chatId = -1;
     async function sendMessage() {
@@ -66,7 +88,7 @@ function chatbotComponent(chatbotId) {
         // Clear input field
         userInput.value = '';
         try {
-            const response = await fetch(`http://localhost:3000/chatbot/api/chat/${chatbotId}`, {
+            const response = await fetch(`${baseUrl}/chatbot/api/chat/${chatbotId}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
