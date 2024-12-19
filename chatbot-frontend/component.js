@@ -30,6 +30,7 @@ const getBaseUrl = () => {
         return 'http://localhost:3000'; // Fallback to localhost
     }
 };
+
 function initChatbotComponent() {
     // domPurify
     const script = document.createElement('script');
