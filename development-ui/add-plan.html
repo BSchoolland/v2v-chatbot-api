@@ -58,7 +58,6 @@
     </form>
 
     <script>
-        const API_URL = window.location.hostname === 'localhost' ? 'http://localhost:3000' : 'http://31.220.108.71'; // TODO: get a domain name
         document.getElementById('planForm').addEventListener('submit', function(e) {
             e.preventDefault();
             
@@ -72,7 +71,7 @@
             } else if (planType === 'pro') {
                 planTypeId = 2;
             }
-            fetch(`${API_URL}/website/api/add-plan`, {
+            fetch(`/website/api/add-plan`, {
                 method: 'POST',
                 credentials: 'include',
                 headers: {
