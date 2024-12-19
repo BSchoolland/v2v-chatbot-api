@@ -59,7 +59,7 @@
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
 
-            fetch('http://localhost:3000/website/api/login', {
+            fetch(`/website/api/login`, {
                 method: 'POST',
                 credentials: 'include',
                 headers: {
