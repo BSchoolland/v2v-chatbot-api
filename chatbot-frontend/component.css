@@ -188,11 +188,26 @@
     margin: 16px 0;
 }
 
-.message-image {
+.user-message-container {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    margin: 16px 0;
+    flex-direction: row-reverse;
+}
+
+.message-image, .user-message-image {
     width: 32px;
     height: 32px;
     border-radius: 50%;
+}
+
+.message-image {
     margin-right: 12px;
+}
+
+.user-message-image {
+    margin-left: 12px;
 }
 
 .message-text {
@@ -201,10 +216,20 @@
     border-radius: 8px;
     max-width: 80%;
     word-wrap: break-word;
+    transform: translateY(-5px);
+}
+
+.user-message-text {
+    background-color: #c9d9ff;
+    padding: 12px;
+    border-radius: 8px;
+    max-width: 80%;
+    word-wrap: break-word;
+    transform: translateY(-5px);
 }
 
 .message-divider {
     border: none;
     border-top: 1px solid #eee;
-    margin: 50px 50px;
+    margin: 50px 10px;
 }

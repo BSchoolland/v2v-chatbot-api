@@ -134,15 +134,15 @@ async function sendMessage(e, shadow) {
 
     // Update class names for message elements
     const userMessageContainer = document.createElement('div');
-    userMessageContainer.classList.add('message-container');
+    userMessageContainer.classList.add('user-message-container');
 
     const userImage = document.createElement('img');
-    userImage.src = 'https://cdn-icons-png.flaticon.com/512/8943/8943377.png';
+    userImage.src = `${baseUrl}/chatbot/api/frontend/user.png`;
     userImage.alt = 'User';
-    userImage.classList.add('message-image');
+    userImage.classList.add('user-message-image');
 
     const userMessage = document.createElement('div');
-    userMessage.classList.add('message-text');
+    userMessage.classList.add('user-message-text');
     userMessage.textContent = message;
 
     userMessageContainer.appendChild(userImage);
@@ -173,7 +173,7 @@ async function sendMessage(e, shadow) {
         botMessageContainer.classList.add('message-container');
 
         const botImage = document.createElement('img');
-        botImage.src = 'https://cdn-icons-png.flaticon.com/512/8943/8943377.png'; // Replace with actual chatbot image path
+        botImage.src = 'https://cdn-icons-png.flaticon.com/512/8943/8943377.png'; 
         botImage.alt = 'Chatbot';
         botImage.classList.add('message-image');
 
