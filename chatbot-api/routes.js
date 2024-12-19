@@ -9,11 +9,12 @@ const { isValidOrigin } = require('./utils/originValidator');
 const path = require('path');
 router.post('/chat/:chatbotId', async (req, res) => {
     const origin = req.get('Origin');
-    if (!await isValidOrigin(origin, req.params.chatbotId)) {
-        console.log('Unauthorized origin:', origin);
-        res.status(403).json({ error: 'Unauthorized origin' });
-        return;
-    }
+    // TODO: allow clients to set whether they want to use the origin validator (for if they need to test locally)
+    // if (!await isValidOrigin(origin, req.params.chatbotId)) {
+    //     console.log('Unauthorized origin:', origin);
+    //     res.status(403).json({ error: 'Unauthorized origin' });
+    //     return;
+    // }
     if (!await checkRateLimit(req)) {
         res.status(429).json({ error: 'Rate limit exceeded. Please try again later.' });
         return;
