@@ -74,7 +74,6 @@ function chatbotComponent(chatbotId) {
     const baseUrl = getBaseUrl();
     // Create a shadow root
     const shadow = container.attachShadow({ mode: 'open' });
-    
     // Add styles to the shadow DOM
     const style = document.createElement('style');
     fetch(`${baseUrl}/chatbot/api/frontend/component.css`)
@@ -97,7 +96,7 @@ function chatbotComponent(chatbotId) {
                     botMessageContainer.classList.add('message-container');
 
                     const botImage = document.createElement('img');
-                    botImage.src = 'https://cdn-icons-png.flaticon.com/512/8943/8943377.png';
+                    botImage.src = `${baseUrl}/chatbot/api/frontend/chatbot-logo.png`;
                     botImage.alt = 'Chatbot';
                     botImage.classList.add('message-image');
 
@@ -149,6 +148,13 @@ function chatbotComponent(chatbotId) {
                             submitButton.click();
                         });
                     });
+
+                    // set the src of the send button to the baseUrl
+                    const sendButton = shadow.querySelector('.submit-button img');
+                    sendButton.src = `${baseUrl}/chatbot/api/frontend/send.png`;
+                    // set the src of the chatbot logo to the baseUrl
+                    const chatbotLogo = shadow.querySelector('.v2v-chatbot-button-icon');
+                    chatbotLogo.src = `${baseUrl}/chatbot/api/frontend/chatbot-logo.png`;
                 });
         });
 }
@@ -188,7 +194,7 @@ async function sendMessage(e, shadow) {
     loadingContainer.classList.add('message-container', 'loading-container');
 
     const botImage = document.createElement('img');
-    botImage.src = 'https://cdn-icons-png.flaticon.com/512/8943/8943377.png'; 
+    botImage.src = `${baseUrl}/chatbot/api/frontend/chatbot-logo.png`;
     botImage.alt = 'Chatbot';
     botImage.classList.add('message-image');
 
@@ -230,7 +236,7 @@ async function sendMessage(e, shadow) {
         botMessageContainer.classList.add('message-container');
 
         const botReplyImage = document.createElement('img');
-        botReplyImage.src = 'https://cdn-icons-png.flaticon.com/512/8943/8943377.png'; 
+        botReplyImage.src = `${baseUrl}/chatbot/api/frontend/chatbot-logo.png`;
         botReplyImage.alt = 'Chatbot';
         botReplyImage.classList.add('message-image');
 
@@ -280,7 +286,7 @@ async function sendMessage(e, shadow) {
         errorContainer.classList.add('message-container', 'error-message');
 
         const errorImage = document.createElement('img');
-        errorImage.src = 'https://cdn-icons-png.flaticon.com/512/753/753345.png'; 
+        errorImage.src = `${baseUrl}/chatbot/api/frontend/chatbot-logo.png`;
         errorImage.alt = 'Error';
         errorImage.classList.add('message-image');
 
