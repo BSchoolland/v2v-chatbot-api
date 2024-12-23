@@ -42,6 +42,9 @@
 </head>
 <body>
     <h1>Edit Chatbot</h1>
+    <div id="loadingMessage" style="display: none; text-align: center; padding: 20px;">
+        Automatically configuring your chatbot with AI...
+    </div>
     <div id="chatbotForm">
         <div class="form-group">
             <label for="chatbotName">Chatbot Name:</label>
@@ -100,6 +103,10 @@
             container.appendChild(questionDiv);
         }
 
+        // Show loading message
+        document.getElementById('loadingMessage').style.display = 'block';
+        document.getElementById('chatbotForm').style.display = 'none';
+
         // Call automated configuration first
         fetch('/website/api/chatbot-setup/automated-configuration', {
             method: 'POST',
@@ -111,6 +118,10 @@
         })
         .then(response => response.json())
         .then(data => {
+            // Hide loading message
+            document.getElementById('loadingMessage').style.display = 'none';
+            document.getElementById('chatbotForm').style.display = 'block';
+            
             if (!data.success) {
                 console.error('Error in automated configuration:', data.message);
             }

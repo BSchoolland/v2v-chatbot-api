@@ -15,7 +15,7 @@ async function callOpenAI(prompt, functions) {
         body: JSON.stringify({
             model: "gpt-4o", // use a powerful model for this one-time and important task
             messages: [
-                { role: "system", content: `# You are an expert AI assistant designer. 
+                { role: "system", content: `# You are an expert AI chatbot designer. 
                     
 Your task is to analyze website content and create optimal chatbot configurations.` },
                 { role: "user", content: prompt }
@@ -130,13 +130,16 @@ The configuration should be specific to this website's content and purpose. Use 
 
         try {
             // Get AI-generated configuration
+            console.log("Calling AI to configure chatbot");
             const config = await callOpenAI(prompt, functions);
-
+            // to fix an occasional bug, replace any \n in the system prompt with an actual newline character
+            config.system_prompt = config.system_prompt.replace(/\\n/g, '\n');
             // Update the chatbot with AI-generated values
             await editChatbotName(chatbot.chatbot_id, config.name);
             await editChatbotSystemPrompt(chatbot.chatbot_id, config.system_prompt);
             await editChatbotInitialMessage(chatbot.chatbot_id, config.initial_message);
             await editChatbotQuestions(chatbot.chatbot_id, JSON.stringify(config.questions));
+            console.log("AI configuration complete");
             return true;
         } catch (error) {
             console.error('Error generating AI configuration:', error);
