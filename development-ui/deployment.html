@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visions to Visuals Chatbot - Deployment Instructions</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .code-container {
+            background-color: #f5f5f5;
+            padding: 20px;
+            border-radius: 5px;
+            margin: 20px 0;
+            position: relative;
+        }
+        .code-block {
+            font-family: monospace;
+            white-space: pre-wrap;
+            word-break: break-all;
+            margin: 0;
+            padding: 10px;
+            background-color: #2b2b2b;
+            color: #ffffff;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .copy-button {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            padding: 5px 10px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+        .copy-button:hover {
+            background-color: #45a049;
+        }
+        .instructions {
+            margin: 20px 0;
+            line-height: 1.6;
+        }
+        .back-button {
+            margin-top: 20px;
+            padding: 10px 20px;
+            background-color: #666;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+        .back-button:hover {
+            background-color: #555;
+        }
+    </style>
+</head>
+<body>
+    <h1>Deployment Instructions</h1>
+    
+    <div class="instructions">
+        <h2>How to Add the Chatbot to Your Website</h2>
+        <p>To add this chatbot to your website, simply copy the code below and paste it into your HTML where you want the chatbot to appear:</p>
+    </div>
+
+    <div class="code-container">
+        <pre class="code-block" id="embedCode"></pre>
+        <button class="copy-button" onclick="copyCode()">Copy Code</button>
+    </div>
+
+    <div class="instructions">
+        <h3>Additional Notes:</h3>
+        <ul>
+            <li>The chatbot will appear in the bottom-right corner of your website</li>
+            <li>The script automatically handles all styling and functionality</li>
+            <li>The chatbot is responsive and works on all device sizes</li>
+        </ul>
+    </div>
+
+    <button class="back-button" onclick="window.location.href = `/chatbot-edit.html?planId=${planId}`">Back to Edit Page</button>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const planId = urlParams.get('planId');
+
+        if (!planId) {
+            alert('No plan ID provided');
+            window.location.href = '/dashboard.html';
+        }
+
+        // Fetch chatbot details to get the chatbot ID
+        fetch(`/website/api/chatbot-setup/get-chatbot?planId=${planId}`, {
+            method: 'GET',
+            credentials: 'include',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const chatbotId = data.chatbot.chatbot_id;
+                // Get the current domain
+                const currentDomain = window.location.origin;
+                
+                // Create the embed code
+                const embedCode = `<script src="${currentDomain}/chatbot/api/frontend/component.js" chatbot-id="${chatbotId}"><\/script>`;
+                
+                // Display the embed code
+                document.getElementById('embedCode').textContent = embedCode;
+            } else {
+                alert('Error fetching chatbot details');
+                window.location.href = '/dashboard.html';
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An unknown error occurred');
+            window.location.href = '/dashboard.html';
+        });
+
+        function copyCode() {
+            const codeBlock = document.getElementById('embedCode');
+            const range = document.createRange();
+            range.selectNode(codeBlock);
+            window.getSelection().removeAllRanges();
+            window.getSelection().addRange(range);
+            
+            try {
+                document.execCommand('copy');
+                const copyButton = document.querySelector('.copy-button');
+                copyButton.textContent = 'Copied!';
+                setTimeout(() => {
+                    copyButton.textContent = 'Copy Code';
+                }, 2000);
+            } catch (err) {
+                console.error('Failed to copy text: ', err);
+            }
+            
+            window.getSelection().removeAllRanges();
+        }
+    </script>
+</body>
+</html> 
