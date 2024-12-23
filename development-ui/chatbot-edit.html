@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Edit Chatbot</title>
+    <title>Visions to Visuals Chatbot - Edit Chatbot</title>
     <link rel="stylesheet" href="styles.css">
     <style>
         .form-group {
@@ -42,6 +42,9 @@
 </head>
 <body>
     <h1>Edit Chatbot</h1>
+    <div id="loadingMessage" style="display: none; text-align: center; padding: 20px;">
+        Automatically configuring your chatbot with AI...
+    </div>
     <div id="chatbotForm">
         <div class="form-group">
             <label for="chatbotName">Chatbot Name:</label>
@@ -66,6 +69,7 @@
             <small>These questions will be shown to users as suggestions they can click on to start the conversation.  If left blank, there will not be any suggested questions.</small>
         </div>
         <button onclick="saveChatbot()">Save Changes</button>
+        <button onclick="window.location.href = `/deployment.html?planId=${planId}`" style="margin-left: 10px;">View Deployment Instructions</button>
     </div>
 
     <script>
@@ -99,13 +103,36 @@
             container.appendChild(questionDiv);
         }
 
-        // Fetch chatbot details
-        fetch(`/website/api/chatbot-setup/get-chatbot?planId=${planId}`, {
-            method: 'GET',
+        // Show loading message
+        document.getElementById('loadingMessage').style.display = 'block';
+        document.getElementById('chatbotForm').style.display = 'none';
+
+        // Call automated configuration first
+        fetch('/website/api/chatbot-setup/automated-configuration', {
+            method: 'POST',
             credentials: 'include',
             headers: {
                 'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ planId })
+        })
+        .then(response => response.json())
+        .then(data => {
+            // Hide loading message
+            document.getElementById('loadingMessage').style.display = 'none';
+            document.getElementById('chatbotForm').style.display = 'block';
+            
+            if (!data.success) {
+                console.error('Error in automated configuration:', data.message);
             }
+            // Proceed to fetch chatbot details regardless of automated config result
+            return fetch(`/website/api/chatbot-setup/get-chatbot?planId=${planId}`, {
+                method: 'GET',
+                credentials: 'include',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
         })
         .then(response => response.json())
         .then(data => {

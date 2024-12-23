@@ -10,6 +10,8 @@ const { createChatbot, getChatbotFromPlanId, editChatbotName, editChatbotSystemP
 
 const { getPlan, setChatbotIdForPlan } = require('../database/plans');
 
+const { automateConfiguration } = require('./automated-config');
+
 const scraper = new ScraperManager();
 
 // user owns plan
@@ -163,6 +165,27 @@ router.post('/update-chatbot', authMiddleware, async (req, res) => {
     await editChatbotSystemPrompt(chatbot.chatbot_id, systemPrompt);
     await editChatbotInitialMessage(chatbot.chatbot_id, initialMessage);
     await editChatbotQuestions(chatbot.chatbot_id, questions);
+    res.status(200).json({ success: true });
+});
+
+// automated configuration
+router.post('/automated-configuration', authMiddleware, async (req, res) => {
+    const userId = req.userId;
+    const planId = req.body.planId;
+    
+    // make sure the user owns the plan
+    const ownsThisPlan = await userOwnsPlan(userId, planId);
+    if (!ownsThisPlan) {
+        return res.status(403).json({ success: false, message: 'Unauthorized' });
+    }
+
+    // get the chatbot
+    const chatbot = await getChatbotFromPlanId(planId);
+    if (!chatbot) {
+        return res.status(404).json({ success: false, message: 'Chatbot not found' });
+    }
+
+    await automateConfiguration(chatbot);
     res.status(200).json({ success: true });
 });
 
