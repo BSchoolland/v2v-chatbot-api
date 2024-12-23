@@ -100,13 +100,28 @@
             container.appendChild(questionDiv);
         }
 
-        // Fetch chatbot details
-        fetch(`/website/api/chatbot-setup/get-chatbot?planId=${planId}`, {
-            method: 'GET',
+        // Call automated configuration first
+        fetch('/website/api/chatbot-setup/automated-configuration', {
+            method: 'POST',
             credentials: 'include',
             headers: {
                 'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ planId })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (!data.success) {
+                console.error('Error in automated configuration:', data.message);
             }
+            // Proceed to fetch chatbot details regardless of automated config result
+            return fetch(`/website/api/chatbot-setup/get-chatbot?planId=${planId}`, {
+                method: 'GET',
+                credentials: 'include',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
         })
         .then(response => response.json())
         .then(data => {
