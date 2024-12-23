@@ -8,6 +8,7 @@
     background-color: white;
     display: flex;
     flex-direction: column;
+    z-index: 1000;
 }
 
 /* Background Overlay */
@@ -28,6 +29,7 @@
     justify-content: space-between;
     padding: 12px 16px;
     background-color: #c9d9ff;
+    color: #000000;
 }
 
 .v2v-chatbot-header-left {
@@ -124,6 +126,7 @@
 
 .message-text {
     background-color: #f5f5f5;
+    color: #000000;
     padding: 12px;
     border-radius: 8px;
     max-width: 80%;
@@ -133,6 +136,7 @@
 
 .user-message-text {
     background-color: #c9d9ff;
+    color: #000000;
     padding: 12px;
     border-radius: 8px;
     max-width: 80%;
