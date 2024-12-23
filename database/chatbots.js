@@ -99,6 +99,9 @@ async function getSystemPrompt(chatbotId) {
 // get the initial message for a chatbot
 async function getInitialMessage(chatbotId) {
     const chatbot = await dbGet('SELECT initial_message, questions FROM chatbots WHERE chatbot_id = ?', [chatbotId]);
+    if (chatbot.questions === null || chatbot.questions === '') {
+        return { message: chatbot.initial_message, questions: [] };
+    }
     let questions = chatbot.questions.split(',');
     return { message: chatbot.initial_message, questions: questions };
 }

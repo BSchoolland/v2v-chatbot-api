@@ -93,7 +93,11 @@
             try {
                 const response = await fetch(`${baseUrl}/chatbot/api/initial-message/${chatbotId}`);
                 const data = await response.json();
-                
+                console.log(data);
+                if ((!data.message || data.message === '') && (!data.questions || data.questions.length === 0)) {
+                    console.log('No initial message or questions, skipping...');
+                    return;
+                }
                 let botMessageHtml = `${data.message}<br><br>`;
                 if (data.questions && data.questions.length > 0) {
                     botMessageHtml += `<br><br>`;
