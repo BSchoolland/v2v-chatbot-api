@@ -42,5 +42,6 @@ async function migrate(dbGet, dbRun, dbAll) {
 }
 
 module.exports = {
-    migrate
+    migrate,
+    version
 };

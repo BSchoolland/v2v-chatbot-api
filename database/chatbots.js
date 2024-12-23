@@ -1,13 +1,14 @@
 const { dbRun, dbGet, generateUniqueId } = require('./database.js');
 const { getWebsiteById } = require('./websites.js');
 const { getPagesByWebsite } = require('./pages.js');
+const { version } = require('./migrate.js');
 
 // create a chatbot
-async function createChatbot(plan_id, name, model_id, system_prompt, website_id) {
+async function createChatbot(plan_id, name, model_id, system_prompt, website_id, initial_message = '', questions = '') {
     const chatbot_id = await generateUniqueId('chatbots', 'chatbot_id');
     const chatbot = await dbRun(
-        'INSERT INTO chatbots (chatbot_id, plan_id, name, model_id, system_prompt, website_id) VALUES (?, ?, ?, ?, ?, ?)', 
-        [chatbot_id, plan_id, name, model_id, system_prompt, website_id]
+        'INSERT INTO chatbots (chatbot_id, plan_id, name, model_id, system_prompt, website_id, initial_message, questions, version) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)', 
+        [chatbot_id, plan_id, name, model_id, system_prompt, website_id, initial_message, questions, version]
     );
     return chatbot_id;
 }
