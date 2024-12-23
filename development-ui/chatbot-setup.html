@@ -5,205 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chatbot Setup</title>
     <link rel="stylesheet" href="styles.css">
-</head>
-<body>
-    <h1>Chatbot Setup</h1>
-    <div id="setup-progress">
-        <div class="step-indicator" data-step="1">1. URL Setup</div>
-        <div class="step-indicator" data-step="2">2. Basic Info</div>
-        <div class="step-indicator" data-step="3">3. System Prompt</div>
-        <div class="step-indicator" data-step="4">4. Test Chatbot</div>
-    </div>
-
-    <div id="setup-forms">
-        <!-- Step 1: URL Input -->
-        <div class="setup-step" id="step1">
-            <h2>Step 1: Enter Website URL</h2>
-            <form id="urlForm">
-                <input type="url" id="websiteUrl" required placeholder="Enter website URL">
-                <button type="submit">Analyze Website</button>
-            </form>
-            <div id="processStatus"></div>
-            <div id="urlAnalysisStatus"></div>
-        </div>
-
-        <!-- Step 2: Basic Info -->
-        <div class="setup-step" id="step2" style="display: none;">
-            <h2>Step 2: Basic Information</h2>
-            <form id="basicInfoForm">
-                <input type="text" id="chatbotName" required placeholder="Chatbot Name">
-                <button type="submit">Save and Continue</button>
-            </form>
-        </div>
-
-        <!-- Step 3: System Prompt -->
-        <div class="setup-step" id="step3" style="display: none;">
-            <h2>Step 3: System Prompt</h2>
-            <form id="promptForm">
-                <textarea id="systemPrompt" rows="6" required></textarea>
-                <button type="submit">Save Prompt</button>
-            </form>
-        </div>
-    </div>
-
-    <script>
-        let currentStep = 1;
-        let chatbotData = {};
-
-        // Show active step and update progress indicators
-        function showStep(stepNumber) {
-            document.querySelectorAll('.setup-step').forEach(step => step.style.display = 'none');
-            document.getElementById(`step${stepNumber}`).style.display = 'block';
-            
-            document.querySelectorAll('.step-indicator').forEach(indicator => {
-                indicator.classList.remove('active');
-                if (parseInt(indicator.dataset.step) <= stepNumber) {
-                    indicator.classList.add('completed');
-                }
-            });
-            document.querySelector(`[data-step="${stepNumber}"]`).classList.add('active');
-        }
-        
-        // Step 0: Automatic creation of chatbot
-        const urlParams = new URLSearchParams(window.location.search);
-        const planId = urlParams.get('planId');
-        fetch('/website/api/chatbot-setup/create-chatbot', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-                name: 'My Chatbot',
-                planId: planId
-            })
-        }).then(response => response.json()).then(data => {
-            chatbotData.chatbotId = data.chatbotId;
-        });
-
-        // Step 1: URL Analysis
-        document.getElementById('urlForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const url = document.getElementById('websiteUrl').value;
-            const processStatusDiv = document.getElementById('processStatus');
-            const statusDiv = document.getElementById('urlAnalysisStatus');
-            processStatusDiv.textContent = 'Analyzing website. This may take a few minutes...' 
-            // Clear previous status
-            statusDiv.innerHTML = `
-                <div id="pagesCompleted">Pages Found: 0</div>
-                <div id="currentPage"></div>
-                <div id="pagesList" style="margin-top: 10px; max-height: 200px; overflow-y: auto;"></div>
-            `;
-
-            try {
-                // Set up SSE connection
-                const eventSource = new EventSource(`/website/api/chatbot-setup/scrape-site-progress?url=${encodeURIComponent(url)}&planId=${planId}`);
-                
-                eventSource.onmessage = (event) => {
-                    const data = JSON.parse(event.data);
-                    
-                    // Update pages count
-                    document.getElementById('pagesCompleted').textContent = `Pages Completed: ${data.pagesScraped || 0}`;
-                    // Update current page being processed
-                    if (data.currentPage) {
-                        document.getElementById('currentPage').textContent = `Currently processing: ${data.currentPage.url || ''}`;
-                    }
-                    
-                    // Add new page to the list
-                    if (data.newlyCompletedPages) {
-                        for (let page of data.newlyCompletedPages) {
-                            const pagesList = document.getElementById('pagesList');
-                            const pageElement = document.createElement('div');
-                            pageElement.textContent = `✓ ${page.url}`;
-                            pageElement.style.color = '#28a745'; // Green color for completed
-                            pagesList.appendChild(pageElement);
-                            pagesList.scrollTop = pagesList.scrollHeight; // Auto-scroll to bottom
-                        }
-                    }
-                    
-                    // If process is complete
-                    if (data.complete) {
-                        eventSource.close();
-                        chatbotData.urlAnalysis = data.result;
-                        // change from "analyzing website" to "website analysis complete"
-                        processStatusDiv.textContent = 'Website analysis complete';
-                        // Add OK button
-                        const okButton = document.createElement('button');
-                        okButton.textContent = 'Next Step';
-                        okButton.style.marginTop = '20px';
-                        okButton.onclick = () => {
-                            currentStep++;
-                            showStep(currentStep);
-                        };
-                        statusDiv.appendChild(okButton);
-                    }
-                };
-
-                eventSource.onerror = (error) => {
-                    eventSource.close();
-                    processStatusDiv.textContent = 'Error analyzing website: Connection lost';
-                };
-
-            } catch (error) {
-                processStatusDiv.textContent = 'Error analyzing website: ' + error.message;
-            }
-        });
-
-        // Step 2: Basic Info
-        document.getElementById('basicInfoForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const name = document.getElementById('chatbotName').value;
-            
-            try {
-                const response = await fetch('/website/api/chatbot-setup/save-chatbot-info', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ chatbotId: chatbotData.chatbotId, name })
-                });
-                
-                if (response.ok) {
-                    chatbotData.basicInfo = await response.json();
-                    currentStep++;
-                    showStep(currentStep);
-                }
-            } catch (error) {
-                alert('Error saving chatbot info: ' + error.message);
-            }
-        });
-
-        // Step 3: System Prompt
-        document.getElementById('promptForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const prompt = document.getElementById('systemPrompt').value;
-            
-            try {
-                    const response = await fetch('/website/api/chatbot-setup/save-system-prompt', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ chatbotId: chatbotData.chatbotId, systemPrompt: prompt })
-                });
-                
-                if (response.ok) {
-                    chatbotData.systemPrompt = await response.json();
-                    currentStep++;
-                    // add a button to go to the test chatbot page
-                    const testChatbotButton = document.createElement('button');
-                    testChatbotButton.textContent = 'Test Chatbot';
-                    testChatbotButton.style.marginTop = '20px';
-                    testChatbotButton.onclick = () => {
-                        console.log(chatbotData);
-                        alert('test chatbot button clicked');
-                        window.location.href = `/test-chatbot.html?chatbotId=${chatbotData.chatbotId}`;
-                    };
-                    // add the button to document.body
-                    document.body.appendChild(testChatbotButton);
-                }
-            } catch (error) {
-                alert('Error saving system prompt: ' + error.message);
-            }
-        });
-
-        // Initialize first step
-        showStep(currentStep);
-    </script>
-
     <style>
         input {
             padding: 10px;
@@ -220,52 +21,16 @@
             border-radius: 5px;
         }
 
-        #setup-progress {
-            display: flex;
-            justify-content: space-between;
-            margin: 20px;
-            padding: 10px;
-        }
-
-        .step-indicator {
-            padding: 10px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-        }
-
-        .step-indicator.active {
-            background-color: #007bff;
-            color: white;
-        }
-
-        .step-indicator.completed {
-            background-color: #28a745;
-            color: white;
-        }
-
-        #chatMessages {
-            height: 300px;
+        #pagesList {
+            margin-top: 10px;
+            max-height: 200px;
             overflow-y: auto;
-            border: 1px solid #ccc;
-            margin-bottom: 10px;
-            padding: 10px;
         }
 
-        .user-message, .bot-message {
-            margin: 5px;
-            padding: 10px;
-            border-radius: 5px;
-        }
-
-        .user-message {
-            background-color: #007bff;
-            color: white;
-            margin-left: 20%;
-        }
-
-        .bot-message {
-            background-color: #e9ecef;
-            margin-right: 20%;
+        .page-item {
+            padding: 5px;
+            margin: 2px 0;
+            color: #28a745;
         }
 
         button {
@@ -276,8 +41,135 @@
             border-radius: 5px;
             cursor: pointer;
             margin: 5px;
-            font-size: 14px
+            font-size: 14px;
+        }
+
+        #processStatus {
+            margin: 10px 0;
+            font-weight: bold;
         }
     </style>
+</head>
+<body>
+    <h1>Chatbot Setup</h1>
+    <div class="setup-step">
+        <h2>Enter Website URL</h2>
+        <p>Enter your website URL below. We'll analyze it to help your chatbot answer questions about your content.</p>
+        <form id="urlForm">
+            <input type="url" id="websiteUrl" required placeholder="Enter website URL (e.g., https://example.com)">
+            <button type="submit">Analyze Website</button>
+        </form>
+        <div id="processStatus"></div>
+        <div id="urlAnalysisStatus">
+            <div id="pagesCompleted"></div>
+            <div id="currentPage"></div>
+            <div id="pagesList"></div>
+        </div>
+    </div>
+
+    <script>
+        let chatbotData = {};
+        
+        // Step 0: Automatic creation of chatbot
+        const urlParams = new URLSearchParams(window.location.search);
+        const planId = urlParams.get('planId');
+
+        if (!planId) {
+            alert('No plan ID provided');
+            window.location.href = '/dashboard.html';
+        }
+
+        fetch('/website/api/chatbot-setup/create-chatbot', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                name: '',
+                planId: planId
+            })
+        }).then(response => response.json()).then(data => {
+            chatbotData.chatbotId = data.chatbotId;
+        });
+
+        // URL Analysis
+        document.getElementById('urlForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const url = document.getElementById('websiteUrl').value;
+            const processStatusDiv = document.getElementById('processStatus');
+            const statusDiv = document.getElementById('urlAnalysisStatus');
+            processStatusDiv.textContent = 'Analyzing website. This may take a few minutes...' 
+            
+            // Clear previous status
+            document.getElementById('pagesCompleted').textContent = 'Pages Found: 0';
+            document.getElementById('currentPage').textContent = '';
+            document.getElementById('pagesList').innerHTML = '';
+
+            try {
+                // Set up SSE connection
+                const eventSource = new EventSource(`/website/api/chatbot-setup/scrape-site-progress?url=${encodeURIComponent(url)}&planId=${planId}`);
+                
+                eventSource.onmessage = (event) => {
+                    const data = JSON.parse(event.data);
+                    
+                    // Update pages count
+                    document.getElementById('pagesCompleted').textContent = `Pages Completed: ${data.pagesScraped || 0}`;
+                    
+                    // Update current page being processed
+                    if (data.currentPage) {
+                        document.getElementById('currentPage').textContent = `Currently processing: ${data.currentPage.url || ''}`;
+                    }
+                    
+                    // Add new pages to the list
+                    if (data.newlyCompletedPages) {
+                        for (let page of data.newlyCompletedPages) {
+                            const pagesList = document.getElementById('pagesList');
+                            const pageElement = document.createElement('div');
+                            pageElement.className = 'page-item';
+                            pageElement.textContent = `✓ ${page.url}`;
+                            pagesList.appendChild(pageElement);
+                            pagesList.scrollTop = pagesList.scrollHeight;
+                        }
+                    }
+                    
+                    // If process is complete
+                    if (data.complete) {
+                        eventSource.close();
+                        chatbotData.urlAnalysis = data.result;
+                        processStatusDiv.textContent = 'Website analysis complete!';
+                        
+                        // Add confirmation buttons
+                        const buttonContainer = document.createElement('div');
+                        buttonContainer.style.marginTop = '20px';
+                        
+                        const editButton = document.createElement('button');
+                        editButton.textContent = 'Continue to Chatbot Settings';
+                        editButton.onclick = () => {
+                            window.location.href = `/chatbot-edit.html?planId=${planId}`;
+                        };
+                        
+                        const cancelButton = document.createElement('button');
+                        cancelButton.textContent = 'Cancel';
+                        cancelButton.style.backgroundColor = '#dc3545';
+                        cancelButton.onclick = () => {
+                            if (confirm('Are you sure you want to cancel? This will delete the chatbot setup.')) {
+                                window.location.href = '/dashboard.html';
+                            }
+                        };
+                        
+                        buttonContainer.appendChild(editButton);
+                        buttonContainer.appendChild(cancelButton);
+                        statusDiv.appendChild(buttonContainer);
+                    }
+                };
+
+                eventSource.onerror = (error) => {
+                    eventSource.close();
+                    processStatusDiv.textContent = 'Error analyzing website: Connection lost';
+                };
+
+            } catch (error) {
+                processStatusDiv.textContent = 'Error analyzing website: ' + error.message;
+            }
+        });
+    </script>
 </body>
 </html>

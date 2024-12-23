@@ -1,11 +1,10 @@
 const sqlite3 = require('sqlite3').verbose();
 const crypto = require('crypto');
-
+const {migrate} = require('./migrate.js');
 const db = new sqlite3.Database('data/api_database.db', (err) => {
   if (err) {
     console.error('Error opening database:', err.message);
-  } else {
-    console.log('Connected to SQLite database.');
+    throw err;
   }
 });
 
@@ -32,9 +31,9 @@ const dbAll = (sql, params) => new Promise((resolve, reject) => {
 });
 
 // Function to initialize the database
-const initializeDatabase = () => {
-  return new Promise((resolve, reject) => {
-    db.serialize(() => {
+const initializeDatabase = async () => {
+  try {
+    await db.serialize(() => {
       db.run(`
         CREATE TABLE IF NOT EXISTS users (
           user_id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -93,6 +92,9 @@ const initializeDatabase = () => {
           model_id INTEGER NOT NULL,
           name TEXT,
           system_prompt TEXT,
+          initial_message TEXT,
+          questions TEXT,
+          version TEXT,
           FOREIGN KEY (plan_id) REFERENCES plans(plan_id),
           FOREIGN KEY (website_id) REFERENCES website(website_id),
           FOREIGN KEY (model_id) REFERENCES models(model_id)
@@ -155,17 +157,19 @@ const initializeDatabase = () => {
           date_updated TEXT,
           FOREIGN KEY (website_id) REFERENCES website(website_id)
         )
-      `, (err) => {
-        if (err) {
-          reject(err);
-        } else {
-          console.log('Database tables initialized.');
-          resolve();
-        }
-      });
+      `);
     });
-  });
+    console.log('Database tables initialized.');
+    await migrate(dbGet, dbRun, dbAll);
+    return true;
+  } catch (err) {
+    console.error('Error initializing database:', err);
+    throw err;
+  }
 };
+
+// version is a string that is used to track the version of the chatbot (or any other entity in case we need to update the database schema)
+// Current version is 0.0.1, when we change the database schema, we increment the version
 
 // Add this helper function for guaranteed unique IDs
 const generateUniqueId = async (tableName, idColumn) => {

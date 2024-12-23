@@ -1,303 +1,276 @@
-// this script will be called by any client that wants to use the chatbot component
-// it will load the component.html file and inject it into the client's DOM, along with the component.css file
-const scriptTag = document.currentScript;
+(function() {
+    const scriptTag = document.currentScript;
 
-let chatbotId = null;
-try {
-    chatbotId = scriptTag.getAttribute('chatbot-id');
-} catch (e) {
-    chatbotId = '9c80e92f232b8542b22ec31744221aa8';
-}
+    const chatbotId = scriptTag.getAttribute('chatbot-id') || '9c80e92f232b8542b22ec31744221aa8';
 
-// Determine the base URL from the script's source
-const getBaseUrl = () => {
-    let scriptSrc = null
-    try {
-        scriptSrc = scriptTag.src;
-    } catch (e) {
-        scriptSrc = 'https://chatbot.visionstovisuals.com';
-    }
-    // If the script is loaded from localhost, use localhost
-    if (scriptSrc.includes('localhost')) {
-        return 'http://localhost:3000';
-    }
-    // Otherwise, extract the origin from the script's source URL
-    try {
-        const url = new URL(scriptSrc);
-        return url.origin;
-    } catch (e) {
-        console.error('Failed to parse script URL:', e);
-        return 'http://localhost:3000'; // Fallback to localhost
-    }
-};
-
-function initChatbotComponent() {
-    // domPurify
-    const script = document.createElement('script');
-    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.2.3/purify.min.js';
-    script.integrity = 'sha512-Ll+TuDvrWDNNRnFFIM8dOiw7Go7dsHyxRp4RutiIFW/wm3DgDmCnRZow6AqbXnCbpWu93yM1O34q+4ggzGeXVA==';
-    script.crossOrigin = 'anonymous';
-    script.referrerPolicy = 'no-referrer';
-    
-    script.onload = () => {
-        console.log('DOMPurify loaded!');
+    // Determine the base URL from the script's source
+    const getBaseUrl = () => {
+        const defaultBaseUrl = 'http://localhost:3000';
+        const scriptSrc = scriptTag && scriptTag.src ? scriptTag.src : defaultBaseUrl;
+        try {
+            const url = new URL(scriptSrc);
+            return url.origin;
+        } catch (e) {
+            console.error('Failed to parse script URL:', e);
+            return defaultBaseUrl;
+        }
     };
-    
-    script.onerror = () => {
-        console.error('Failed to load DOMPurify.');
+
+    // Load external scripts
+    const loadExternalScript = (src, integrity, crossOrigin, referrerPolicy, onLoadCallback) => {
+        const script = document.createElement('script');
+        script.src = src;
+        if (integrity) script.integrity = integrity;
+        if (crossOrigin) script.crossOrigin = crossOrigin;
+        if (referrerPolicy) script.referrerPolicy = referrerPolicy;
+
+        script.onload = onLoadCallback;
+        script.onerror = () => console.error(`Failed to load script: ${src}`);
+
+        document.head.appendChild(script);
     };
-    
-    document.head.appendChild(script);
 
-    // get the base url
-    const baseUrl = getBaseUrl();
-    
-    const container = document.createElement('div');
-    container.id = 'v2v-chatbot-component';
-    document.body.appendChild(container);
-    
-    chatbotComponent(chatbotId);
-}
+    // Initialize the chatbot component
+    const initChatbotComponent = () => {
+        // Load DOMPurify
+        loadExternalScript(
+            'https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.2.3/purify.min.js',
+            'sha512-Ll+TuDvrWDNNRnFFIM8dOiw7Go7dsHyxRp4RutiIFW/wm3DgDmCnRZow6AqbXnCbpWu93yM1O34q+4ggzGeXVA==',
+            'anonymous',
+            'no-referrer',
+            () => console.log('DOMPurify loaded!')
+        );
 
-document.addEventListener('DOMContentLoaded', () => {
-    initChatbotComponent();
-});
+        // Get the base URL and create the container
+        const baseUrl = getBaseUrl();
+        const container = document.createElement('div');
+        container.id = 'v2v-chatbot-component';
+        document.body.appendChild(container);
 
-// if the dom is already loaded, initialize the chatbot component
-if (document.readyState === 'complete') {
-    initChatbotComponent();
-}
+        chatbotComponent(chatbotId);
+    };
 
+    // Initialize when DOM is ready
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initChatbotComponent);
+    } else {
+        initChatbotComponent();
+    }
 
-function chatbotComponent(chatbotId) {
-    const container = document.getElementById('v2v-chatbot-component');
-    const baseUrl = getBaseUrl();
-    // Create a shadow root
-    const shadow = container.attachShadow({ mode: 'open' });
-    
-    // Add styles to the shadow DOM
-    const style = document.createElement('style');
-    fetch(`${baseUrl}/chatbot/api/frontend/component.css`)
-        .then(response => response.text())
-        .then(css => {
-            style.textContent = css;
-            shadow.appendChild(style);
-            
-            // Add the HTML content to the shadow DOM
-            fetch(`${baseUrl}/chatbot/api/frontend/component.html`)
-                .then(response => response.text())
-                .then(html => {
-                    const wrapper = document.createElement('div');
-                    wrapper.innerHTML = html;
-                    shadow.appendChild(wrapper);
-                    
-                    // Add initial welcome message
-                    const chatbox = shadow.querySelector('.chatbox');
-                    const botMessageContainer = document.createElement('div');
-                    botMessageContainer.classList.add('message-container');
+    const chatbotComponent = (chatbotId) => {
+        const baseUrl = getBaseUrl();
+        const container = document.getElementById('v2v-chatbot-component');
+        const shadow = container.attachShadow({ mode: 'open' });
 
-                    const botImage = document.createElement('img');
-                    botImage.src = 'https://cdn-icons-png.flaticon.com/512/8943/8943377.png';
-                    botImage.alt = 'Chatbot';
-                    botImage.classList.add('message-image');
+        const loadStylesAndHtml = async () => {
+            try {
+                // Load and append styles
+                const style = document.createElement('style');
+                const cssResponse = await fetch(`${baseUrl}/chatbot/api/frontend/component.css`);
+                style.textContent = await cssResponse.text();
+                shadow.appendChild(style);
 
-                    const botMessage = document.createElement('div');
-                    botMessage.classList.add('message-text');
-                    botMessage.innerHTML = "Welcome to the Future of Work Challenge! If you have any questions about the site or need help finding information, just let me know! I'm here to assist you with anything related to the challenge, resources, or how to participate. What would you like to know?<br><br>Here are some common questions we get -<br></br><button class='faq-button'>What is the Future of Work Challenge, and how can I participate?</button><button class='faq-button'>What are the judging criteria for submissions to the challenge?</button><button class='faq-button'>When is the registration deadline for the Future of Work Challenge?</button>";
+                // Load and append HTML content
+                const htmlResponse = await fetch(`${baseUrl}/chatbot/api/frontend/component.html`);
+                const wrapper = document.createElement('div');
+                wrapper.innerHTML = await htmlResponse.text();
+                shadow.appendChild(wrapper);
 
-                    botMessageContainer.appendChild(botImage);
-                    botMessageContainer.appendChild(botMessage);
-                    chatbox.appendChild(botMessageContainer);
+                initializeChatInterface(shadow, baseUrl);
+            } catch (error) {
+                console.error('Error loading styles or HTML:', error);
+            }
+        };
 
-                    const botDivider = document.createElement('hr');
-                    botDivider.classList.add('message-divider');
-                    chatbox.appendChild(botDivider);
+        loadStylesAndHtml();
+    };
 
-                    // Update selectors to use classes
-                    const container = shadow.querySelector('.v2v-chatbot-container');
-                    const button = shadow.querySelector('.v2v-chatbot-button');
-                    const overlay = shadow.querySelector('.overlay');
-                    const closeButton = shadow.querySelector('.v2v-chatbot-close');
-                    const submitButton = shadow.querySelector('.submit-button');
+    const initializeChatInterface = (shadow, baseUrl) => {
+        const chatbox = shadow.querySelector('.chatbox');
 
-                    button.addEventListener('click', () => {
-                        container.style.display = 'flex';
-                        button.style.display = 'none';
-                        overlay.style.display = 'block';
+        // Add initial welcome message
+        const addInitialMessage = async () => {
+            try {
+                const response = await fetch(`${baseUrl}/chatbot/api/initial-message/${chatbotId}`);
+                const data = await response.json();
+                console.log(data);
+                // if no message or questions, skip
+                if ((!data.message || data.message === '') && (!data.questions || data.questions.length === 0)) {
+                    console.log('No initial message or questions, skipping...');
+                    return;
+                }
+                // in case of no message, just show the questions
+                let botMessageHtml = '';
+                if (data.message && data.message !== '') {
+                    botMessageHtml += `${data.message}<br><br>`;
+                }
+                // if no questions, just show the message, otherwise show the questions
+                if (data.questions && data.questions.length > 0) {
+                    data.questions.forEach(question => {
+                        botMessageHtml += `<button class='faq-button'>${question}</button>`;
                     });
+                }
 
-                    closeButton.addEventListener('click', () => {
-                        container.style.display = 'none';
-                        button.style.display = 'flex';
-                        overlay.style.display = 'none';
-                    });
+                
+                
+                appendMessage(chatbox, botMessageHtml, `${baseUrl}/chatbot/api/frontend/chatbot-logo.png`, false);
 
-                    overlay.addEventListener('click', () => {
-                        container.style.display = 'none';
-                        button.style.display = 'flex';
-                        overlay.style.display = 'none';
-                    });
-
-                    submitButton.addEventListener('click', (e) => sendMessage(e, shadow));
-
-                    // if a button is clicked, add it's text to the input field, then automatically click the submit button
-                    const faqButtons = shadow.querySelectorAll('.faq-button');
-                    faqButtons.forEach(button => {
-                        button.addEventListener('click', (e) => {
-                            const userInput = shadow.querySelector('.user-input');
-                            userInput.value = e.target.textContent;
-                            submitButton.click();
-                        });
+                // Event listeners for FAQ buttons
+                shadow.querySelectorAll('.faq-button').forEach(faqButton => {
+                    console.log(faqButton);
+                    faqButton.addEventListener('click', (e) => {
+                        userInput.value = e.target.textContent;
+                        submitButton.click();
                     });
                 });
-        });
-}
+            } catch (error) {
+                console.error('Error fetching initial message:', error);
+                // Fallback message in case of error
+                const fallbackMessage = 'Hi! How can I assist you today?';
+                appendMessage(chatbox, fallbackMessage, `${baseUrl}/chatbot/api/frontend/chatbot-logo.png`, false);
+            }
+        };
 
-async function sendMessage(e, shadow) {
-    e.preventDefault();
-    const baseUrl = getBaseUrl();
-    const userInput = shadow.querySelector('.user-input');
-    const chatbox = shadow.querySelector('.chatbox');
-    const message = userInput.value;
+        const appendMessage = (chatbox, messageHtml, imgSrc, isUser) => {
+            const messageContainer = document.createElement('div');
+            messageContainer.classList.add(isUser ? 'user-message-container' : 'message-container');
 
-    if (message.trim() === '') return;
+            const messageImage = document.createElement('img');
+            messageImage.src = imgSrc;
+            messageImage.alt = isUser ? 'User' : 'Chatbot';
+            messageImage.classList.add(isUser ? 'user-message-image' : 'message-image');
 
-    // Update class names for message elements
-    const userMessageContainer = document.createElement('div');
-    userMessageContainer.classList.add('user-message-container');
+            const messageText = document.createElement('div');
+            messageText.classList.add(isUser ? 'user-message-text' : 'message-text');
+            messageText.innerHTML = messageHtml;
 
-    const userImage = document.createElement('img');
-    userImage.src = `${baseUrl}/chatbot/api/frontend/user.png`;
-    userImage.alt = 'User';
-    userImage.classList.add('user-message-image');
+            messageContainer.appendChild(messageImage);
+            messageContainer.appendChild(messageText);
+            chatbox.appendChild(messageContainer);
 
-    const userMessage = document.createElement('div');
-    userMessage.classList.add('user-message-text');
-    userMessage.textContent = message;
+            const divider = document.createElement('hr');
+            divider.classList.add('message-divider');
+            chatbox.appendChild(divider);
 
-    userMessageContainer.appendChild(userImage);
-    userMessageContainer.appendChild(userMessage);
-    chatbox.appendChild(userMessageContainer);
+            chatbox.scrollTop = chatbox.scrollHeight;
+        };
 
-    const divider = document.createElement('hr');
-    divider.classList.add('message-divider');
-    chatbox.appendChild(divider);
+        addInitialMessage();
 
-    // Add loading animation
-    const loadingContainer = document.createElement('div');
-    loadingContainer.classList.add('message-container', 'loading-container');
+        // Update selectors to use classes
+        const container = shadow.querySelector('.v2v-chatbot-container');
+        const button = shadow.querySelector('.v2v-chatbot-button');
+        const overlay = shadow.querySelector('.overlay');
+        const closeButton = shadow.querySelector('.v2v-chatbot-close');
+        const submitButton = shadow.querySelector('.submit-button');
+        const userInput = shadow.querySelector('.user-input');
 
-    const botImage = document.createElement('img');
-    botImage.src = 'https://cdn-icons-png.flaticon.com/512/8943/8943377.png'; 
-    botImage.alt = 'Chatbot';
-    botImage.classList.add('message-image');
+        // Event listeners for opening and closing chat
+        const toggleChatVisibility = (isVisible) => {
+            container.style.display = isVisible ? 'flex' : 'none';
+            button.style.display = isVisible ? 'none' : 'flex';
+            overlay.style.display = isVisible ? 'block' : 'none';
+        };
 
-    const loadingDots = document.createElement('div');
-    loadingDots.classList.add('loading-dots');
-    loadingDots.innerHTML = `
-        <span></span>
-        <span></span>
-        <span></span>
-    `;
+        button.addEventListener('click', () => toggleChatVisibility(true));
+        closeButton.addEventListener('click', () => toggleChatVisibility(false));
+        overlay.addEventListener('click', () => toggleChatVisibility(false));
 
-    loadingContainer.appendChild(botImage);
-    loadingContainer.appendChild(loadingDots);
-    chatbox.appendChild(loadingContainer);
+        // Event listener for sending messages
+        submitButton.addEventListener('click', (e) => sendMessage(e, shadow));
 
-    // Scroll to the bottom of the chatbox
-    chatbox.scrollTop = chatbox.scrollHeight;
+        // Set the src of images
+        shadow.querySelector('.submit-button img').src = `${baseUrl}/chatbot/api/frontend/send.png`;
+        shadow.querySelector('.v2v-chatbot-button-icon').src = `${baseUrl}/chatbot/api/frontend/chatbot-logo.png`;
+    };
 
-    let chatId = -1;
-    userInput.value = '';
-    
-    try {
-        const response = await fetch(`${baseUrl}/chatbot/api/chat/${chatbotId}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ message, chatId })
-        });
-        console.log(response);
-        const data = await response.json();
-        console.log(data);
-        
-        // Remove loading animation
-        chatbox.removeChild(loadingContainer);
-        
-        // Display chatbot's reply with image and divider
-        const botMessageContainer = document.createElement('div');
-        botMessageContainer.classList.add('message-container');
+    const sendMessage = async (e, shadow) => {
+        e.preventDefault();
+        const baseUrl = getBaseUrl();
+        const userInput = shadow.querySelector('.user-input');
+        const chatbox = shadow.querySelector('.chatbox');
+        const message = userInput.value.trim();
 
-        const botReplyImage = document.createElement('img');
-        botReplyImage.src = 'https://cdn-icons-png.flaticon.com/512/8943/8943377.png'; 
-        botReplyImage.alt = 'Chatbot';
-        botReplyImage.classList.add('message-image');
+        if (!message) return;
 
-        const botMessage = document.createElement('div');
-        botMessage.classList.add('message-text');
+        // Display user's message
+        appendMessage(chatbox, message, `${baseUrl}/chatbot/api/frontend/user.png`, true);
+        userInput.value = '';
+
+        // Display loading animation
+        const loadingContainer = createLoadingContainer(baseUrl);
+        chatbox.appendChild(loadingContainer);
+        chatbox.scrollTop = chatbox.scrollHeight;
+
+        let chatId = -1;
         try {
-            // Sanitize the message
-            // set innerHTML to display the message as HTML
+            const response = await fetch(`${baseUrl}/chatbot/api/chat/${chatbotId}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message, chatId })
+            });
+            const data = await response.json();
+
+            chatbox.removeChild(loadingContainer);
+
+            const botMessageHtml = data.message ? DOMPurify.sanitize(data.message) : data.error;
+            let isError = false;
             if (!data.message) {
-                botMessage.classList.add('error-message-text');
-                botMessage.textContent = data.error;
-            } else {
-                const cleanMessage = DOMPurify.sanitize(data.message);
-                botMessage.innerHTML = cleanMessage;
+                console.error('Error from chatbot API:', data.error);
+                isError = true;
             }
+            appendMessage(chatbox, botMessageHtml, `${baseUrl}/chatbot/api/frontend/chatbot-logo.png`, false, isError);
+            chatId = data.chatId;
         } catch (error) {
-            console.error('Error sanitizing message:', error);
-            // Fallback if sanitization fails
-            if (!data.message) {
-                botMessage.classList.add('error-message-text');
-                botMessage.textContent = data.error;
-            } else {
-                botMessage.textContent = data.message;
-            }
+            console.error('Error sending message:', error);
+            chatbox.removeChild(loadingContainer);
+            appendMessage(chatbox, 'Sorry, something went wrong. Please try again later.', `${baseUrl}/chatbot/api/frontend/chatbot-logo.png`, false, true);
         }
-        
-        botMessageContainer.appendChild(botReplyImage);
-        botMessageContainer.appendChild(botMessage);
-        chatbox.appendChild(botMessageContainer);
+    };
 
-        // Add divider
-        const botDivider = document.createElement('hr');
-        botDivider.classList.add('message-divider');
-        chatbox.appendChild(botDivider);
+    const appendMessage = (chatbox, messageHtml, imgSrc, isUser, isError = false) => {
+        const messageContainer = document.createElement('div');
+        messageContainer.classList.add(isUser ? 'user-message-container' : 'message-container');
 
-        // set chatId
-        chatId = data.chatId;
-        // Scroll to the bottom of the chatbox
+        const messageImage = document.createElement('img');
+        messageImage.src = imgSrc;
+        messageImage.alt = isUser ? 'User' : 'Chatbot';
+        messageImage.classList.add(isUser ? 'user-message-image' : 'message-image');
+
+        const messageText = document.createElement('div');
+        messageText.classList.add(isUser ? 'user-message-text' : (isError ? 'error-message-text' : 'message-text'));
+        messageText.innerHTML = messageHtml;
+
+        messageContainer.appendChild(messageImage);
+        messageContainer.appendChild(messageText);
+        chatbox.appendChild(messageContainer);
+
+        const divider = document.createElement('hr');
+        divider.classList.add('message-divider');
+        chatbox.appendChild(divider);
+
         chatbox.scrollTop = chatbox.scrollHeight;
-    } catch (error) {
-        console.error('Error:', error);
-        // Remove loading animation in case of error
-        chatbox.removeChild(loadingContainer);
-        
-        // Optionally, display an error message to the user
-        const errorContainer = document.createElement('div');
-        errorContainer.classList.add('message-container', 'error-message');
+    };
 
-        const errorImage = document.createElement('img');
-        errorImage.src = 'https://cdn-icons-png.flaticon.com/512/753/753345.png'; 
-        errorImage.alt = 'Error';
-        errorImage.classList.add('message-image');
+    const createLoadingContainer = (baseUrl) => {
+        const loadingContainer = document.createElement('div');
+        loadingContainer.classList.add('message-container', 'loading-container');
 
-        const errorMessage = document.createElement('div');
-        errorMessage.classList.add('message-text');
-        errorMessage.textContent = 'Sorry, something went wrong. Please try again later.';
+        const botImage = document.createElement('img');
+        botImage.src = `${baseUrl}/chatbot/api/frontend/chatbot-logo.png`;
+        botImage.alt = 'Chatbot';
+        botImage.classList.add('message-image');
 
-        errorContainer.appendChild(errorImage);
-        errorContainer.appendChild(errorMessage);
-        chatbox.appendChild(errorContainer);
+        const loadingDots = document.createElement('div');
+        loadingDots.classList.add('loading-dots');
+        loadingDots.innerHTML = `
+            <span></span>
+            <span></span>
+            <span></span>
+        `;
 
-        // Add divider
-        const errorDivider = document.createElement('hr');
-        errorDivider.classList.add('message-divider');
-        chatbox.appendChild(errorDivider);
-
-        // Scroll to the bottom of the chatbox
-        chatbox.scrollTop = chatbox.scrollHeight;
-    }
-}
+        loadingContainer.appendChild(botImage);
+        loadingContainer.appendChild(loadingDots);
+        return loadingContainer;
+    };
+})();

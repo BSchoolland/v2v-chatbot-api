@@ -6,7 +6,7 @@ const {ScraperManager} = require('../webscraping/scraperManager');
 
 const { authMiddleware } = require('./middleware');
 
-const { createChatbot, getChatbotFromPlanId, editChatbotName, editChatbotSystemPrompt, assignWebsiteIdToChatbot } = require('../database/chatbots');
+const { createChatbot, getChatbotFromPlanId, editChatbotName, editChatbotSystemPrompt, editChatbotInitialMessage, editChatbotQuestions, assignWebsiteIdToChatbot } = require('../database/chatbots');
 
 const { getPlan, setChatbotIdForPlan } = require('../database/plans');
 
@@ -31,14 +31,15 @@ router.post('/create-chatbot', authMiddleware, async (req, res) => {
     // make sure there is not already a chatbot with this planId
     const existingChatbot = await getChatbotFromPlanId(planId);
     if (existingChatbot) {
-        
         return res.status(200).json({ success: true, chatbotId: existingChatbot.chatbot_id });
     }
-    // model and system prompt will be set later
+    // Start with minimal default values
     const modelId = 1;
-    const systemPrompt = "You are a helpful assistant.";
+    const systemPrompt = "";
     const websiteId = -1;
-    const chatbotId = await createChatbot(planId, chatbotName, modelId, systemPrompt, websiteId);
+    const initialMessage = "";
+    const questions = "[]";  // Empty array as JSON string
+    const chatbotId = await createChatbot(planId, chatbotName, modelId, systemPrompt, websiteId, initialMessage, questions);
     await setChatbotIdForPlan(planId, chatbotId);
     res.status(200).json({ success: true, chatbotId: chatbotId });
 });
@@ -125,6 +126,43 @@ router.post('/save-system-prompt', authMiddleware, async (req, res) => {
     const chatbotId = req.body.chatbotId;
     const systemPrompt = req.body.systemPrompt;
     await editChatbotSystemPrompt(chatbotId, systemPrompt);
+    res.status(200).json({ success: true });
+});
+
+// get chatbot details
+router.get('/get-chatbot', authMiddleware, async (req, res) => {
+    const userId = req.userId;
+    const planId = req.query.planId;
+    // make sure the user owns the plan
+    const ownsThisPlan = await userOwnsPlan(userId, planId);
+    if (!ownsThisPlan) {
+        return res.status(403).json({ success: false, message: 'Unauthorized' });
+    }
+    const chatbot = await getChatbotFromPlanId(planId);
+    if (!chatbot) {
+        return res.status(404).json({ success: false, message: 'Chatbot not found' });
+    }
+    res.status(200).json({ success: true, chatbot });
+});
+
+// update chatbot details
+router.post('/update-chatbot', authMiddleware, async (req, res) => {
+    const userId = req.userId;
+    const planId = req.body.planId;
+    // make sure the user owns the plan
+    const ownsThisPlan = await userOwnsPlan(userId, planId);
+    if (!ownsThisPlan) {
+        return res.status(403).json({ success: false, message: 'Unauthorized' });
+    }
+    const chatbot = await getChatbotFromPlanId(planId);
+    if (!chatbot) {
+        return res.status(404).json({ success: false, message: 'Chatbot not found' });
+    }
+    const { name, systemPrompt, initialMessage, questions } = req.body;
+    await editChatbotName(chatbot.chatbot_id, name);
+    await editChatbotSystemPrompt(chatbot.chatbot_id, systemPrompt);
+    await editChatbotInitialMessage(chatbot.chatbot_id, initialMessage);
+    await editChatbotQuestions(chatbot.chatbot_id, questions);
     res.status(200).json({ success: true });
 });
 

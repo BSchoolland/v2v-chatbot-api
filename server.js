@@ -38,14 +38,19 @@ app.use(express.static('development-ui'));
 
 const scraperManager = new ScraperManager();
 
-console.log('Initializing database...');
-initializeDatabase()
-    .then(async () => {
+// Wrap the initialization in an async IIFE
+(async () => {
+    try {
+        console.log('Initializing database...');
+        await initializeDatabase();
+        console.log('Database initialization complete, starting server...');
+        
         app.listen(port, () => {
             console.log(`Server is running on http://localhost:${port}`);
         });
-    })
-    .catch((err) => {
+    } catch (err) {
         console.error('Failed to initialize database, exiting:', err);
-    });
+        process.exit(1);
+    }
+})();
 
