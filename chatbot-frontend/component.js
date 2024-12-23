@@ -110,8 +110,19 @@
                         botMessageHtml += `<button class='faq-button'>${question}</button>`;
                     });
                 }
+
+                
                 
                 appendMessage(chatbox, botMessageHtml, `${baseUrl}/chatbot/api/frontend/chatbot-logo.png`, false);
+
+                // Event listeners for FAQ buttons
+                shadow.querySelectorAll('.faq-button').forEach(faqButton => {
+                    console.log(faqButton);
+                    faqButton.addEventListener('click', (e) => {
+                        userInput.value = e.target.textContent;
+                        submitButton.click();
+                    });
+                });
             } catch (error) {
                 console.error('Error fetching initial message:', error);
                 // Fallback message in case of error
@@ -167,14 +178,6 @@
 
         // Event listener for sending messages
         submitButton.addEventListener('click', (e) => sendMessage(e, shadow));
-
-        // Event listeners for FAQ buttons
-        shadow.querySelectorAll('.faq-button').forEach(faqButton => {
-            faqButton.addEventListener('click', (e) => {
-                userInput.value = e.target.textContent;
-                submitButton.click();
-            });
-        });
 
         // Set the src of images
         shadow.querySelector('.submit-button img').src = `${baseUrl}/chatbot/api/frontend/send.png`;

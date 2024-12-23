@@ -63,6 +63,18 @@ async function editChatbotSystemPrompt(chatbotId, systemPrompt) {
     return chatbot;
 }
 
+// edit a chatbot's initial message
+async function editChatbotInitialMessage(chatbotId, initialMessage) {
+    const chatbot = await dbRun('UPDATE chatbots SET initial_message = ? WHERE chatbot_id = ?', [initialMessage, chatbotId]);
+    return chatbot;
+}
+
+// edit a chatbot's questions
+async function editChatbotQuestions(chatbotId, questions) {
+    const chatbot = await dbRun('UPDATE chatbots SET questions = ? WHERE chatbot_id = ?', [questions, chatbotId]);
+    return chatbot;
+}
+
 // TODO: make this more efficient by storing the full system prompt, rather than having to rebuild it every time
 async function getSystemPrompt(chatbotId) {
     const chatbot = await dbGet('SELECT system_prompt, website_id FROM chatbots WHERE chatbot_id = ?', [chatbotId]);
@@ -116,8 +128,13 @@ async function getInitialMessage(chatbotId) {
     if (chatbot.questions === null || chatbot.questions === '') {
         return { message: chatbot.initial_message, questions: [] };
     }
-    let questions = chatbot.questions.split(',');
-    return { message: chatbot.initial_message, questions: questions };
+    try {
+        const questions = JSON.parse(chatbot.questions);
+        return { message: chatbot.initial_message, questions };
+    } catch (error) {
+        console.error('Error parsing questions JSON:', error);
+        return { message: chatbot.initial_message, questions: [] };
+    }
 }
 
 module.exports = {
@@ -127,6 +144,8 @@ module.exports = {
     getChatbotFromPlanId,
     editChatbotName,
     editChatbotSystemPrompt,
+    editChatbotInitialMessage,
+    editChatbotQuestions,
     assignWebsiteIdToChatbot,
     getSystemPrompt,
     getInitialMessage

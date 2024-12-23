@@ -55,6 +55,13 @@
                                 window.location.href = `/chatbot-edit.html?planId=${plan.plan_id}`;
                             };
                             buttonContainer.appendChild(chatbotEditBtn);
+
+                            const testChatbotBtn = document.createElement('button');
+                            testChatbotBtn.textContent = 'Test Chatbot';
+                            testChatbotBtn.onclick = () => {
+                                window.location.href = `/test-chatbot.html?planId=${plan.plan_id}`;
+                            };
+                            buttonContainer.appendChild(testChatbotBtn);
                         } else {
                             const chatbotSetupBtn = document.createElement('button');
                             chatbotSetupBtn.textContent = 'Setup Chatbot';
