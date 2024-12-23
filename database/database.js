@@ -93,6 +93,8 @@ const initializeDatabase = () => {
           model_id INTEGER NOT NULL,
           name TEXT,
           system_prompt TEXT,
+          initial_message TEXT,
+          questions TEXT,
           FOREIGN KEY (plan_id) REFERENCES plans(plan_id),
           FOREIGN KEY (website_id) REFERENCES website(website_id),
           FOREIGN KEY (model_id) REFERENCES models(model_id)
