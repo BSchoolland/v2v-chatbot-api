@@ -89,15 +89,26 @@
         const chatbox = shadow.querySelector('.chatbox');
 
         // Add initial welcome message
-        const addInitialMessage = () => {
-            const botMessageHtml = `
-                Welcome to the Future of Work Challenge! If you have any questions about the site or need help finding information, just let me know! I'm here to assist you with anything related to the challenge, resources, or how to participate. What would you like to know?<br><br>
-                Here are some common questions we get -<br><br>
-                <button class='faq-button'>What is the Future of Work Challenge, and how can I participate?</button>
-                <button class='faq-button'>What are the judging criteria for submissions to the challenge?</button>
-                <button class='faq-button'>When is the registration deadline for the Future of Work Challenge?</button>
-            `;
-            appendMessage(chatbox, botMessageHtml, `${baseUrl}/chatbot/api/frontend/chatbot-logo.png`, false);
+        const addInitialMessage = async () => {
+            try {
+                const response = await fetch(`${baseUrl}/chatbot/api/initial-message/${chatbotId}`);
+                const data = await response.json();
+                
+                let botMessageHtml = `${data.message}<br><br>`;
+                if (data.questions && data.questions.length > 0) {
+                    botMessageHtml += `<br><br>`;
+                    data.questions.forEach(question => {
+                        botMessageHtml += `<button class='faq-button'>${question}</button>`;
+                    });
+                }
+                
+                appendMessage(chatbox, botMessageHtml, `${baseUrl}/chatbot/api/frontend/chatbot-logo.png`, false);
+            } catch (error) {
+                console.error('Error fetching initial message:', error);
+                // Fallback message in case of error
+                const fallbackMessage = 'Hi! How can I assist you today?';
+                appendMessage(chatbox, fallbackMessage, `${baseUrl}/chatbot/api/frontend/chatbot-logo.png`, false);
+            }
         };
 
         const appendMessage = (chatbox, messageHtml, imgSrc, isUser) => {

@@ -4,6 +4,7 @@ const express = require('express');
 const router = express.Router();
 const { getSessionId, appendMessageToSession } = require('./sessions.js');
 const { getChatbotResponse } = require('./chatbotResponse.js');
+const { getInitialMessage } = require('../database/chatbots.js');
 const { checkRateLimit } = require('./utils/rateLimiter.js');
 const { isValidOrigin } = require('./utils/originValidator');
 const path = require('path');
@@ -22,6 +23,11 @@ router.post('/chat/:chatbotId', async (req, res) => {
     const chatId = getSessionId(req.body.chatId);
     appendMessageToSession(chatId, req.body.message, 'user');
     const response = await getChatbotResponse(chatId, req.params.chatbotId);
+    res.json(response);
+});
+
+router.get('/initial-message/:chatbotId', async (req, res) => {
+    const response = await getInitialMessage(req.params.chatbotId);
     res.json(response);
 });
 

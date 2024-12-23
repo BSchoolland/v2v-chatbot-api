@@ -95,6 +95,13 @@ async function getSystemPrompt(chatbotId) {
     return systemPrompt;
 }
 
+// get the initial message for a chatbot
+async function getInitialMessage(chatbotId) {
+    const chatbot = await dbGet('SELECT initial_message, questions FROM chatbots WHERE chatbot_id = ?', [chatbotId]);
+    let questions = chatbot.questions.split(',');
+    return { message: chatbot.initial_message, questions: questions };
+}
+
 module.exports = {
     createChatbot,
     getChatbot,
@@ -103,5 +110,6 @@ module.exports = {
     editChatbotName,
     editChatbotSystemPrompt,
     assignWebsiteIdToChatbot,
-    getSystemPrompt
+    getSystemPrompt,
+    getInitialMessage
 };
