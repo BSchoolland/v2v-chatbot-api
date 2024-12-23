@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Chatbot</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <h1>Edit Chatbot</h1>
+    <div id="chatbotForm">
+        <div>
+            <label for="chatbotName">Chatbot Name:</label>
+            <input type="text" id="chatbotName" name="chatbotName" required>
+        </div>
+        <div>
+            <label for="systemPrompt">System Prompt:</label>
+            <textarea id="systemPrompt" name="systemPrompt" rows="4" required></textarea>
+        </div>
+        <button onclick="saveChatbot()">Save Changes</button>
+    </div>
+
+    <script>
+        // Get plan ID from URL parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        const planId = urlParams.get('planId');
+
+        if (!planId) {
+            alert('No plan ID provided');
+            window.location.href = '/dashboard.html';
+        }
+
+        // Fetch chatbot details
+        fetch(`/website/api/chatbot-setup/get-chatbot?planId=${planId}`, {
+            method: 'GET',
+            credentials: 'include',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const chatbot = data.chatbot;
+                document.getElementById('chatbotName').value = chatbot.name;
+                document.getElementById('systemPrompt').value = chatbot.system_prompt;
+            } else {
+                alert('Error fetching chatbot details');
+                window.location.href = '/dashboard.html';
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An unknown error occurred');
+            window.location.href = '/dashboard.html';
+        });
+
+        function saveChatbot() {
+            const chatbotName = document.getElementById('chatbotName').value;
+            const systemPrompt = document.getElementById('systemPrompt').value;
+
+            fetch(`/website/api/chatbot-setup/update-chatbot`, {
+                method: 'POST',
+                credentials: 'include',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    planId: planId,
+                    name: chatbotName,
+                    systemPrompt: systemPrompt
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Chatbot updated successfully!');
+                    window.location.href = '/dashboard.html';
+                } else {
+                    alert(data.message || 'Error updating chatbot');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An unknown error occurred');
+            });
+        }
+    </script>
+</body>
+</html> 

@@ -3,6 +3,20 @@ const { getWebsiteById } = require('./websites.js');
 const { getPagesByWebsite } = require('./pages.js');
 const { version } = require('./migrate.js');
 
+// schema:
+// chatbot_id TEXT PRIMARY KEY,
+// plan_id INTEGER,
+// website_id INTEGER,
+// model_id INTEGER NOT NULL,
+// name TEXT,
+// system_prompt TEXT,
+// initial_message TEXT,
+// questions TEXT,
+// version TEXT,
+// FOREIGN KEY (plan_id) REFERENCES plans(plan_id),
+// FOREIGN KEY (website_id) REFERENCES website(website_id),
+// FOREIGN KEY (model_id) REFERENCES models(model_id)
+
 // create a chatbot
 async function createChatbot(plan_id, name, model_id, system_prompt, website_id, initial_message = '', questions = '') {
     const chatbot_id = await generateUniqueId('chatbots', 'chatbot_id');

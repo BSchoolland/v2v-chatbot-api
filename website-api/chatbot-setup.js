@@ -128,4 +128,39 @@ router.post('/save-system-prompt', authMiddleware, async (req, res) => {
     res.status(200).json({ success: true });
 });
 
+// get chatbot details
+router.get('/get-chatbot', authMiddleware, async (req, res) => {
+    const userId = req.userId;
+    const planId = req.query.planId;
+    // make sure the user owns the plan
+    const ownsThisPlan = await userOwnsPlan(userId, planId);
+    if (!ownsThisPlan) {
+        return res.status(403).json({ success: false, message: 'Unauthorized' });
+    }
+    const chatbot = await getChatbotFromPlanId(planId);
+    if (!chatbot) {
+        return res.status(404).json({ success: false, message: 'Chatbot not found' });
+    }
+    res.status(200).json({ success: true, chatbot });
+});
+
+// update chatbot details
+router.post('/update-chatbot', authMiddleware, async (req, res) => {
+    const userId = req.userId;
+    const planId = req.body.planId;
+    // make sure the user owns the plan
+    const ownsThisPlan = await userOwnsPlan(userId, planId);
+    if (!ownsThisPlan) {
+        return res.status(403).json({ success: false, message: 'Unauthorized' });
+    }
+    const chatbot = await getChatbotFromPlanId(planId);
+    if (!chatbot) {
+        return res.status(404).json({ success: false, message: 'Chatbot not found' });
+    }
+    const { name, systemPrompt } = req.body;
+    await editChatbotName(chatbot.chatbot_id, name);
+    await editChatbotSystemPrompt(chatbot.chatbot_id, systemPrompt);
+    res.status(200).json({ success: true });
+});
+
 module.exports = router;

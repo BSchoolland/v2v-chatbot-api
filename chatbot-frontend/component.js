@@ -94,13 +94,18 @@
                 const response = await fetch(`${baseUrl}/chatbot/api/initial-message/${chatbotId}`);
                 const data = await response.json();
                 console.log(data);
+                // if no message or questions, skip
                 if ((!data.message || data.message === '') && (!data.questions || data.questions.length === 0)) {
                     console.log('No initial message or questions, skipping...');
                     return;
                 }
-                let botMessageHtml = `${data.message}<br><br>`;
+                // in case of no message, just show the questions
+                let botMessageHtml = '';
+                if (data.message && data.message !== '') {
+                    botMessageHtml += `${data.message}<br><br>`;
+                }
+                // if no questions, just show the message, otherwise show the questions
                 if (data.questions && data.questions.length > 0) {
-                    botMessageHtml += `<br><br>`;
                     data.questions.forEach(question => {
                         botMessageHtml += `<button class='faq-button'>${question}</button>`;
                     });

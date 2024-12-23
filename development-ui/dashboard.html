@@ -44,16 +44,25 @@
                             window.location.href = `/user-plan.html?id=${plan.plan_id}`;
                         };
                         
-                        // Create Chatbot Setup button
-                        const chatbotSetupBtn = document.createElement('button');
-                        chatbotSetupBtn.textContent = 'Chatbot Setup';
-                        chatbotSetupBtn.onclick = () => {
-                            window.location.href = `/chatbot-setup.html?planId=${plan.plan_id}`;
-                        };
-                        
-                        // Add buttons to container
+                        // Add Plan Details button to container
                         buttonContainer.appendChild(planDetailsBtn);
-                        buttonContainer.appendChild(chatbotSetupBtn);
+
+                        // Show different button based on whether chatbot exists
+                        if (plan.chatbot_id) {
+                            const chatbotEditBtn = document.createElement('button');
+                            chatbotEditBtn.textContent = 'Edit Chatbot';
+                            chatbotEditBtn.onclick = () => {
+                                window.location.href = `/chatbot-edit.html?planId=${plan.plan_id}`;
+                            };
+                            buttonContainer.appendChild(chatbotEditBtn);
+                        } else {
+                            const chatbotSetupBtn = document.createElement('button');
+                            chatbotSetupBtn.textContent = 'Setup Chatbot';
+                            chatbotSetupBtn.onclick = () => {
+                                window.location.href = `/chatbot-setup.html?planId=${plan.plan_id}`;
+                            };
+                            buttonContainer.appendChild(chatbotSetupBtn);
+                        }
                         
                         // Add plan item and button container to the list
                         planItem.appendChild(buttonContainer);
