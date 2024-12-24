@@ -7,7 +7,7 @@ services:
     volumes:
       - ./data:/home/pptruser/app/data
     ports:
-      - "3000-3001:3000"
+      - "3000:3000"
     environment:
       - PUPPETEER_CACHE_DIR=/home/pptruser/.cache/puppeteer
     command: ["node", "--experimental-modules", "server.js"]
