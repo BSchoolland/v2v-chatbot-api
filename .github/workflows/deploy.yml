@@ -23,5 +23,7 @@ jobs:
           ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} '\
             cd /root/v2v-chatbot-api/ && \
             git pull origin main && \
-            # run the docker-restart.sh script
-            ./docker-restart.sh' 
+            docker system prune -f && \
+            docker-compose down && \
+            sleep 10 && \
+            docker-compose up --build -d
