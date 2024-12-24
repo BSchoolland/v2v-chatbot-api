@@ -50,6 +50,13 @@ const examplePrompt = `# You are a [ideal chatbot characteristics] chatbot named
 - Always ensure links are correct: Do not link to a page you do not see on the list of pages, or users will get a 404 error.
 
 [0-3 other guidelines as you see fit]
+
+## Example of how a conversation should go:
+
+User: Question
+Chatbot: readPageContent("/")
+Tool: Information about page
+Chatbot: Answer to question
 `
 
 async function automateConfiguration(chatbot) {
