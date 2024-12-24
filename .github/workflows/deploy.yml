@@ -23,11 +23,6 @@ jobs:
           ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} '\
             cd /root/v2v-chatbot-api/ && \
             git pull origin main && \
-            # Build the new image
-            docker-compose build --no-cache && \
-            # Start the new container while the old one is still running
-            docker-compose up -d --scale puppeteer-app=2 --no-recreate && \
-            # Wait for the new container to be ready
-            sleep 10 && \
-            # Remove the old container
-            docker-compose up -d --scale puppeteer-app=1 --no-recreate' 
+            docker system prune -f && \
+            docker-compose down --remove-orphans && \
+            docker-compose up -d --build' 

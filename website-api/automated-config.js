@@ -45,18 +45,13 @@ const examplePrompt = `# You are a [ideal chatbot characteristics] chatbot named
 
 - You represent [website name]: Always be professional.  Use "we" when referring to the [organization, company, website], rather than "they" and always take responsibility for any issues that may arise.
 
+- Respond using markdown: Use markdown formatting to make the response more readable.
+
 - Whenever you give the user information or guidance, ALWAYS cite the source or location on our website you used to find that information (e.g., "According to [the example page](/example), ..." or "# according to the [example section](#abc123)]).
 
 - Always ensure links are correct: Do not link to a page you do not see on the list of pages, or users will get a 404 error.
 
 [0-3 other guidelines as you see fit]
-
-## Example of how a conversation should go:
-
-User: Question
-Chatbot: readPageContent("/")
-Tool: Information about page
-Chatbot: Answer to question
 `
 
 async function automateConfiguration(chatbot) {
@@ -141,6 +136,18 @@ The configuration should be specific to this website's content and purpose. Use 
             const config = await callOpenAI(prompt, functions);
             // to fix an occasional bug, replace any \n in the system prompt with an actual newline character
             config.system_prompt = config.system_prompt.replace(/\\n/g, '\n');
+            // add some text to the end of the system prompt to guide the chatbot to use the tools
+            config.system_prompt += `
+
+            ## Example of how a conversation should go:
+
+            User: Question
+            Chatbot: readPageContent("/")
+            Tool: Information about page
+            Chatbot: Answer to question
+
+            Even if you're not sure where the answer is, use the tools to find it.
+            `;
             // Update the chatbot with AI-generated values
             await editChatbotName(chatbot.chatbot_id, config.name);
             await editChatbotSystemPrompt(chatbot.chatbot_id, config.system_prompt);
