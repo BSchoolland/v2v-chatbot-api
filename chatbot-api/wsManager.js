@@ -28,27 +28,21 @@ class WebSocketManager {
             console.log('New WebSocket connection');
             this.clients.add(ws);
             
-            ws.on('error', (error) => {
-                console.error('WebSocket error:', error);
-            });
-            
             ws.on('close', () => {
                 console.log('Client disconnected');
                 this.clients.delete(ws);
             });
 
-            // Send a test message to confirm connection
-            ws.send(JSON.stringify({
-                type: 'connection_status',
-                status: 'connected'
-            }));
+            ws.on('error', (error) => {
+                console.error('WebSocket error:', error);
+            });
         });
     }
 
     /**
      * Broadcast a tool usage event to all connected clients
-     * @param {string} toolName - The name of the tool being used
-     * @param {string} reference - The reference (e.g., file path, search query) being accessed
+     * @param {string} toolName - Name of the tool being used
+     * @param {string} reference - Reference information about the tool usage
      */
     broadcastToolUsage(toolName, reference) {
         if (!this.wss) {
@@ -56,19 +50,18 @@ class WebSocketManager {
             return;
         }
 
-        const message = JSON.stringify({
-            type: 'tool_usage',
-            toolName,
-            reference
-        });
-
-        this.clients.forEach((client) => {
+        this.wss.clients.forEach((client) => {
             if (client.readyState === WebSocket.OPEN) {
-                client.send(message);
+                client.send(JSON.stringify({
+                    type: 'tool_usage',
+                    toolName,
+                    reference
+                }));
             }
         });
     }
 }
 
 // Export a singleton instance
-module.exports = new WebSocketManager(); 
+const wsManager = new WebSocketManager();
+module.exports = wsManager; 

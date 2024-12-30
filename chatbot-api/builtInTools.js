@@ -1,8 +1,7 @@
 const {db} = require('../database/database.js');
 const { getPageByUrlAndWebsiteId } = require('../database/pages.js');
 const {getWebsiteById} = require('../database/websites.js');
-const { wss } = require('../server.js');
-const { WebSocket } = require('ws');
+const wsManager = require('./wsManager');
 // a set of tools the chatbot can use to find information for the user
 tools = [
     {
@@ -107,15 +106,7 @@ async function getTools(chatbotId) {
 
 // Function to broadcast tool usage to all connected clients
 function broadcastToolUsage(toolName, reference) {
-    wss.clients.forEach((client) => {
-        if (client.readyState === WebSocket.OPEN) {
-            client.send(JSON.stringify({
-                type: 'tool_usage',
-                toolName,
-                reference
-            }));
-        }
-    });
+    wsManager.broadcastToolUsage(toolName, reference);
 }
 
 async function useTool(toolName, params, metadata = {}) {

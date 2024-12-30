@@ -19,19 +19,11 @@ const { getTools, useTool } = require('./builtInTools.js');
 const showdown = require('showdown');
 const converter = new showdown.Converter();
 
-const { wss } = require('../server.js');
+const wsManager = require('./wsManager');
 
 // Function to broadcast tool usage to all connected clients
 function broadcastToolUsage(toolName, reference) {
-    wss.clients.forEach((client) => {
-        if (client.readyState === WebSocket.OPEN) {
-            client.send(JSON.stringify({
-                type: 'tool_usage',
-                toolName,
-                reference
-            }));
-        }
-    });
+    wsManager.broadcastToolUsage(toolName, reference);
 }
 
 // gets the model name from the database (e.g. gpt-4o-mini, claude-3-5-sonnet...)
