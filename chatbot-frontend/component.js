@@ -29,59 +29,94 @@
         document.head.appendChild(script);
     };
 
-    // Initialize the chatbot component
-    const initChatbotComponent = () => {
-        // Load DOMPurify
-        loadExternalScript(
-            'https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.2.3/purify.min.js',
-            'sha512-Ll+TuDvrWDNNRnFFIM8dOiw7Go7dsHyxRp4RutiIFW/wm3DgDmCnRZow6AqbXnCbpWu93yM1O34q+4ggzGeXVA==',
-            'anonymous',
-            'no-referrer',
-            () => console.log('DOMPurify loaded!')
-        );
+    const appendMessage = (chatbox, messageHtml, imgSrc, isUser, isError = false) => {
+        const messageContainer = document.createElement('div');
+        messageContainer.classList.add(isUser ? 'user-message-container' : 'message-container');
 
-        // Get the base URL and create the container
-        const baseUrl = getBaseUrl();
-        const container = document.createElement('div');
-        container.id = 'v2v-chatbot-component';
-        document.body.appendChild(container);
+        const messageImage = document.createElement('img');
+        messageImage.src = imgSrc;
+        messageImage.alt = isUser ? 'User' : 'Chatbot';
+        messageImage.classList.add(isUser ? 'user-message-image' : 'message-image');
 
-        chatbotComponent(chatbotId);
+        const messageText = document.createElement('div');
+        messageText.classList.add(isUser ? 'user-message-text' : (isError ? 'error-message-text' : 'message-text'));
+        messageText.innerHTML = messageHtml;
+
+        messageContainer.appendChild(messageImage);
+        messageContainer.appendChild(messageText);
+        chatbox.appendChild(messageContainer);
+
+        const divider = document.createElement('hr');
+        divider.classList.add('message-divider');
+        chatbox.appendChild(divider);
+
+        chatbox.scrollTop = chatbox.scrollHeight;
     };
 
-    // Initialize when DOM is ready
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initChatbotComponent);
-    } else {
-        initChatbotComponent();
-    }
+    const createLoadingContainer = (baseUrl) => {
+        const loadingContainer = document.createElement('div');
+        loadingContainer.classList.add('message-container', 'loading-container');
 
-    const chatbotComponent = (chatbotId) => {
+        const botImage = document.createElement('img');
+        botImage.src = `${baseUrl}/chatbot/api/frontend/chatbot-logo.png`;
+        botImage.alt = 'Chatbot';
+        botImage.classList.add('message-image');
+
+        const loadingDots = document.createElement('div');
+        loadingDots.classList.add('loading-dots');
+        loadingDots.innerHTML = `
+            <span></span>
+            <span></span>
+            <span></span>
+        `;
+
+        loadingContainer.appendChild(botImage);
+        loadingContainer.appendChild(loadingDots);
+        return loadingContainer;
+    };
+
+    const sendMessage = async (e, shadow) => {
+        e.preventDefault();
         const baseUrl = getBaseUrl();
-        const container = document.getElementById('v2v-chatbot-component');
-        const shadow = container.attachShadow({ mode: 'open' });
+        const userInput = shadow.querySelector('.user-input');
+        const chatbox = shadow.querySelector('.chatbox');
+        const message = userInput.value.trim();
 
-        const loadStylesAndHtml = async () => {
-            try {
-                // Load and append styles
-                const style = document.createElement('style');
-                const cssResponse = await fetch(`${baseUrl}/chatbot/api/frontend/component.css`);
-                style.textContent = await cssResponse.text();
-                shadow.appendChild(style);
+        if (!message) return;
 
-                // Load and append HTML content
-                const htmlResponse = await fetch(`${baseUrl}/chatbot/api/frontend/component.html`);
-                const wrapper = document.createElement('div');
-                wrapper.innerHTML = await htmlResponse.text();
-                shadow.appendChild(wrapper);
+        // Display user's message
+        appendMessage(chatbox, message, `${baseUrl}/chatbot/api/frontend/user.png`, true);
+        userInput.value = '';
 
-                initializeChatInterface(shadow, baseUrl);
-            } catch (error) {
-                console.error('Error loading styles or HTML:', error);
+        // Display loading animation
+        const loadingContainer = createLoadingContainer(baseUrl);
+        chatbox.appendChild(loadingContainer);
+        chatbox.scrollTop = chatbox.scrollHeight;
+
+        let chatId = -1;
+        try {
+            const response = await fetch(`${baseUrl}/chatbot/api/chat/${chatbotId}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message, chatId })
+            });
+            const data = await response.json();
+
+            chatbox.removeChild(loadingContainer);
+
+            const botMessageHtml = data.message ? DOMPurify.sanitize(data.message) : data.error;
+            let isError = false;
+            if (!data.message) {
+                console.error('Error from chatbot API:', data.error);
+                isError = true;
             }
-        };
-
-        loadStylesAndHtml();
+            appendMessage(chatbox, botMessageHtml, `${baseUrl}/chatbot/api/frontend/chatbot-logo.png`, false, isError);
+            chatId = data.chatId;
+        } catch (error) {
+            console.error('Error sending message:', error);
+            chatbox.removeChild(loadingContainer);
+            appendMessage(chatbox, 'Sorry, something went wrong. Please try again later.', `${baseUrl}/chatbot/api/frontend/chatbot-logo.png`, false, true);
+        }
     };
 
     const initializeChatInterface = (shadow, baseUrl) => {
@@ -218,93 +253,58 @@
         shadow.querySelector('.v2v-chatbot-button-icon').src = `${baseUrl}/chatbot/api/frontend/chatbot-logo.png`;
     };
 
-    const appendMessage = (chatbox, messageHtml, imgSrc, isUser, isError = false) => {
-        const messageContainer = document.createElement('div');
-        messageContainer.classList.add(isUser ? 'user-message-container' : 'message-container');
-
-        const messageImage = document.createElement('img');
-        messageImage.src = imgSrc;
-        messageImage.alt = isUser ? 'User' : 'Chatbot';
-        messageImage.classList.add(isUser ? 'user-message-image' : 'message-image');
-
-        const messageText = document.createElement('div');
-        messageText.classList.add(isUser ? 'user-message-text' : (isError ? 'error-message-text' : 'message-text'));
-        messageText.innerHTML = messageHtml;
-
-        messageContainer.appendChild(messageImage);
-        messageContainer.appendChild(messageText);
-        chatbox.appendChild(messageContainer);
-
-        const divider = document.createElement('hr');
-        divider.classList.add('message-divider');
-        chatbox.appendChild(divider);
-
-        chatbox.scrollTop = chatbox.scrollHeight;
-    };
-
-    const createLoadingContainer = (baseUrl) => {
-        const loadingContainer = document.createElement('div');
-        loadingContainer.classList.add('message-container', 'loading-container');
-
-        const botImage = document.createElement('img');
-        botImage.src = `${baseUrl}/chatbot/api/frontend/chatbot-logo.png`;
-        botImage.alt = 'Chatbot';
-        botImage.classList.add('message-image');
-
-        const loadingDots = document.createElement('div');
-        loadingDots.classList.add('loading-dots');
-        loadingDots.innerHTML = `
-            <span></span>
-            <span></span>
-            <span></span>
-        `;
-
-        loadingContainer.appendChild(botImage);
-        loadingContainer.appendChild(loadingDots);
-        return loadingContainer;
-    };
-
-    const sendMessage = async (e, shadow) => {
-        e.preventDefault();
+    const chatbotComponent = (chatbotId) => {
         const baseUrl = getBaseUrl();
-        const userInput = shadow.querySelector('.user-input');
-        const chatbox = shadow.querySelector('.chatbox');
-        const message = userInput.value.trim();
+        const container = document.getElementById('v2v-chatbot-component');
+        const shadow = container.attachShadow({ mode: 'open' });
 
-        if (!message) return;
+        const loadStylesAndHtml = async () => {
+            try {
+                // Load and append styles
+                const style = document.createElement('style');
+                const cssResponse = await fetch(`${baseUrl}/chatbot/api/frontend/component.css`);
+                style.textContent = await cssResponse.text();
+                shadow.appendChild(style);
 
-        // Display user's message
-        appendMessage(chatbox, message, `${baseUrl}/chatbot/api/frontend/user.png`, true);
-        userInput.value = '';
+                // Load and append HTML content
+                const htmlResponse = await fetch(`${baseUrl}/chatbot/api/frontend/component.html`);
+                const wrapper = document.createElement('div');
+                wrapper.innerHTML = await htmlResponse.text();
+                shadow.appendChild(wrapper);
 
-        // Display loading animation
-        const loadingContainer = createLoadingContainer(baseUrl);
-        chatbox.appendChild(loadingContainer);
-        chatbox.scrollTop = chatbox.scrollHeight;
-
-        let chatId = -1;
-        try {
-            const response = await fetch(`${baseUrl}/chatbot/api/chat/${chatbotId}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ message, chatId })
-            });
-            const data = await response.json();
-
-            chatbox.removeChild(loadingContainer);
-
-            const botMessageHtml = data.message ? DOMPurify.sanitize(data.message) : data.error;
-            let isError = false;
-            if (!data.message) {
-                console.error('Error from chatbot API:', data.error);
-                isError = true;
+                initializeChatInterface(shadow, baseUrl);
+            } catch (error) {
+                console.error('Error loading styles or HTML:', error);
             }
-            appendMessage(chatbox, botMessageHtml, `${baseUrl}/chatbot/api/frontend/chatbot-logo.png`, false, isError);
-            chatId = data.chatId;
-        } catch (error) {
-            console.error('Error sending message:', error);
-            chatbox.removeChild(loadingContainer);
-            appendMessage(chatbox, 'Sorry, something went wrong. Please try again later.', `${baseUrl}/chatbot/api/frontend/chatbot-logo.png`, false, true);
-        }
+        };
+
+        loadStylesAndHtml();
     };
+
+    // Initialize the chatbot component
+    const initChatbotComponent = () => {
+        // Load DOMPurify
+        loadExternalScript(
+            'https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.2.3/purify.min.js',
+            'sha512-Ll+TuDvrWDNNRnFFIM8dOiw7Go7dsHyxRp4RutiIFW/wm3DgDmCnRZow6AqbXnCbpWu93yM1O34q+4ggzGeXVA==',
+            'anonymous',
+            'no-referrer',
+            () => console.log('DOMPurify loaded!')
+        );
+
+        // Get the base URL and create the container
+        const baseUrl = getBaseUrl();
+        const container = document.createElement('div');
+        container.id = 'v2v-chatbot-component';
+        document.body.appendChild(container);
+
+        chatbotComponent(chatbotId);
+    };
+
+    // Initialize when DOM is ready
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initChatbotComponent);
+    } else {
+        initChatbotComponent();
+    }
 })();
