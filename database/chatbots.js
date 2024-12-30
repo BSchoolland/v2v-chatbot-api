@@ -135,6 +135,12 @@ async function getInitialMessage(chatbotId) {
     }
 }
 
+// get a chatbot by id
+async function getChatbotById(chatbotId) {
+    const chatbot = await dbGet('SELECT * FROM chatbots WHERE chatbot_id = ?', [chatbotId]);
+    return chatbot;
+}
+
 module.exports = {
     createChatbot,
     getChatbot,
@@ -146,5 +152,6 @@ module.exports = {
     editChatbotQuestions,
     assignWebsiteIdToChatbot,
     getSystemPrompt,
-    getInitialMessage
+    getInitialMessage,
+    getChatbotById
 };
