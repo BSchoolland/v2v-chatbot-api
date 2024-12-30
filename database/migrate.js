@@ -37,8 +37,22 @@ async function chatbotMigration(dbGet, dbRun, dbAll) {
     }
 }
 
+async function conversationMigration(dbGet, dbRun, dbAll) {
+    console.log('Migrating conversations if necessary...');
+    
+    // Add chat_id column if it doesn't exist
+    if (!(await columnExists('recorded_conversations', 'chat_id', dbAll))) {
+        console.log('Adding chat_id column to recorded_conversations table...');
+        await dbRun(`ALTER TABLE recorded_conversations ADD COLUMN chat_id TEXT`);
+        
+        // Create an index on chat_id for better performance
+        await dbRun(`CREATE INDEX IF NOT EXISTS idx_chat_id ON recorded_conversations(chat_id)`);
+    }
+}
+
 async function migrate(dbGet, dbRun, dbAll) {
     await chatbotMigration(dbGet, dbRun, dbAll);
+    await conversationMigration(dbGet, dbRun, dbAll);
 }
 
 module.exports = {

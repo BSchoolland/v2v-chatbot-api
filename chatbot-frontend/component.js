@@ -1,8 +1,8 @@
 (function() {
+    let chatId = -1;
     const scriptTag = document.currentScript;
     const chatbotId = scriptTag.getAttribute('chatbot-id') || '9c80e92f232b8542b22ec31744221aa8';
 
-    // Determine the base URL from the script's source
     const getBaseUrl = () => {
         const defaultBaseUrl = 'http://localhost:3000';
         const scriptSrc = scriptTag && scriptTag.src ? scriptTag.src : defaultBaseUrl;
@@ -15,7 +15,6 @@
         }
     };
 
-    // Load external scripts
     const loadExternalScript = (src, integrity, crossOrigin, referrerPolicy, onLoadCallback) => {
         const script = document.createElement('script');
         script.src = src;
@@ -84,16 +83,13 @@
 
         if (!message) return;
 
-        // Display user's message
         appendMessage(chatbox, message, `${baseUrl}/chatbot/api/frontend/user.png`, true);
         userInput.value = '';
 
-        // Display loading animation
         const loadingContainer = createLoadingContainer(baseUrl);
         chatbox.appendChild(loadingContainer);
         chatbox.scrollTop = chatbox.scrollHeight;
 
-        let chatId = -1;
         try {
             const response = await fetch(`${baseUrl}/chatbot/api/chat/${chatbotId}`, {
                 method: 'POST',
@@ -183,23 +179,18 @@
             chatbox.scrollTop = chatbox.scrollHeight;
         };
 
-        // Add initial welcome message
         const addInitialMessage = async () => {
             try {
                 const response = await fetch(`${baseUrl}/chatbot/api/initial-message/${chatbotId}`);
                 const data = await response.json();
-                console.log(data);
-                // if no message or questions, skip
+                
                 if ((!data.message || data.message === '') && (!data.questions || data.questions.length === 0)) {
-                    console.log('No initial message or questions, skipping...');
                     return;
                 }
-                // in case of no message, just show the questions
                 let botMessageHtml = '';
                 if (data.message && data.message !== '') {
                     botMessageHtml += `${data.message}<br><br>`;
                 }
-                // if no questions, just show the message, otherwise show the questions
                 if (data.questions && data.questions.length > 0) {
                     data.questions.forEach(question => {
                         botMessageHtml += `<button class='faq-button'>${question}</button>`;
@@ -208,9 +199,7 @@
 
                 appendMessage(chatbox, botMessageHtml, `${baseUrl}/chatbot/api/frontend/chatbot-logo.png`, false);
 
-                // Event listeners for FAQ buttons
                 shadow.querySelectorAll('.faq-button').forEach(faqButton => {
-                    console.log(faqButton);
                     faqButton.addEventListener('click', (e) => {
                         userInput.value = e.target.textContent;
                         submitButton.click();
@@ -218,7 +207,6 @@
                 });
             } catch (error) {
                 console.error('Error fetching initial message:', error);
-                // Fallback message in case of error
                 const fallbackMessage = 'Hi! How can I assist you today?';
                 appendMessage(chatbox, fallbackMessage, `${baseUrl}/chatbot/api/frontend/chatbot-logo.png`, false);
             }
@@ -226,7 +214,6 @@
 
         addInitialMessage();
 
-        // Update selectors to use classes
         const container = shadow.querySelector('.v2v-chatbot-container');
         const button = shadow.querySelector('.v2v-chatbot-button');
         const overlay = shadow.querySelector('.overlay');
@@ -234,7 +221,6 @@
         const submitButton = shadow.querySelector('.submit-button');
         const userInput = shadow.querySelector('.user-input');
 
-        // Event listeners for opening and closing chat
         const toggleChatVisibility = (isVisible) => {
             container.style.display = isVisible ? 'flex' : 'none';
             button.style.display = isVisible ? 'none' : 'flex';
@@ -245,10 +231,8 @@
         closeButton.addEventListener('click', () => toggleChatVisibility(false));
         overlay.addEventListener('click', () => toggleChatVisibility(false));
 
-        // Event listener for sending messages
         submitButton.addEventListener('click', (e) => sendMessage(e, shadow));
 
-        // Set the src of images
         shadow.querySelector('.submit-button img').src = `${baseUrl}/chatbot/api/frontend/send.png`;
         shadow.querySelector('.v2v-chatbot-button-icon').src = `${baseUrl}/chatbot/api/frontend/chatbot-logo.png`;
     };
@@ -260,13 +244,11 @@
 
         const loadStylesAndHtml = async () => {
             try {
-                // Load and append styles
                 const style = document.createElement('style');
                 const cssResponse = await fetch(`${baseUrl}/chatbot/api/frontend/component.css`);
                 style.textContent = await cssResponse.text();
                 shadow.appendChild(style);
 
-                // Load and append HTML content
                 const htmlResponse = await fetch(`${baseUrl}/chatbot/api/frontend/component.html`);
                 const wrapper = document.createElement('div');
                 wrapper.innerHTML = await htmlResponse.text();
@@ -281,18 +263,14 @@
         loadStylesAndHtml();
     };
 
-    // Initialize the chatbot component
     const initChatbotComponent = () => {
-        // Load DOMPurify
         loadExternalScript(
             'https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.2.3/purify.min.js',
             'sha512-Ll+TuDvrWDNNRnFFIM8dOiw7Go7dsHyxRp4RutiIFW/wm3DgDmCnRZow6AqbXnCbpWu93yM1O34q+4ggzGeXVA==',
             'anonymous',
-            'no-referrer',
-            () => console.log('DOMPurify loaded!')
+            'no-referrer'
         );
 
-        // Get the base URL and create the container
         const baseUrl = getBaseUrl();
         const container = document.createElement('div');
         container.id = 'v2v-chatbot-component';
@@ -301,7 +279,6 @@
         chatbotComponent(chatbotId);
     };
 
-    // Initialize when DOM is ready
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', initChatbotComponent);
     } else {
