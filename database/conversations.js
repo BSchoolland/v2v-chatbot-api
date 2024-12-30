@@ -63,20 +63,8 @@ async function deleteConversation(conversationId) {
     );
 }
 
-// Delete old conversations (retention policy)
-async function deleteOldConversations(daysToKeep = 30) {
-    const cutoffDate = new Date();
-    cutoffDate.setDate(cutoffDate.getDate() - daysToKeep);
-    
-    return await dbRun(
-        `DELETE FROM recorded_conversations WHERE date < ?`,
-        [cutoffDate.toISOString()]
-    );
-}
-
 module.exports = {
     storeConversation,
     getConversationsByChatbot,
-    deleteConversation,
-    deleteOldConversations
+    deleteConversation
 };
