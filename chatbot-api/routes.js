@@ -37,7 +37,7 @@ router.post('/chat/:chatbotId', async (req, res) => {
         await storeConversation(
             req.params.chatbotId,
             messages,
-            req.body.pageUrl || 'Unknown',
+            req.headers.referer || 'Unknown',
             new Date().toISOString(),
             chatId
         );

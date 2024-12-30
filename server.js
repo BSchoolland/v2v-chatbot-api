@@ -2,6 +2,7 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const { initializeDatabase } = require('./database/database.js');
 const { ScraperManager } = require('./webscraping/scraperManager.js');
+const cookieParser = require('cookie-parser');
 
 const websiteApiRoutes = require('./website-api/routes.js');
 const chatbotApiRoutes = require('./chatbot-api/routes.js');
@@ -16,9 +17,10 @@ app.use(cors({
     allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
-// Use bodyParser middleware before defining routes
+// Use middleware
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
+app.use(cookieParser());
 
 // catch errors universally
 process.on('uncaughtException', (err) => {
