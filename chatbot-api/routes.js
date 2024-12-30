@@ -37,16 +37,14 @@ router.post('/chat/:chatbotId', async (req, res) => {
                 content: msg.content
             }));
         
-        // Only store if there's a complete exchange (user message followed by assistant response)
-        if (messages.length >= 2 && messages[messages.length - 1].role === 'assistant') {
-            await storeConversation(
-                req.params.chatbotId,
-                messages,
-                req.headers.referer || 'Unknown',
-                new Date().toISOString(),
-                chatId
-            );
-        }
+        // Store the entire conversation each time, using chatId to update the same record
+        await storeConversation(
+            req.params.chatbotId,
+            messages,
+            req.headers.referer || 'Unknown',
+            new Date().toISOString(),
+            chatId
+        );
     } catch (error) {
         console.error('Error storing conversation:', error);
         // Don't fail the request if storage fails
