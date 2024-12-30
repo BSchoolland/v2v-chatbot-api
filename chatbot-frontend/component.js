@@ -222,68 +222,10 @@
             }
             appendMessage(chatbox, botMessageHtml, `${baseUrl}/chatbot/api/frontend/chatbot-logo.png`, false, isError);
             chatId = data.chatId;
-
-            if (!isError) {
-                // Get all messages from the chatbox
-                const messages = [];
-                shadow.querySelectorAll('.message-container, .user-message-container').forEach(container => {
-                    const isUser = container.classList.contains('user-message-container');
-                    const messageText = container.querySelector(isUser ? '.user-message-text' : '.message-text');
-                    if (messageText) {
-                        messages.push({
-                            role: isUser ? 'user' : 'assistant',
-                            content: messageText.textContent
-                        });
-                    }
-                });
-
-                // Store the entire conversation
-                try {
-                    await fetch(`${baseUrl}/api/conversations/store`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            chatbotId,
-                            conversation: messages,
-                            pageUrl: currentUrl,
-                            chatId: chatId
-                        })
-                    });
-                } catch (error) {
-                    console.error('Error storing conversation:', error);
-                }
-            } else {
-                // if there was an error, store an error message for the chatbot response
-                const messages = [
-                    {
-                        role: 'user',
-                        content: message
-                    },
-                    {
-                        role: 'assistant',
-                        content: data.error
-                    }
-                ];
-                try {
-                    await fetch(`${baseUrl}/api/conversations/store`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            chatbotId,
-                            conversation: messages,
-                            pageUrl: currentUrl,
-                            chatId: chatId
-                        })
-                    });
-                    
-                } catch (error) {
-                    console.error('Error storing conversation:', error);
-                }
-            }
         } catch (error) {
             console.error('Error sending message:', error);
             chatbox.removeChild(loadingContainer);
-            appendMessage(chatbox, 'Sorry, something went wrong. Please try again later.', `${baseUrl}/chatbot/api/frontend/chatbot-logo.png`, false, true);
+            appendMessage(chatbox, 'error: Sorry, something went wrong. Please try again later.', `${baseUrl}/chatbot/api/frontend/chatbot-logo.png`, false, true);
         }
     };
 

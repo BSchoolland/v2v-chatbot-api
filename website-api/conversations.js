@@ -1,26 +1,20 @@
 const express = require('express');
 const router = express.Router();
 const { storeConversation, getConversationsByChatbot, deleteConversation } = require('../database/conversations');
-
-// Store a new conversation
-router.post('/store', async (req, res) => {
-    try {
-        const { chatbotId, conversation, pageUrl, chatId } = req.body;
-        const date = new Date().toISOString();
-        
-        const conversationId = await storeConversation(chatbotId, conversation, pageUrl, date, chatId);
-        res.json({ success: true, conversationId });
-    } catch (error) {
-        console.error('Error storing conversation:', error);
-        res.status(500).json({ success: false, error: 'Failed to store conversation' });
-    }
-});
+const { authMiddleware } = require('./middleware');
+const { getChatbotById } = require('../database/chatbots');
 
 // Get conversations for a chatbot with pagination and filters
-router.get('/:chatbotId', async (req, res) => {
+router.get('/:chatbotId', authMiddleware, async (req, res) => {
     try {
         const { chatbotId } = req.params;
         const { page = 1, limit = 10, dateRange = 'all', pageFilter = '' } = req.query;
+        
+        // Verify chatbot ownership
+        const chatbot = await getChatbotById(chatbotId);
+        if (!chatbot || chatbot.user_id !== req.userId) {
+            return res.status(403).json({ success: false, error: 'Unauthorized access to chatbot' });
+        }
         
         // Calculate date filter
         let dateFilter = null;
@@ -56,9 +50,22 @@ router.get('/:chatbotId', async (req, res) => {
 });
 
 // Delete a conversation
-router.delete('/:conversationId', async (req, res) => {
+router.delete('/:conversationId', authMiddleware, async (req, res) => {
     try {
         const { conversationId } = req.params;
+        
+        // Get the conversation to check ownership
+        const conversation = await getConversationById(conversationId);
+        if (!conversation) {
+            return res.status(404).json({ success: false, error: 'Conversation not found' });
+        }
+        
+        // Verify chatbot ownership
+        const chatbot = await getChatbotById(conversation.chatbot_id);
+        if (!chatbot || chatbot.user_id !== req.userId) {
+            return res.status(403).json({ success: false, error: 'Unauthorized access to chatbot' });
+        }
+        
         await deleteConversation(conversationId);
         res.json({ success: true });
     } catch (error) {

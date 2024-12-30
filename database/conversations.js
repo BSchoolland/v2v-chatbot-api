@@ -86,8 +86,17 @@ async function deleteConversation(conversationId) {
     );
 }
 
+// Get a conversation by ID
+async function getConversationById(conversationId) {
+    return await dbGet(
+        `SELECT * FROM recorded_conversations WHERE recorded_conversation_id = ?`,
+        [conversationId]
+    );
+}
+
 module.exports = {
     storeConversation,
     getConversationsByChatbot,
-    deleteConversation
+    deleteConversation,
+    getConversationById
 };

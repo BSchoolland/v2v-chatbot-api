@@ -2,12 +2,14 @@
 
 const express = require('express');
 const router = express.Router();
-const { getSessionId, appendMessageToSession } = require('./sessions.js');
+const { getSessionId, appendMessageToSession, getSessionMessages } = require('./sessions.js');
 const { getChatbotResponse } = require('./chatbotResponse.js');
 const { getInitialMessage } = require('../database/chatbots.js');
 const { checkRateLimit } = require('./utils/rateLimiter.js');
 const { isValidOrigin } = require('./utils/originValidator');
+const { storeConversation } = require('../database/conversations');
 const path = require('path');
+
 router.post('/chat/:chatbotId', async (req, res) => {
     const origin = req.get('Origin');
     // TODO: allow clients to set whether they want to use the origin validator (for if they need to test locally)
@@ -20,9 +22,30 @@ router.post('/chat/:chatbotId', async (req, res) => {
         res.status(429).json({ error: 'Rate limit exceeded. Please try again later.' });
         return;
     }
+
     const chatId = getSessionId(req.body.chatId);
     appendMessageToSession(chatId, req.body.message, 'user');
     const response = await getChatbotResponse(chatId, req.params.chatbotId);
+
+    // Store the conversation after getting the response
+    try {
+        const messages = getSessionMessages(chatId).map(msg => ({
+            role: msg.role,
+            content: msg.content
+        }));
+        
+        await storeConversation(
+            req.params.chatbotId,
+            messages,
+            req.body.pageUrl || 'Unknown',
+            new Date().toISOString(),
+            chatId
+        );
+    } catch (error) {
+        console.error('Error storing conversation:', error);
+        // Don't fail the request if storage fails
+    }
+
     res.json(response);
 });
 
