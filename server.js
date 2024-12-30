@@ -2,9 +2,11 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const { initializeDatabase } = require('./database/database.js');
 const { ScraperManager } = require('./webscraping/scraperManager.js');
+const cookieParser = require('cookie-parser');
 
 const websiteApiRoutes = require('./website-api/routes.js');
 const chatbotApiRoutes = require('./chatbot-api/routes.js');
+const conversationsRoutes = require('./website-api/conversations.js');
 const app = express();
 const port = 3000;
 // allow all cors origins as this is a public api
@@ -15,9 +17,10 @@ app.use(cors({
     allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
-// Use bodyParser middleware before defining routes
+// Use middleware
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
+app.use(cookieParser());
 
 // catch errors universally
 process.on('uncaughtException', (err) => {
@@ -31,7 +34,7 @@ process.on('unhandledRejection', (reason, promise) => {
 // Use chatbot and website API routes
 app.use('/website/api', websiteApiRoutes);
 app.use('/chatbot/api', chatbotApiRoutes);
-
+app.use('/api/conversations', conversationsRoutes);
 
 // set development-ui as the public folder
 app.use(express.static('development-ui'));

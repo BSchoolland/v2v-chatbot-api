@@ -79,8 +79,6 @@ router.post('/register', validateInput, async (req, res) => {
         
         // Register user
         await registerUser(email, hashedPassword);
-
-        console.log('User registered successfully')
         
         res.status(201).json({ message: 'User registered successfully' });
     } catch (err) {
