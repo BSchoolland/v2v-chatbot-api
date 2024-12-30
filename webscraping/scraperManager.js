@@ -83,7 +83,6 @@ class ScraperManager {
 
     async runJobs() {
         if (this.isRunning) return;
-        console.log('Starting jobs...');
         this.isRunning = true;
         this.waited = 0;
         try {
@@ -99,8 +98,8 @@ class ScraperManager {
                 this.activeJobs = this.activeJobs.filter(job => !job.isJobComplete());
                 // Stop if no more jobs
                 if (this.activeJobs.length === 0) {
-                    // wait n seconds for any remaining pages to complete
-                    // call the log completion function on all jobs
+                    // Wait n seconds for any remaining pages to complete
+                    // Call the log completion function on all jobs
                     for (let job of this.allJobs) {
                         job.isJobComplete();
                     }
@@ -109,8 +108,7 @@ class ScraperManager {
                 }
                 const tasks = [];
                 let jobIndex = 0;
-                console.log('Available pages:', availablePages.length);
-                console.log("work to do:", this.activeJobs.length);
+                
                 // Distribute pages across jobs evenly
                 for (const page of availablePages) {
                     // Try each job once
@@ -119,35 +117,33 @@ class ScraperManager {
                     
                     while (!foundWork && attempts < this.activeJobs.length) {
                         const job = this.activeJobs[jobIndex];
-                        const nextPage = job.getNextPage();
-                        
-                        if (nextPage) {
+                        if (job.needsWork()) {
+                            tasks.push(job.processPage(page));
                             page.assigned = true;
-                            tasks.push(this.processPage(page, job, nextPage));
                             foundWork = true;
                         }
-                        
                         jobIndex = (jobIndex + 1) % this.activeJobs.length;
                         attempts++;
                     }
                 }
-                console.log('Tasks:', tasks);
+
                 if (tasks.length === 0) {
                     this.waited += 100;
-                    // FIXME: this is a hack to prevent the scraper from hanging indefinitely, which it sometimes does for unknown reasons.  This is a temporary fix, and would not be effective if many jobs are running since it only detects when all jobs hang, meaning one job could hang for an indefinite amount of time as long as the other jobs are making progress, and clients might be caught waiting for a response from a job that is stuck.
+                    // FIXME: this is a hack to prevent the scraper from hanging indefinitely,
+                    // which it sometimes does for unknown reasons. This is a temporary fix,
+                    // and would not be effective if many jobs are running since it only detects
+                    // when all jobs hang, meaning one job could hang for an indefinite amount
+                    // of time as long as the other jobs are making progress, and clients
+                    // might be caught waiting for a response from a job that is stuck.
                     if (this.waited > 90000) {
                         console.error('CRITICAL ERROR: Scraper not making progress, forcibly stopping all jobs');
-                        // mark all jobs as complete
                         for (let job of this.allJobs) {
                             job.processing = 0;
                             job.done = true;
-                            job.completeJob();
-                            job.isJobComplete();
                         }
                         this.isRunning = false;
                         break;
                     }
-                    await new Promise(resolve => setTimeout(resolve, 100));
                     continue;
                 }
                 this.waited = 0;
@@ -162,23 +158,20 @@ class ScraperManager {
                             reject(new Error('Tasks timed out after 60 seconds'));
                         }, 60000);
                     })
-                ]).catch(error => {
-                    if (error.message === 'Tasks timed out after 60 seconds') {
-                        console.warn('Some tasks timed out and were cancelled');
-                    } else {
-                        throw error;
-                    }
-                });
+                ]);
             }
-        } finally {
-            await this.cleanup();
+        } catch (error) {
+            console.error('Error in runJobs:', error);
             this.isRunning = false;
+            // Free up any assigned pages
+            this.pages.forEach(p => p.assigned = false);
+            throw error;
         }        
     }
 
 
     async cleanup() {
-        // set flag to prevent re-initialization during cleanup
+        // Set flag to prevent re-initialization during cleanup
         this.isReady = false;
         this.isCleaning = true;
         this.isRunning = false;

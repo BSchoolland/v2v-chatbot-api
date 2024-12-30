@@ -77,48 +77,46 @@ async function editChatbotQuestions(chatbotId, questions) {
 
 // TODO: make this more efficient by storing the full system prompt, rather than having to rebuild it every time
 async function getSystemPrompt(chatbotId) {
-    const chatbot = await dbGet('SELECT system_prompt, website_id FROM chatbots WHERE chatbot_id = ?', [chatbotId]);
+    let chatbot = await getChatbotById(chatbotId);
     let systemPrompt = chatbot.system_prompt;
     try {
         let website = await getWebsiteById(chatbot.website_id);
-        console.log(website);
         let allPages = await getPagesByWebsite(website.website_id);
-        // log length of allPages
-        console.log(allPages.length);
+        
+        // Add all internal pages to the system prompt
         systemPrompt += "\nHere are all the pages that exist on this site starting with the home page: \n"
         for (let i = 0; i < allPages.length; i++) {
             let page = allPages[i];
             if (!page.internal) {
-                console.log("Skipping external page:", page.url);
                 continue;
             }
             systemPrompt += page.url;
             if (page.summary) {
-                systemPrompt += "   notes: " + page.summary;
+                systemPrompt += " - " + page.summary;
             }
             systemPrompt += "\n";
         }
-        // add external resources to the system message
+        
+        // Add external resources to the system message
         systemPrompt += "\nExternal resources referenced on this site: \n"
         for (let i = 0; i < allPages.length; i++) {
             let page = allPages[i];
             if (page.internal) {
-                console.log("Skipping internal page:", page.url);
                 continue;
             }
             systemPrompt += page.url;
             if (page.summary) {
-                systemPrompt += "   notes: " + page.summary;
+                systemPrompt += " - " + page.summary;
             }
             systemPrompt += "\n";
         }
-        // add the current date as well as the current page
+        
+        // Add the current date
         systemPrompt += "\nToday's date is: " + new Date().toDateString() + "\n";
         // systemPrompt += "\nThe user is currently on the page: " + currentUrl + "\n";
     } catch (error) {
         console.error(error);
     }
-    console.log(systemPrompt);
     return systemPrompt;
 }
 
