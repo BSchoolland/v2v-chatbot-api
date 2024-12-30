@@ -2,7 +2,7 @@
 
 const express = require('express');
 const router = express.Router();
-const { getSessionId, appendMessageToSession, getSessionMessages } = require('./sessions.js');
+const { getSessionId, appendMessageToSession, getSession } = require('./sessions.js');
 const { getChatbotResponse } = require('./chatbotResponse.js');
 const { getInitialMessage } = require('../database/chatbots.js');
 const { checkRateLimit } = require('./utils/rateLimiter.js');
@@ -29,7 +29,7 @@ router.post('/chat/:chatbotId', async (req, res) => {
 
     // Store the conversation after getting the response
     try {
-        const messages = getSessionMessages(chatId).map(msg => ({
+        const messages = getSession(chatId).map(msg => ({
             role: msg.role,
             content: msg.content
         }));
