@@ -79,6 +79,14 @@ class ActiveJob {
         return this.completedPages.length;
     }
 
+    needsWork() {
+        // Return true if there are pages in the queue or external links to process
+        // and we haven't hit our max pages limit
+        return (!this.done && 
+                (this.queue.length > 0 || (!this.externalQueued && this.externalLinks.size > 0)) && 
+                this.completedPages.length < this.maxPages);
+    }
+
     getNextPage() {
         if (this.queue.length === 0 || this.completedPages.length >= this.maxPages) {
             return null;
@@ -259,6 +267,45 @@ class ActiveJob {
             }
         } catch (error) {
             console.error(`Error in completeJob: ${error.message}`);
+        }
+    }
+
+    async processPage(pageObj) {
+        const nextPage = this.getNextPage();
+        if (!nextPage) {
+            pageObj.assigned = false;
+            return;
+        }
+
+        const page = pageObj.page;
+        try {
+            // Navigate to the URL
+            await page.goto(nextPage.url, { waitUntil: 'networkidle0', timeout: 30000 });
+
+            // Get page content
+            const content = await page.content();
+
+            // Extract all links
+            const links = await page.evaluate(() => {
+                const anchors = document.querySelectorAll('a');
+                return Array.from(anchors)
+                    .map(a => a.href)
+                    .filter(href => href && href.startsWith('http'));
+            });
+
+            // Add unique links to the queue
+            const uniqueLinks = [...new Set(links)];
+            this.addLinks(uniqueLinks, nextPage.depth);
+
+            // Add the completed page
+            await this.addCompletedPage(nextPage.url, uniqueLinks, content);
+            await this.markPageComplete();
+        } catch (error) {
+            console.error(`Error processing page ${nextPage.url}:`, error);
+            // Still mark the page as complete to avoid getting stuck
+            await this.markPageComplete();
+        } finally {
+            pageObj.assigned = false;
         }
     }
 }

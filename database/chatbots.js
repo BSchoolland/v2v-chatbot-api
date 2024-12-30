@@ -141,6 +141,29 @@ async function getChatbotById(chatbotId) {
     return chatbot;
 }
 
+// save initial configuration
+async function saveInitialConfig(chatbotId, systemPrompt, initialMessage, questions) {
+    const chatbot = await dbRun(
+        'UPDATE chatbots SET initial_config_prompt = ?, initial_config_message = ?, initial_config_questions = ?, ai_config_completed = 1 WHERE chatbot_id = ?',
+        [systemPrompt, initialMessage, questions, chatbotId]
+    );
+    return chatbot;
+}
+
+// reset configuration to initial values
+async function resetConfig(chatbotId) {
+    const chatbot = await dbGet('SELECT * FROM chatbots WHERE chatbot_id = ?', [chatbotId]);
+    if (!chatbot || !chatbot.initial_config_prompt) {
+        throw new Error('No initial configuration found');
+    }
+    
+    await dbRun(
+        'UPDATE chatbots SET system_prompt = ?, initial_message = ?, questions = ? WHERE chatbot_id = ?',
+        [chatbot.initial_config_prompt, chatbot.initial_config_message, chatbot.initial_config_questions, chatbotId]
+    );
+    return true;
+}
+
 module.exports = {
     createChatbot,
     getChatbot,
@@ -153,5 +176,7 @@ module.exports = {
     assignWebsiteIdToChatbot,
     getSystemPrompt,
     getInitialMessage,
-    getChatbotById
+    getChatbotById,
+    saveInitialConfig,
+    resetConfig,
 };

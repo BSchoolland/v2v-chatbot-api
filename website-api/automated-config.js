@@ -1,4 +1,4 @@
-const { editChatbotName, editChatbotSystemPrompt, editChatbotInitialMessage, editChatbotQuestions } = require('../database/chatbots');
+const { editChatbotName, editChatbotSystemPrompt, editChatbotInitialMessage, editChatbotQuestions, saveInitialConfig } = require('../database/chatbots');
 const { getPagesByWebsite } = require('../database/pages');
 const { getWebsiteById } = require('../database/websites');
 const fetch = require('node-fetch');
@@ -55,10 +55,24 @@ const examplePrompt = `# You are a [ideal chatbot characteristics] chatbot named
 `
 
 async function automateConfiguration(chatbot) {
+    // If AI config has already been completed, return the existing configuration
+    if (chatbot.ai_config_completed) {
+        return {
+            name: chatbot.name,
+            system_prompt: chatbot.system_prompt,
+            initial_message: chatbot.initial_message,
+            questions: chatbot.questions ? JSON.parse(chatbot.questions) : []
+        };
+    }
+
+    const website = await getWebsiteById(chatbot.website_id);
+    if (!website) {
+        throw new Error('Website not found');
+    }
+
     // Only proceed with configuration if the chatbot hasn't been configured yet
     if (!chatbot.name && !chatbot.system_prompt && !chatbot.initial_message && (!chatbot.questions || chatbot.questions === '[]')) {
         // Get website content to customize the configuration
-        const website = await getWebsiteById(chatbot.website_id);
         const pages = await getPagesByWebsite(website.website_id);
         
         // Extract page information for the first 5 pages
@@ -138,15 +152,14 @@ The configuration should be specific to this website's content and purpose. Use 
             config.system_prompt = config.system_prompt.replace(/\\n/g, '\n');
             // add some text to the end of the system prompt to guide the chatbot to use the tools
             config.system_prompt += `
+## Example of how a conversation should go:
 
-            ## Example of how a conversation should go:
+User: Question
+Chatbot: readPageContent("/")
+Tool: Information about page
+Chatbot: Answer to question
 
-            User: Question
-            Chatbot: readPageContent("/")
-            Tool: Information about page
-            Chatbot: Answer to question
-
-            Even if you're not sure where the answer is, use the tools to find it.
+Even if you're not sure where the answer is, use the tools to find it.
             `;
             // Update the chatbot with AI-generated values
             await editChatbotName(chatbot.chatbot_id, config.name);
@@ -154,18 +167,44 @@ The configuration should be specific to this website's content and purpose. Use 
             await editChatbotInitialMessage(chatbot.chatbot_id, config.initial_message);
             await editChatbotQuestions(chatbot.chatbot_id, JSON.stringify(config.questions));
             console.log("AI configuration complete");
-            return true;
+
+            // After successful configuration, save the initial values
+            await saveInitialConfig(
+                chatbot.chatbot_id,
+                config.system_prompt,
+                config.initial_message,
+                JSON.stringify(config.questions)
+            );
+
+            return config;
         } catch (error) {
             console.error('Error generating AI configuration:', error);
             // Fall back to basic configuration if AI fails
             const name = website.domain.replace(/^https?:\/\/(www\.)?/, '').split('.')[0];
             const formattedName = name.charAt(0).toUpperCase() + name.slice(1) + " Assistant";
+            const fallbackSystemPrompt = `You are a knowledgeable AI assistant for ${website.domain}.`;
+            const fallbackInitialMessage = `Welcome! I'm here to help you with anything related to ${website.domain}.`;
+            const fallbackQuestions = JSON.stringify(["How can I help you?"]);
             
             await editChatbotName(chatbot.chatbot_id, formattedName);
-            await editChatbotSystemPrompt(chatbot.chatbot_id, `You are a knowledgeable AI assistant for ${website.domain}.`);
-            await editChatbotInitialMessage(chatbot.chatbot_id, `Welcome! I'm here to help you with anything related to ${website.domain}.`);
-            await editChatbotQuestions(chatbot.chatbot_id, JSON.stringify(["How can I help you?"]));
-            return true;
+            await editChatbotSystemPrompt(chatbot.chatbot_id, fallbackSystemPrompt);
+            await editChatbotInitialMessage(chatbot.chatbot_id, fallbackInitialMessage);
+            await editChatbotQuestions(chatbot.chatbot_id, fallbackQuestions);
+
+            // Save initial configuration for fallback case too
+            await saveInitialConfig(
+                chatbot.chatbot_id,
+                fallbackSystemPrompt,
+                fallbackInitialMessage,
+                fallbackQuestions
+            );
+
+            return {
+                name: formattedName,
+                system_prompt: fallbackSystemPrompt,
+                initial_message: fallbackInitialMessage,
+                questions: ["How can I help you?"]
+            };
         }
     }
     return false;

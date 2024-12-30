@@ -6,7 +6,7 @@ const {ScraperManager} = require('../webscraping/scraperManager');
 
 const { authMiddleware } = require('./middleware');
 
-const { createChatbot, getChatbotFromPlanId, editChatbotName, editChatbotSystemPrompt, editChatbotInitialMessage, editChatbotQuestions, assignWebsiteIdToChatbot } = require('../database/chatbots');
+const { createChatbot, getChatbotFromPlanId, editChatbotName, editChatbotSystemPrompt, editChatbotInitialMessage, editChatbotQuestions, assignWebsiteIdToChatbot, resetConfig } = require('../database/chatbots');
 
 const { getPlan, setChatbotIdForPlan } = require('../database/plans');
 
@@ -187,6 +187,18 @@ router.post('/automated-configuration', authMiddleware, async (req, res) => {
 
     await automateConfiguration(chatbot);
     res.status(200).json({ success: true });
+});
+
+// Add reset endpoint
+router.post('/chatbot/:chatbotId/reset', async (req, res) => {
+    try {
+        const { chatbotId } = req.params;
+        await resetConfig(chatbotId);
+        res.json({ success: true, message: 'Chatbot configuration reset to initial values' });
+    } catch (error) {
+        console.error('Error resetting chatbot configuration:', error);
+        res.status(400).json({ error: error.message });
+    }
 });
 
 module.exports = router;
