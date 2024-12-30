@@ -223,18 +223,29 @@
             appendMessage(chatbox, botMessageHtml, `${baseUrl}/chatbot/api/frontend/chatbot-logo.png`, false, isError);
             chatId = data.chatId;
 
-            // Store the conversation
+            // Get all messages from the chatbox
+            const messages = [];
+            shadow.querySelectorAll('.message-container, .user-message-container').forEach(container => {
+                const isUser = container.classList.contains('user-message-container');
+                const messageText = container.querySelector(isUser ? '.user-message-text' : '.message-text');
+                if (messageText) {
+                    messages.push({
+                        role: isUser ? 'user' : 'assistant',
+                        content: messageText.textContent
+                    });
+                }
+            });
+
+            // Store the entire conversation
             try {
                 await fetch(`${baseUrl}/api/conversations/store`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         chatbotId,
-                        conversation: [
-                            { role: 'user', content: message },
-                            { role: 'assistant', content: data.message || data.error }
-                        ],
-                        pageUrl: currentUrl
+                        conversation: messages,
+                        pageUrl: currentUrl,
+                        chatId: chatId
                     })
                 });
             } catch (error) {

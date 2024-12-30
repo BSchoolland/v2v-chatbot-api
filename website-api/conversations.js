@@ -5,10 +5,10 @@ const { storeConversation, getConversationsByChatbot, deleteConversation } = req
 // Store a new conversation
 router.post('/store', async (req, res) => {
     try {
-        const { chatbotId, conversation, pageUrl } = req.body;
+        const { chatbotId, conversation, pageUrl, chatId } = req.body;
         const date = new Date().toISOString();
         
-        const conversationId = await storeConversation(chatbotId, conversation, pageUrl, date);
+        const conversationId = await storeConversation(chatbotId, conversation, pageUrl, date, chatId);
         res.json({ success: true, conversationId });
     } catch (error) {
         console.error('Error storing conversation:', error);

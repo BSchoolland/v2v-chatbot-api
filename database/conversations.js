@@ -1,11 +1,30 @@
 const { dbRun, dbGet, dbAll } = require('./database');
 
 // Store a recorded conversation
-async function storeConversation(chatbotId, conversation, pageUrl, date) {
-    return await dbRun(
-        `INSERT INTO recorded_conversations (chatbot_id, conversation, page_url, date) VALUES (?, ?, ?, ?)`,
-        [chatbotId, JSON.stringify(conversation), pageUrl, date]
+async function storeConversation(chatbotId, conversation, pageUrl, date, chatId) {
+    // Check if there's an existing conversation with this chat_id
+    const existingConversation = await dbGet(
+        `SELECT recorded_conversation_id, conversation FROM recorded_conversations 
+         WHERE chat_id = ?`,
+        [chatId]
     );
+
+    if (existingConversation) {
+        // Update existing conversation
+        return await dbRun(
+            `UPDATE recorded_conversations 
+             SET conversation = ?, date = ?
+             WHERE recorded_conversation_id = ?`,
+            [JSON.stringify(conversation), date, existingConversation.recorded_conversation_id]
+        );
+    } else {
+        // Create new conversation
+        return await dbRun(
+            `INSERT INTO recorded_conversations (chatbot_id, conversation, page_url, date, chat_id) 
+             VALUES (?, ?, ?, ?, ?)`,
+            [chatbotId, JSON.stringify(conversation), pageUrl, date, chatId]
+        );
+    }
 }
 
 // Retrieve conversations for a chatbot with pagination and filters
