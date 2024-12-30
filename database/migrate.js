@@ -14,7 +14,11 @@ async function chatbotMigration(dbGet, dbRun, dbAll) {
     const columnsToAdd = [
         { name: 'initial_message', type: 'TEXT' },
         { name: 'questions', type: 'TEXT' },
-        { name: 'version', type: 'TEXT' }
+        { name: 'version', type: 'TEXT' },
+        { name: 'initial_config_prompt', type: 'TEXT' },
+        { name: 'initial_config_message', type: 'TEXT' },
+        { name: 'initial_config_questions', type: 'TEXT' },
+        { name: 'ai_config_completed', type: 'INTEGER DEFAULT 0' }
     ];
 
     for (const column of columnsToAdd) {

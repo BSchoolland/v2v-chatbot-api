@@ -38,6 +38,17 @@
         .add-question {
             margin-top: 10px;
         }
+        .reset-button {
+            background-color: #ff8c00;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+        .reset-button:hover {
+            background-color: #ff7000;
+        }
     </style>
 </head>
 <body>
@@ -68,6 +79,9 @@
             <button type="button" onclick="addQuestion()" class="add-question">Add Question</button>
             <small>These questions will be shown to users as suggestions they can click on to start the conversation.  If left blank, there will not be any suggested questions.</small>
         </div>
+        <button type="button" class="reset-button" onclick="resetConfiguration()" style="display: none;" id="resetButton">
+            Reset to Initial Configuration
+        </button>
         <button onclick="saveChatbot()">Save Changes</button>
         <button onclick="window.location.href = `/deployment.html?planId=${planId}`" style="margin-left: 10px;">View Deployment Instructions</button>
     </div>
@@ -199,6 +213,57 @@
                 console.error('Error:', error);
                 alert('An unknown error occurred');
             });
+        }
+
+        async function resetConfiguration() {
+            if (!confirm('Are you sure you want to reset the chatbot configuration to its initial values? This cannot be undone.')) {
+                return;
+            }
+
+            const urlParams = new URLSearchParams(window.location.search);
+            const chatbotId = urlParams.get('id');
+
+            try {
+                const response = await fetch(`/api/chatbot/${chatbotId}/reset`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to reset configuration');
+                }
+
+                alert('Configuration reset successfully. The page will now reload.');
+                window.location.reload();
+            } catch (error) {
+                console.error('Error resetting configuration:', error);
+                alert('Failed to reset configuration: ' + error.message);
+            }
+        }
+
+        // Modify the existing loadChatbotData function to show/hide reset button
+        async function loadChatbotData() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const chatbotId = urlParams.get('id');
+            
+            try {
+                const response = await fetch(`/api/chatbot/${chatbotId}`);
+                const chatbot = await response.json();
+                
+                document.getElementById('chatbotName').value = chatbot.name || '';
+                document.getElementById('systemPrompt').value = chatbot.system_prompt || '';
+                document.getElementById('initialMessage').value = chatbot.initial_message || '';
+                
+                // Show reset button only if AI config has been completed
+                document.getElementById('resetButton').style.display = chatbot.ai_config_completed ? 'block' : 'none';
+                
+                // ... rest of the existing function ...
+            } catch (error) {
+                console.error('Error loading chatbot data:', error);
+                alert('Failed to load chatbot data');
+            }
         }
     </script>
 </body>

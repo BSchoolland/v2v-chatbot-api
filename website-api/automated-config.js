@@ -1,4 +1,4 @@
-const { editChatbotName, editChatbotSystemPrompt, editChatbotInitialMessage, editChatbotQuestions } = require('../database/chatbots');
+const { editChatbotName, editChatbotSystemPrompt, editChatbotInitialMessage, editChatbotQuestions, saveInitialConfig } = require('../database/chatbots');
 const { getPagesByWebsite } = require('../database/pages');
 const { getWebsiteById } = require('../database/websites');
 const fetch = require('node-fetch');
@@ -55,10 +55,19 @@ const examplePrompt = `# You are a [ideal chatbot characteristics] chatbot named
 `
 
 async function automateConfiguration(chatbot) {
+    // Check if AI config has already been completed
+    if (chatbot.ai_config_completed) {
+        throw new Error('AI configuration has already been completed for this chatbot');
+    }
+
+    const website = await getWebsiteById(chatbot.website_id);
+    if (!website) {
+        throw new Error('Website not found');
+    }
+
     // Only proceed with configuration if the chatbot hasn't been configured yet
     if (!chatbot.name && !chatbot.system_prompt && !chatbot.initial_message && (!chatbot.questions || chatbot.questions === '[]')) {
         // Get website content to customize the configuration
-        const website = await getWebsiteById(chatbot.website_id);
         const pages = await getPagesByWebsite(website.website_id);
         
         // Extract page information for the first 5 pages
@@ -154,7 +163,16 @@ The configuration should be specific to this website's content and purpose. Use 
             await editChatbotInitialMessage(chatbot.chatbot_id, config.initial_message);
             await editChatbotQuestions(chatbot.chatbot_id, JSON.stringify(config.questions));
             console.log("AI configuration complete");
-            return true;
+
+            // After successful configuration, save the initial values
+            await saveInitialConfig(
+                chatbot.chatbot_id,
+                config.system_prompt,
+                config.initial_message,
+                JSON.stringify(config.questions)
+            );
+
+            return config;
         } catch (error) {
             console.error('Error generating AI configuration:', error);
             // Fall back to basic configuration if AI fails
