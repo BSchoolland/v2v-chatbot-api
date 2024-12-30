@@ -43,26 +43,26 @@ tools = [
 
 
 async function readPageContent(params) {
-    // convert params to json
+    // Convert params to json
     params = JSON.parse(params);
     let path = params.path;
     
-    // if the path does not begin with http, add the default path
+    // If the path does not begin with http, add the default path
     if (!path.startsWith("http")) {
         path = defaultPath + path;
     }
     
-    // if the path ends with #something, remove the #something
+    // If the path ends with #something, remove the #something
     if (path.includes("#")) {
         path = path.split("#")[0];
     }
     
-    // if there's a //:www. in the path, remove it
+    // If there's a //:www. in the path, remove it
     if (path.includes("://www.")) {
         path = path.replace("://www.", "://");
     }
     
-    // if there's no / at the end add it
+    // If there's no / at the end add it
     if (path[path.length - 1] !== "/") {
         path = path + "/";
     }
@@ -71,13 +71,7 @@ async function readPageContent(params) {
     if (page) {
         return page.content;
     } else {
-        // try with www. instead
-        path = path.replace("://", "://www.");
-        const page = await getPageByUrl(path);
-        if (page) {
-            return page.content;
-        }
-        return `No information found for path ${path}.  Are you sure you entered it correctly?`;
+        return "Page not found";
     }
 }
 

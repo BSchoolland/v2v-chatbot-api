@@ -133,15 +133,20 @@ class WebScraper {
 
     async getUniqueLinks(pageContent) {
         let content = pageContent;
+        // Strip any style or linked style sheets
         content = content.replace(/<style.*?>.*?<\/style>/gs, '');
         content = content.replace(/<link[^>]+rel=["']stylesheet["'][^>]*>/gi, '');
+        // Create a DOM from the content
         const dom = new JSDOM(content);
         const { document } = dom.window;
+        // Use a Set to ensure uniqueness
         const uniqueLinks = new Set();
+        // Select all anchor tags
         const links = document.querySelectorAll('a');
         
         links.forEach(link => {
             const href = link.getAttribute('href');
+            // Basic filtering
             if (href && href.trim() !== '') {
                 try {
                     const cleanUrl = this.cleanUrl(href);
@@ -268,12 +273,15 @@ class WebScraper {
 
 function summarizeAllPages(urlContentMap, website) {
     let allPages = [];
+    // An array of all strings that appear in the summaries
     let allSummaries = [];
     for (let [pageUrl, content] of urlContentMap.entries()) {
         let summary = summarizePage(content);
+        // Loop through the summary and add each string to the array
         for (let str of summary) {
             allSummaries.push(str);
         }
+        // Create a new page object
         let page = {
             website_id: website.id,
             url: pageUrl,
@@ -283,12 +291,14 @@ function summarizeAllPages(urlContentMap, website) {
         allPages.push(page);
     }
     let commonSummaryItems = new Set();
+    // Items that appear more than 5% of the time (but not only once)
     for (let str of allSummaries) {
         let count = allSummaries.filter(s => s === str).length;
         if (count > allPages.length / 20 && count > 1) {
             commonSummaryItems.add(str);
         } 
     }
+    // Remove any common items from the summaries, and limit to 3 sections
     for (let page of allPages) {
         page.summary = page.summary.filter(s => !commonSummaryItems.has(s));
         if (page.summary.length > 3) {
@@ -299,12 +309,14 @@ function summarizeAllPages(urlContentMap, website) {
 }
 
 async function crawlSite() {
+    // Create or identify the website in the database
     let website = await getWebsiteByUrl(url);
     if (!website) {
         console.log('Website does not exist in the database. Inserting...');
         await insertWebsite(url);
         website = await getWebsiteByUrl(url);
     }
+    // Scrape the website to find all pages
     console.log('Website exists in the database.');
     const scraper = new WebScraper(url, 7);
     await scraper.init();
@@ -312,10 +324,13 @@ async function crawlSite() {
     const { urlContentMap, externalUrlContentMap } = await scraper.getAllPageUrls(url, manuallyAddedPages);
     await scraper.browser.close();
     
+    // Summarize the content of all pages
     let allInternalPages = summarizeAllPages(urlContentMap, website);
 
+    // Save all the pages to the database
     for (let page of allInternalPages) {
         let summaryStr = page.summary.join(', ');
+        // Add a / to the end of the URL if it's missing
         if (!page.url.endsWith('/')) {
             page.url += '/';
         }
@@ -323,7 +338,9 @@ async function crawlSite() {
     }
     console.log('All pages inserted into the database.');
     
+    // Add the external URLs to the database, with this site as the parent, and external set to true
     for (let [url, content] of externalUrlContentMap.entries()) {
+        // If it does not end with a /, add one
         if (!url.endsWith('/')) {
             url += '/';
         }
