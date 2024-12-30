@@ -19,6 +19,20 @@ const { getTools, useTool } = require('./builtInTools.js');
 const showdown = require('showdown');
 const converter = new showdown.Converter();
 
+const { wss } = require('../server.js');
+
+// Function to broadcast tool usage to all connected clients
+function broadcastToolUsage(toolName, reference) {
+    wss.clients.forEach((client) => {
+        if (client.readyState === WebSocket.OPEN) {
+            client.send(JSON.stringify({
+                type: 'tool_usage',
+                toolName,
+                reference
+            }));
+        }
+    });
+}
 
 // gets the model name from the database (e.g. gpt-4o-mini, claude-3-5-sonnet...)
 async function getChatbotModel(chatbotId) {
@@ -149,6 +163,23 @@ async function getChatbotResponse(sessionId, chatbotId) {
     };
 }
 
+async function useTool(toolCall) {
+    // ... existing tool usage code ...
+    
+    // Broadcast tool usage event
+    let reference = '';
+    if (toolCall.function.name === 'read_file') {
+        reference = `file "${toolCall.function.arguments.relative_workspace_path}"`;
+    } else if (toolCall.function.name === 'codebase_search') {
+        reference = `search "${toolCall.function.arguments.query}"`;
+    } else if (toolCall.function.name === 'grep_search') {
+        reference = `pattern "${toolCall.function.arguments.query}"`;
+    }
+    
+    broadcastToolUsage(toolCall.function.name, reference);
+    
+    // ... rest of existing tool usage code ...
+}
 
 module.exports = {
     getChatbotResponse

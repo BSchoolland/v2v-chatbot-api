@@ -1,6 +1,8 @@
 const {db} = require('../database/database.js');
 const { getPageByUrlAndWebsiteId } = require('../database/pages.js');
 const {getWebsiteById} = require('../database/websites.js');
+const { wss } = require('../server.js');
+const { WebSocket } = require('ws');
 // a set of tools the chatbot can use to find information for the user
 tools = [
     {
@@ -103,11 +105,44 @@ async function getTools(chatbotId) {
     return tools;
 }
 
-function useTool(toolName, params, metadata = {}) {
-    if (toolName === "readPageContent") {
-        return readPageContent(params, metadata);
-    } else if (toolName === "siteWideSearch") {
-        return siteWideSearch(params, metadata);
+// Function to broadcast tool usage to all connected clients
+function broadcastToolUsage(toolName, reference) {
+    wss.clients.forEach((client) => {
+        if (client.readyState === WebSocket.OPEN) {
+            client.send(JSON.stringify({
+                type: 'tool_usage',
+                toolName,
+                reference
+            }));
+        }
+    });
+}
+
+async function useTool(toolName, params, metadata = {}) {
+    let reference = '';
+    
+    // Determine reference based on tool type
+    if (toolName === 'readPageContent') {
+        const parsedParams = JSON.parse(params);
+        reference = `page "${parsedParams.path}"`;
+    } else if (toolName === 'siteWideSearch') {
+        const parsedParams = JSON.parse(params);
+        reference = `search "${parsedParams.term}"`;
+    }
+    
+    // Broadcast tool usage before executing the tool
+    if (reference) {
+        broadcastToolUsage(toolName, reference);
+    }
+    
+    // Execute the tool
+    switch (toolName) {
+        case 'readPageContent':
+            return await readPageContent(params, metadata);
+        case 'siteWideSearch':
+            return await siteWideSearch(params, metadata);
+        default:
+            throw new Error(`Unknown tool: ${toolName}`);
     }
 }
 

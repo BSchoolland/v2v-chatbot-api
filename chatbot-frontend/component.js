@@ -85,8 +85,49 @@
         loadStylesAndHtml();
     };
 
+    const createToolUsageIndicator = (toolName, reference) => {
+        const indicator = document.createElement('div');
+        indicator.className = 'tool-usage-indicator';
+        indicator.innerHTML = `Chatbot referenced <code>${reference}</code>`;
+        return indicator;
+    };
+
+    const appendToolUsageIndicator = (chatbox, toolName, reference) => {
+        const indicator = createToolUsageIndicator(toolName, reference);
+        chatbox.appendChild(indicator);
+        chatbox.scrollTop = chatbox.scrollHeight;
+    };
+
     const initializeChatInterface = (shadow, baseUrl) => {
         const chatbox = shadow.querySelector('.chatbox');
+        let ws = null;
+
+        const connectWebSocket = () => {
+            ws = new WebSocket(`${baseUrl.replace('http', 'ws')}/chatbot/ws`);
+            
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                
+                if (data.type === 'tool_usage') {
+                    appendToolUsageIndicator(chatbox, data.toolName, data.reference);
+                } else if (data.type === 'message') {
+                    appendMessage(chatbox, data.message, data.imgSrc || '', false);
+                }
+            };
+
+            ws.onerror = (error) => {
+                console.error('WebSocket error:', error);
+                appendMessage(chatbox, 'Error connecting to the chatbot. Please try again.', '', false, true);
+            };
+
+            ws.onclose = () => {
+                console.log('WebSocket connection closed');
+                // Attempt to reconnect after a delay
+                setTimeout(connectWebSocket, 3000);
+            };
+        };
+
+        connectWebSocket();
 
         // Add initial welcome message
         const addInitialMessage = async () => {
