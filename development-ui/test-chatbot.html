@@ -15,15 +15,35 @@
     <button onclick="window.location.href = '/deploy-chatbot.html'">Deploy Chatbot</button>
 
     <script>
-        // Get chatbotId from URL and add the component script dynamically
-        const chatbotId = new URLSearchParams(window.location.search).get('chatbotId');
-        if (chatbotId) {
-            const script = document.createElement('script');
-            script.src = '/chatbot/api/frontend/component.js';
-            script.setAttribute('chatbot-id', chatbotId);
-            document.body.appendChild(script);
+        // Get planId from URL
+        const planId = new URLSearchParams(window.location.search).get('planId');
+        if (!planId) {
+            console.error('No planId provided in URL');
         } else {
-            console.error('No chatbotId provided in URL');
+            // Fetch chatbot details to get the chatbot ID
+            fetch(`/website/api/chatbot-setup/get-chatbot?planId=${planId}`, {
+                method: 'GET',
+                credentials: 'include',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const chatbotId = data.chatbot.chatbot_id;
+                    // Add the component script with the chatbot ID
+                    const script = document.createElement('script');
+                    script.src = '/chatbot/api/frontend/component.js';
+                    script.setAttribute('chatbot-id', chatbotId);
+                    document.body.appendChild(script);
+                } else {
+                    console.error('Error fetching chatbot details:', data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
         }
     </script>
 </body>

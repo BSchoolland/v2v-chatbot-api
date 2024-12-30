@@ -5,13 +5,18 @@ When the user uses /do-issue:
         - Create a new issue using gh CLI with the provided text
         - Store the issue number for the next steps
     2. Checkout a new branch using the gh CLI with format `issue/[number]-[slug]`
-    3. Make the changes requested in the issue
-    4. Fully test changes
-    5. Ask the user for confirmation before moving on to step 6, unless the phrase was "/do-issue -y" in which case you should move on immediately
+    3. Make the changes requested in the issue, committing after each individual feature or fix has been tested.
+    4. Testing requirements (MUST be completed before proceeding):
+        - Test all changes thoroughly in the development environment
+        - Verify the changes work as expected
+        - Check for any regressions or side effects
+        - If bugs are found, fix them before proceeding
+    5. Ask the user for confirmation before moving on to step 6
     6. Commit changes using appropriate conventional commit type
     7. Create a comprehensive PR back into the initial branch, linking to the issue
         - Use printf to format PR descriptions with proper newlines:
           Example: `printf "Title\n\nDescription with:\n- Bullet points\n- More points" | gh pr create --title "feat: something" --body-file -`
+        - Include testing steps and results in the PR description
 
 When the user uses /issue:
     1. use the gh CLI to create an issue with - [ ] for different tasks
@@ -32,6 +37,7 @@ When the user uses /pr:
         - Use the repository name from the git remote URL
         - If the repository has been moved, use the new repository name from the move notice
         - Avoid interactive gh CLI prompts by specifying the repository explicitly with --repo flag
+        - Include testing steps and results in the PR description
 
 When the user uses /undo:
     1. Attempt to undo whatever you have just done, whether that means removing a PR, undoing a commit, or something else.
