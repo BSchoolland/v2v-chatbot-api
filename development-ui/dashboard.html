@@ -26,7 +26,6 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    console.log(data);
                     const plans = data.plans;
                     const plansList = document.getElementById('plans');
                     plans.forEach(plan => {

@@ -83,24 +83,18 @@ class ScraperManager {
 
     async runJobs() {
         if (this.isRunning) return;
-        console.log('Starting jobs...');
         this.isRunning = true;
         this.waited = 0;
         try {
             while (this.isRunning) {
                 const availablePages = this.pages.filter(p => !p.assigned);
-                // No pages available, wait and try again
                 if (availablePages.length === 0) {
                     await new Promise(resolve => setTimeout(resolve, 100));
                     continue;
                 }
         
-                // Filter out completed jobs
                 this.activeJobs = this.activeJobs.filter(job => !job.isJobComplete());
-                // Stop if no more jobs
                 if (this.activeJobs.length === 0) {
-                    // wait n seconds for any remaining pages to complete
-                    // call the log completion function on all jobs
                     for (let job of this.allJobs) {
                         job.isJobComplete();
                     }
@@ -109,11 +103,8 @@ class ScraperManager {
                 }
                 const tasks = [];
                 let jobIndex = 0;
-                console.log('Available pages:', availablePages.length);
-                console.log("work to do:", this.activeJobs.length);
-                // Distribute pages across jobs evenly
+                
                 for (const page of availablePages) {
-                    // Try each job once
                     let foundWork = false;
                     let attempts = 0;
                     
@@ -131,13 +122,11 @@ class ScraperManager {
                         attempts++;
                     }
                 }
-                console.log('Tasks:', tasks);
+
                 if (tasks.length === 0) {
                     this.waited += 100;
-                    // FIXME: this is a hack to prevent the scraper from hanging indefinitely, which it sometimes does for unknown reasons.  This is a temporary fix, and would not be effective if many jobs are running since it only detects when all jobs hang, meaning one job could hang for an indefinite amount of time as long as the other jobs are making progress, and clients might be caught waiting for a response from a job that is stuck.
                     if (this.waited > 90000) {
                         console.error('CRITICAL ERROR: Scraper not making progress, forcibly stopping all jobs');
-                        // mark all jobs as complete
                         for (let job of this.allJobs) {
                             job.processing = 0;
                             job.done = true;
@@ -152,12 +141,10 @@ class ScraperManager {
                 }
                 this.waited = 0;
         
-                // Execute tasks in parallel with timeout, and once one is done, start the next one
                 await Promise.race([
                     Promise.race(tasks),
                     new Promise((resolve, reject) => {
                         setTimeout(() => {
-                            // Free up pages that timed out
                             this.pages.forEach(p => p.assigned = false);
                             reject(new Error('Tasks timed out after 60 seconds'));
                         }, 60000);
@@ -176,9 +163,7 @@ class ScraperManager {
         }        
     }
 
-
     async cleanup() {
-        // set flag to prevent re-initialization during cleanup
         this.isReady = false;
         this.isCleaning = true;
         this.isRunning = false;
