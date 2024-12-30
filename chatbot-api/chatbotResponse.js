@@ -19,6 +19,12 @@ const { getTools, useTool } = require('./builtInTools.js');
 const showdown = require('showdown');
 const converter = new showdown.Converter();
 
+const wsManager = require('./wsManager');
+
+// Function to broadcast tool usage to all connected clients
+function broadcastToolUsage(toolName, reference) {
+    wsManager.broadcastToolUsage(toolName, reference);
+}
 
 // gets the model name from the database (e.g. gpt-4o-mini, claude-3-5-sonnet...)
 async function getChatbotModel(chatbotId) {
@@ -148,7 +154,6 @@ async function getChatbotResponse(sessionId, chatbotId) {
         chatId: sessionId
     };
 }
-
 
 module.exports = {
     getChatbotResponse

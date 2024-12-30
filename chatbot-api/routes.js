@@ -1,7 +1,12 @@
 // routes for chatbot api
 
 const express = require('express');
+const expressWs = require('express-ws');
 const router = express.Router();
+
+// Enable WebSocket for this router
+expressWs(router);
+
 const { getSessionId, appendMessageToSession, getSession } = require('./sessions.js');
 const { getChatbotResponse } = require('./chatbotResponse.js');
 const { getInitialMessage } = require('../database/chatbots.js');
@@ -9,6 +14,11 @@ const { checkRateLimit } = require('./utils/rateLimiter.js');
 const { isValidOrigin } = require('./utils/originValidator');
 const { storeConversation } = require('../database/conversations');
 const path = require('path');
+
+// WebSocket route
+router.ws('/ws', (ws, req) => {
+    console.log('WebSocket connection request received');
+});
 
 router.post('/chat/:chatbotId', async (req, res) => {
     const origin = req.get('Origin');

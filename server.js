@@ -2,13 +2,30 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const { initializeDatabase } = require('./database/database.js');
 const { ScraperManager } = require('./webscraping/scraperManager.js');
-const cookieParser = require('cookie-parser');
+const expressWs = require('express-ws');
+const http = require('http');
+const wsManager = require('./chatbot-api/wsManager');
 
 const websiteApiRoutes = require('./website-api/routes.js');
 const chatbotApiRoutes = require('./chatbot-api/routes.js');
+
+const cookieParser = require('cookie-parser');
 const conversationsRoutes = require('./website-api/conversations.js');
 const app = express();
+const server = http.createServer(app);
+
+// Initialize express-ws with options
+const wsInstance = expressWs(app, server, {
+    wsOptions: {
+        perMessageDeflate: false
+    }
+});
+
+// Initialize WebSocket manager with the express-ws instance
+wsManager.initialize(wsInstance.getWss());
+
 const port = 3000;
+
 // allow all cors origins as this is a public api
 const cors = require('cors');
 app.use(cors({
@@ -48,7 +65,7 @@ const scraperManager = new ScraperManager();
         await initializeDatabase();
         console.log('Database initialization complete, starting server...');
         
-        app.listen(port, () => {
+        server.listen(port, () => {
             console.log(`Server is running on http://localhost:${port}`);
         });
     } catch (err) {

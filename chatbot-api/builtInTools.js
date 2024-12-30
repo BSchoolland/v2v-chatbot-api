@@ -1,6 +1,7 @@
 const {db} = require('../database/database.js');
 const { getPageByUrlAndWebsiteId } = require('../database/pages.js');
 const {getWebsiteById} = require('../database/websites.js');
+const wsManager = require('./wsManager');
 // a set of tools the chatbot can use to find information for the user
 tools = [
     {
@@ -103,11 +104,45 @@ async function getTools(chatbotId) {
     return tools;
 }
 
-function useTool(toolName, params, metadata = {}) {
-    if (toolName === "readPageContent") {
-        return readPageContent(params, metadata);
-    } else if (toolName === "siteWideSearch") {
-        return siteWideSearch(params, metadata);
+// Function to broadcast tool usage to all connected clients
+function broadcastToolUsage(toolName, reference) {
+    wsManager.broadcastToolUsage(toolName, reference);
+}
+
+async function useTool(toolName, params, metadata = {}) {
+    let reference = '';
+    let result;
+    
+    try {
+        // Execute the tool first
+        switch (toolName) {
+            case 'readPageContent':
+                result = await readPageContent(params, metadata);
+                // Only broadcast if the page was found (result doesn't contain error message)
+                if (!result.includes("No information found for path")) {
+                    const parsedParams = JSON.parse(params);
+                    let path = parsedParams.path;
+                    if (!path.startsWith("http")) {
+                        const website = await getWebsiteById(metadata.websiteId);
+                        path = website.domain + path;
+                    }
+                    reference = `page "${path}"`;
+                    broadcastToolUsage(toolName, reference);
+                }
+                break;
+            case 'siteWideSearch':
+                result = await siteWideSearch(params, metadata);
+                const parsedParams = JSON.parse(params);
+                reference = `search "${parsedParams.term}"`;
+                broadcastToolUsage(toolName, reference);
+                break;
+            default:
+                throw new Error(`Unknown tool: ${toolName}`);
+        }
+        return result;
+    } catch (error) {
+        console.error(`Error using tool ${toolName}:`, error);
+        throw error;
     }
 }
 
