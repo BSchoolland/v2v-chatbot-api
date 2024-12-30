@@ -30,6 +30,17 @@ When the user uses /pr:
         - Use the repository name from the git remote URL
         - If the repository has been moved, use the new repository name from the move notice
         - Avoid interactive gh CLI prompts by specifying the repository explicitly with --repo flag
+        - For proper newline formatting in PR descriptions, use a here-doc like this:
+            ```bash
+            gh pr create --repo owner/repo --title "title" --body "$(cat << 'EOT'
+            Description with proper
+            newlines and formatting.
+
+            - Bullet points
+            - Work correctly
+            EOT
+            )" --base main
+            ```
 
 When the user uses /undo:
     1. Attempt to undo whatever you have just done, whether that means removing a PR, undoing a commit, or something else.
