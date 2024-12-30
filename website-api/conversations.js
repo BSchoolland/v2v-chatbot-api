@@ -1,8 +1,8 @@
 const express = require('express');
 const router = express.Router();
-const { storeConversation, getConversationsByChatbot, deleteConversation } = require('../database/conversations');
+const { storeConversation, getConversationsByChatbot, deleteConversation, getConversationById } = require('../database/conversations');
 const { authMiddleware } = require('./middleware');
-const { getChatbotById } = require('../database/chatbots');
+const { getChatbot } = require('../database/chatbots');
 
 // Get conversations for a chatbot with pagination and filters
 router.get('/:chatbotId', authMiddleware, async (req, res) => {
@@ -11,8 +11,8 @@ router.get('/:chatbotId', authMiddleware, async (req, res) => {
         const { page = 1, limit = 10, dateRange = 'all', pageFilter = '' } = req.query;
         
         // Verify chatbot ownership
-        const chatbot = await getChatbotById(chatbotId);
-        if (!chatbot || chatbot.user_id !== req.userId) {
+        const chatbot = await getChatbot(chatbotId);
+        if (!chatbot || chatbot.plan_id !== req.userId) {
             return res.status(403).json({ success: false, error: 'Unauthorized access to chatbot' });
         }
         
@@ -61,8 +61,8 @@ router.delete('/:conversationId', authMiddleware, async (req, res) => {
         }
         
         // Verify chatbot ownership
-        const chatbot = await getChatbotById(conversation.chatbot_id);
-        if (!chatbot || chatbot.user_id !== req.userId) {
+        const chatbot = await getChatbot(conversation.chatbot_id);
+        if (!chatbot || chatbot.plan_id !== req.userId) {
             return res.status(403).json({ success: false, error: 'Unauthorized access to chatbot' });
         }
         
