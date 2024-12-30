@@ -22,7 +22,11 @@ When the user uses /commit:
 When the user uses /pr:
     1. Find the diff between this branch and main
     2. Pull from origin main and resolve any merge conflicts
-    3. Create a comprehensive PR into main from the current branch
+    3. Push the current branch to remote first with `git push -u origin [branch-name]`
+    4. Create a comprehensive PR into main from the current branch using the correct repository name:
+        - Use the repository name from the git remote URL
+        - If the repository has been moved, use the new repository name from the move notice
+        - Avoid interactive gh CLI prompts by specifying the repository explicitly with --repo flag
 
 When the user uses /undo:
     1. Attempt to undo whatever you have just done, whether that means removing a PR, undoing a commit, or something else.
