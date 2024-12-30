@@ -79,6 +79,14 @@ class ActiveJob {
         return this.completedPages.length;
     }
 
+    needsWork() {
+        // Return true if there are pages in the queue or external links to process
+        // and we haven't hit our max pages limit
+        return (!this.done && 
+                (this.queue.length > 0 || (!this.externalQueued && this.externalLinks.size > 0)) && 
+                this.completedPages.length < this.maxPages);
+    }
+
     getNextPage() {
         if (this.queue.length === 0 || this.completedPages.length >= this.maxPages) {
             return null;
