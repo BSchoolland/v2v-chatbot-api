@@ -54,6 +54,28 @@
         chatbox.scrollTop = chatbox.scrollHeight;
     };
 
+    const createLoadingContainer = (baseUrl) => {
+        const loadingContainer = document.createElement('div');
+        loadingContainer.classList.add('message-container', 'loading-container');
+
+        const botImage = document.createElement('img');
+        botImage.src = `${baseUrl}/chatbot/api/frontend/chatbot-logo.png`;
+        botImage.alt = 'Chatbot';
+        botImage.classList.add('message-image');
+
+        const loadingDots = document.createElement('div');
+        loadingDots.classList.add('loading-dots');
+        loadingDots.innerHTML = `
+            <span></span>
+            <span></span>
+            <span></span>
+        `;
+
+        loadingContainer.appendChild(botImage);
+        loadingContainer.appendChild(loadingDots);
+        return loadingContainer;
+    };
+
     const sendMessage = async (e, shadow) => {
         e.preventDefault();
         const baseUrl = getBaseUrl();
