@@ -38,8 +38,7 @@
             'https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.2.3/purify.min.js',
             'sha512-Ll+TuDvrWDNNRnFFIM8dOiw7Go7dsHyxRp4RutiIFW/wm3DgDmCnRZow6AqbXnCbpWu93yM1O34q+4ggzGeXVA==',
             'anonymous',
-            'no-referrer',
-            () => console.log('DOMPurify loaded!')
+            'no-referrer'
         );
 
         // Get the base URL and create the container
@@ -94,10 +93,9 @@
             try {
                 const response = await fetch(`${baseUrl}/chatbot/api/initial-message/${chatbotId}`);
                 const data = await response.json();
-                console.log(data);
+                
                 // if no message or questions, skip
                 if ((!data.message || data.message === '') && (!data.questions || data.questions.length === 0)) {
-                    console.log('No initial message or questions, skipping...');
                     return;
                 }
                 // in case of no message, just show the questions
@@ -118,7 +116,6 @@
 
                 // Event listeners for FAQ buttons
                 shadow.querySelectorAll('.faq-button').forEach(faqButton => {
-                    console.log(faqButton);
                     faqButton.addEventListener('click', (e) => {
                         userInput.value = e.target.textContent;
                         submitButton.click();
