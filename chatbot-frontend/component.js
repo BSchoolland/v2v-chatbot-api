@@ -214,7 +214,7 @@
 
             chatbox.removeChild(loadingContainer);
 
-            const botMessageHtml = data.message ? DOMPurify.sanitize(data.message) : data.error;
+            const botMessageHtml = data.message ? DOMPurify.sanitize(data.message) : 'error: ' + data.error;
             let isError = false;
             if (!data.message) {
                 console.error('Error from chatbot API:', data.error);
