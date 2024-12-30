@@ -111,29 +111,38 @@ function broadcastToolUsage(toolName, reference) {
 
 async function useTool(toolName, params, metadata = {}) {
     let reference = '';
+    let result;
     
-    // Determine reference based on tool type
-    if (toolName === 'readPageContent') {
-        const parsedParams = JSON.parse(params);
-        reference = `page "${parsedParams.path}"`;
-    } else if (toolName === 'siteWideSearch') {
-        const parsedParams = JSON.parse(params);
-        reference = `search "${parsedParams.term}"`;
-    }
-    
-    // Broadcast tool usage before executing the tool
-    if (reference) {
-        broadcastToolUsage(toolName, reference);
-    }
-    
-    // Execute the tool
-    switch (toolName) {
-        case 'readPageContent':
-            return await readPageContent(params, metadata);
-        case 'siteWideSearch':
-            return await siteWideSearch(params, metadata);
-        default:
-            throw new Error(`Unknown tool: ${toolName}`);
+    try {
+        // Execute the tool first
+        switch (toolName) {
+            case 'readPageContent':
+                result = await readPageContent(params, metadata);
+                // Only broadcast if the page was found (result doesn't contain error message)
+                if (!result.includes("No information found for path")) {
+                    const parsedParams = JSON.parse(params);
+                    let path = parsedParams.path;
+                    if (!path.startsWith("http")) {
+                        const website = await getWebsiteById(metadata.websiteId);
+                        path = website.domain + path;
+                    }
+                    reference = `page "${path}"`;
+                    broadcastToolUsage(toolName, reference);
+                }
+                break;
+            case 'siteWideSearch':
+                result = await siteWideSearch(params, metadata);
+                const parsedParams = JSON.parse(params);
+                reference = `search "${parsedParams.term}"`;
+                broadcastToolUsage(toolName, reference);
+                break;
+            default:
+                throw new Error(`Unknown tool: ${toolName}`);
+        }
+        return result;
+    } catch (error) {
+        console.error(`Error using tool ${toolName}:`, error);
+        throw error;
     }
 }
 
