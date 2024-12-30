@@ -29,6 +29,10 @@ async function storeConversation(chatbotId, conversation, pageUrl, date, chatId)
 
 // Retrieve conversations for a chatbot with pagination and filters
 async function getConversationsByChatbot(chatbotId, page = 1, limit = 10, dateFilter = null, pageFilter = '') {
+    // Convert page and limit to numbers
+    page = parseInt(page);
+    limit = parseInt(limit);
+    
     const offset = (page - 1) * limit;
     
     // Build the WHERE clause based on filters
@@ -68,9 +72,9 @@ async function getConversationsByChatbot(chatbotId, page = 1, limit = 10, dateFi
 
     return {
         conversations: parsedConversations,
-        totalCount: totalCount.count,
+        totalCount: parseInt(totalCount.count),
         currentPage: page,
-        totalPages: Math.ceil(totalCount.count / limit)
+        totalPages: Math.ceil(parseInt(totalCount.count) / limit)
     };
 }
 
