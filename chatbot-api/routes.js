@@ -2,12 +2,14 @@
 
 const express = require('express');
 const router = express.Router();
-const { getSessionId, appendMessageToSession } = require('./sessions.js');
+const { getSessionId, appendMessageToSession, getSession } = require('./sessions.js');
 const { getChatbotResponse } = require('./chatbotResponse.js');
 const { getInitialMessage } = require('../database/chatbots.js');
 const { checkRateLimit } = require('./utils/rateLimiter.js');
 const { isValidOrigin } = require('./utils/originValidator');
+const { storeConversation } = require('../database/conversations');
 const path = require('path');
+
 router.post('/chat/:chatbotId', async (req, res) => {
     const origin = req.get('Origin');
     // TODO: allow clients to set whether they want to use the origin validator (for if they need to test locally)
@@ -20,9 +22,34 @@ router.post('/chat/:chatbotId', async (req, res) => {
         res.status(429).json({ error: 'Rate limit exceeded. Please try again later.' });
         return;
     }
+
     const chatId = getSessionId(req.body.chatId);
     appendMessageToSession(chatId, req.body.message, 'user');
     const response = await getChatbotResponse(chatId, req.params.chatbotId);
+
+    // Store the conversation after getting the response
+    try {
+        // Filter out tool responses and only keep user and assistant messages
+        const messages = getSession(chatId)
+            .filter(msg => msg.role === 'user' || (msg.role === 'assistant' && !msg.tool_calls && !msg.tool_call_id && !msg.tool_name))
+            .map(msg => ({
+                role: msg.role,
+                content: msg.content
+            }));
+        
+        // Store the entire conversation each time, using chatId to update the same record
+        await storeConversation(
+            req.params.chatbotId,
+            messages,
+            req.headers.referer || 'Unknown',
+            new Date().toISOString(),
+            chatId
+        );
+    } catch (error) {
+        console.error('Error storing conversation:', error);
+        // Don't fail the request if storage fails
+    }
+
     res.json(response);
 });
 

@@ -1,4 +1,5 @@
 (function() {
+    let chatId = -1;
     const scriptTag = document.currentScript;
 
     const chatbotId = scriptTag.getAttribute('chatbot-id') || '9c80e92f232b8542b22ec31744221aa8';
@@ -190,6 +191,7 @@
         const userInput = shadow.querySelector('.user-input');
         const chatbox = shadow.querySelector('.chatbox');
         const message = userInput.value.trim();
+        const currentUrl = window.location.href;
 
         if (!message) return;
 
@@ -202,7 +204,6 @@
         chatbox.appendChild(loadingContainer);
         chatbox.scrollTop = chatbox.scrollHeight;
 
-        let chatId = -1;
         try {
             const response = await fetch(`${baseUrl}/chatbot/api/chat/${chatbotId}`, {
                 method: 'POST',
@@ -213,7 +214,7 @@
 
             chatbox.removeChild(loadingContainer);
 
-            const botMessageHtml = data.message ? DOMPurify.sanitize(data.message) : data.error;
+            const botMessageHtml = data.message ? DOMPurify.sanitize(data.message) : 'error: ' + data.error;
             let isError = false;
             if (!data.message) {
                 console.error('Error from chatbot API:', data.error);
@@ -224,7 +225,7 @@
         } catch (error) {
             console.error('Error sending message:', error);
             chatbox.removeChild(loadingContainer);
-            appendMessage(chatbox, 'Sorry, something went wrong. Please try again later.', `${baseUrl}/chatbot/api/frontend/chatbot-logo.png`, false, true);
+            appendMessage(chatbox, 'error: Sorry, something went wrong. Please try again later.', `${baseUrl}/chatbot/api/frontend/chatbot-logo.png`, false, true);
         }
     };
 
