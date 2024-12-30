@@ -81,15 +81,12 @@ async function getSystemPrompt(chatbotId) {
     let systemPrompt = chatbot.system_prompt;
     try {
         let website = await getWebsiteById(chatbot.website_id);
-        console.log(website);
         let allPages = await getPagesByWebsite(website.website_id);
-        // log length of allPages
-        console.log(allPages.length);
+        
         systemPrompt += "\nHere are all the pages that exist on this site starting with the home page: \n"
         for (let i = 0; i < allPages.length; i++) {
             let page = allPages[i];
             if (!page.internal) {
-                console.log("Skipping external page:", page.url);
                 continue;
             }
             systemPrompt += page.url;
@@ -98,12 +95,11 @@ async function getSystemPrompt(chatbotId) {
             }
             systemPrompt += "\n";
         }
-        // add external resources to the system message
+        
         systemPrompt += "\nExternal resources referenced on this site: \n"
         for (let i = 0; i < allPages.length; i++) {
             let page = allPages[i];
             if (page.internal) {
-                console.log("Skipping internal page:", page.url);
                 continue;
             }
             systemPrompt += page.url;
@@ -112,13 +108,12 @@ async function getSystemPrompt(chatbotId) {
             }
             systemPrompt += "\n";
         }
-        // add the current date as well as the current page
+        
         systemPrompt += "\nToday's date is: " + new Date().toDateString() + "\n";
         // systemPrompt += "\nThe user is currently on the page: " + currentUrl + "\n";
     } catch (error) {
         console.error(error);
     }
-    console.log(systemPrompt);
     return systemPrompt;
 }
 

@@ -190,13 +190,6 @@ class ActiveJob {
             // Add external links to the set
             externalLinks.forEach(link => this.externalLinks.add(link));
 
-            if (this.verbose) {
-                console.log(`Unique Links Found: ${uniqueLinks.length} ${uniqueLinks}`);
-                console.log(`New Internal Links Added: ${newInternalLinks.length}`);
-                console.log(`Queue Size: ${this.queue.length}`);
-                console.log(`Total external links found: ${this.externalLinks.size}`);
-            }
-
             // Add new links to the queue and mark them as visited
             for (let link of newInternalLinks) {
                 this.visitedUrls.add(link); // Mark as visited immediately

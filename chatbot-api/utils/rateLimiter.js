@@ -30,9 +30,7 @@ async function checkRateLimit(req) {
         WHERE visitor_id = ? AND timestamp > ?
     `, [visitorId, now - WINDOW_MS]);
     
-    console.log('count', count);
     if (count.count >= MAX_REQUESTS) {
-        console.log('rate limit exceeded');
         return false; // Rate limit exceeded
     }
     

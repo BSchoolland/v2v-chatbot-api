@@ -24,8 +24,6 @@ db.run(`
 `, (err) => {
     if (err) {
         console.error('Error creating table:', err.message);
-    } else {
-        console.log('Websites table created or already exists.');
     }
 });
 // table for pages
@@ -44,8 +42,6 @@ db.run(`
 `, (err) => {
     if (err) {
         console.error('Error creating table:', err.message);
-    } else {
-        console.log('Pages table created or already exists.');
     }
 });
 
@@ -95,7 +91,6 @@ async function getWebsiteByUrl(url, retries = 3, delay = 1000) {
             });
         } catch (err) {
             if (attempt < retries) {
-                console.log(`Attempt ${attempt} failed. Retrying in ${delay}ms...`);
                 await setTimeoutPromise(delay);
             } else {
                 console.error('All attempts failed.');
@@ -106,14 +101,12 @@ async function getWebsiteByUrl(url, retries = 3, delay = 1000) {
 }
 
 async function getPageByUrl(url) {
-    console.log("getPageByUrl called with URL:", url);
     return new Promise((resolve, reject) => {
         db.get('SELECT * FROM pages WHERE url = ?', [url], (err, row) => {
             if (err) {
                 console.error("Error executing query:", err);
                 reject(err);
             } else {
-                console.log(row);
                 resolve(row);
             }
         });

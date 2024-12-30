@@ -54,14 +54,11 @@ class WebScraper {
             return content;
         } catch (error) {
             console.error('Error fetching page content:', error.message);
-            console.log('Trying without waiting for network idle...');
             try {
                 await this.page.goto(pageUrl, { timeout: 30000, waitUntil: 'domcontentloaded' });
-                console.log('Success!');
                 return await this.page.content();
             } catch (error) {
                 console.error('Error fetching page content:', error.message);
-                console.log('Giving up on page:', pageUrl, ' :(');
                 return '';
             }
         }
@@ -71,82 +68,54 @@ class WebScraper {
         const queue = [{ url: pageUrl, depth: 0 }, ...manuallyAddedPages];
         let totalCompleted = 0;
         let totalStartTime = Date.now();
-        const urlContentMap = new Map(); // Store URL and its content
+        const urlContentMap = new Map();
         const allExternalLinks = new Set();
+        
         while (queue.length > 0) {
             const { url, depth } = queue.shift();
-            if (depth >= this.maxDepth) continue; // Skip if beyond max depth
+            if (depth >= this.maxDepth) continue;
     
             totalCompleted++;
-    
-            const startTime = Date.now();
             let uniqueLinks = [];
             let pageContent = '';
     
             try {
-                // Fetch the page content and links
                 pageContent = await this.getPageContent(url);
                 uniqueLinks = await this.getUniqueLinks(pageContent);
             } catch (error) {
                 console.error(`Failed to fetch content or links from URL: ${url}`);
                 console.error(`Error: ${error.message}`);
-                console.error(error.stack);
-                continue; // Skip this page and move on
+                continue;
             }
-            // get the shortened HTML
+
             pageContent = await this.getCleanHtmlContent(pageContent, ['href']);
-            // Store the page content in the map
             urlContentMap.set(url, pageContent);
     
             try {
-                // get internal links
                 let internalLinks = uniqueLinks.filter(link => link.startsWith(this.startUrl));
-                // Filter out pages with file extensions like .pdf, .jpg, etc.
                 internalLinks = internalLinks.filter(link => !link.match(/\.(pdf|jpg|jpeg|png|gif|doc|docx|xls|xlsx|ppt|pptx|webp|zip)$/i));
-                // Filter out already visited links adding to queue
                 const newInternalLinks = internalLinks.filter(link => !this.visitedUrls.has(link));
 
-                // get external links
                 let externalLinks = uniqueLinks.filter(link => !link.startsWith(this.startUrl));
-                // Filter out pages with file extensions like .pdf, .jpg, etc.
                 externalLinks = externalLinks.filter(link => !link.match(/\.(pdf|jpg|jpeg|png|gif|doc|docx|xls|xlsx|ppt|pptx|webp|zip)$/i));
-                // Add external links to the set
                 externalLinks.forEach(link => allExternalLinks.add(link));
     
-                const endTime = Date.now();
-                if (this.verbose) {
-                    console.log(`\n\n--- Processing URL: ${url} ---`);
-                    console.log(`Depth: ${depth}`);
-                    console.log(`Unique Links Found: ${uniqueLinks.length} ${uniqueLinks}`);
-                    console.log(`New Internal Links Added: ${newInternalLinks.length}`);
-                    console.log(`Queue Size: ${queue.length}`);
-                    console.log(`Total Completed: ${totalCompleted}`);
-                    console.log(`Time Taken: ${(endTime - startTime) / 1000} seconds`);
-                    console.log(`Total external links found: ${allExternalLinks.size}`);
-                }
-    
-                // Add new links to the queue and mark them as visited
                 for (let link of newInternalLinks) {
-                    this.visitedUrls.add(link); // Mark as visited immediately
+                    this.visitedUrls.add(link);
                     queue.push({ url: link, depth: depth + 1 });
                 }
             } catch (error) {
                 console.error(`Error processing links for URL: ${url}`);
                 console.error(`Error: ${error.message}`);
-                console.error(error.stack);
-                continue; // Skip problematic link processing and move on
+                continue;
             }
         }
+
         let externalUrlContentMap = new Map();
-        // Fetch content for external URLs
         for (let url of allExternalLinks) {
             try {
                 const content = await this.getPageContent(url);
                 let cleanedContent = await this.getCleanHtmlContent(content, ['href']);
-                if (this.verbose) {
-                    console.log(`\n\n--- Processing External URL: ${url} ---`);
-                    console.log(`Completed: ${externalUrlContentMap.size + 1} of ${allExternalLinks.size}`);
-                }
                 if (content.trim() === '') {
                     cleanedContent = 'Content not accessible to chatbot. Provide user with link to view content if needed.';
                 }
@@ -154,63 +123,35 @@ class WebScraper {
             } catch (error) {
                 console.error(`Error fetching content for external URL: ${url}`);
                 console.error(`Error: ${error.message}`);
-                console.error(error.stack);
             }
         }
     
-        // Add trailing slashes to all URLs
         this.visitedUrls = new Set(Array.from(this.visitedUrls).map(url => url.endsWith('/') ? url : url + '/'));
-        let totalEndTime = Date.now();
     
-        if (this.verbose) {
-            console.log('\n--- Scraping Complete ---');
-            console.log(`\nTotal Time Taken: ${(totalEndTime - totalStartTime) / 1000} seconds`);
-            console.log(`Total URLs Visited: ${this.visitedUrls.size}`);
-        }
-    
-        // Return the map with URLs and their content
         return { urlContentMap, externalUrlContentMap };
     }
 
-    // AI: this function was generated by AI
     async getUniqueLinks(pageContent) {
         let content = pageContent;
-        // strip any style or linked style sheets
         content = content.replace(/<style.*?>.*?<\/style>/gs, '');
         content = content.replace(/<link[^>]+rel=["']stylesheet["'][^>]*>/gi, '');
-        // create a DOM from the content
         const dom = new JSDOM(content);
         const { document } = dom.window;
-    
-        // Use a Set to ensure uniqueness
         const uniqueLinks = new Set();
-    
-        // Select all anchor tags
         const links = document.querySelectorAll('a');
-        // for debugging, lig each tag as a string
-        links.forEach(link => {
-            console.log(link.outerHTML);
-        });
-        // Loop through each link and add to the Set
+        
         links.forEach(link => {
             const href = link.getAttribute('href');
-            
-            // Basic filtering
             if (href && href.trim() !== '') {
-                // Normalize the URL and remove hash fragment
                 try {
-                    // Clean the URL
                     const cleanUrl = this.cleanUrl(href);
                     uniqueLinks.add(cleanUrl);
                 } catch (error) {
-                    console.error(error);
-                    // Ignore invalid URLs
-                    console.warn(`Invalid URL: ${href}`);
+                    console.error(`Invalid URL: ${href}`);
                 }
             }
         });
     
-        // Convert Set to Array and return
         return Array.from(uniqueLinks);
     }
 
@@ -327,16 +268,12 @@ class WebScraper {
 
 function summarizeAllPages(urlContentMap, website) {
     let allPages = [];
-    // an array of all strings that appear in the summaries
     let allSummaries = [];
     for (let [pageUrl, content] of urlContentMap.entries()) {
-        console.log(`Processing page: ${pageUrl}`);
         let summary = summarizePage(content);
-        // loop through the summary and add each string to the array
         for (let str of summary) {
             allSummaries.push(str);
         }
-        // create a new page object
         let page = {
             website_id: website.id,
             url: pageUrl,
@@ -346,16 +283,12 @@ function summarizeAllPages(urlContentMap, website) {
         allPages.push(page);
     }
     let commonSummaryItems = new Set();
-    // items that appear more than 5% of the time (but not only once)
     for (let str of allSummaries) {
         let count = allSummaries.filter(s => s === str).length;
         if (count > allPages.length / 20 && count > 1) {
             commonSummaryItems.add(str);
-            console.log(`Common summary item: ${str}`);
         } 
     }
-    console.log("all these items will be removed from the summaries: ", Array.from(commonSummaryItems));
-    // remove any common items from the summaries, and limit to 3 sections
     for (let page of allPages) {
         page.summary = page.summary.filter(s => !commonSummaryItems.has(s));
         if (page.summary.length > 3) {
@@ -365,48 +298,36 @@ function summarizeAllPages(urlContentMap, website) {
     return allPages;
 }
 
-
-
-
-
 async function crawlSite() {
-    // create or identify the website in the database
     let website = await getWebsiteByUrl(url);
     if (!website) {
         console.log('Website does not exist in the database. Inserting...');
         await insertWebsite(url);
         website = await getWebsiteByUrl(url);
     }
-    // scrape the website to find all pages
     console.log('Website exists in the database.');
     const scraper = new WebScraper(url, 7);
     await scraper.init();
     let manuallyAddedPages = [{ url: "https://www.futureofworkchallenge.com/champions", depth: 1 }];
     const { urlContentMap, externalUrlContentMap } = await scraper.getAllPageUrls(url, manuallyAddedPages);
     await scraper.browser.close();
-    // summarize the content of all pages
+    
     let allInternalPages = summarizeAllPages(urlContentMap, website);
 
-    // save all the pages to the database
     for (let page of allInternalPages) {
-        console.log(`Inserting page: ${page.url}`);
         let summaryStr = page.summary.join(', ');
-        console.log(`Summary: ${summaryStr}`);
-        // add a / to the end of the URL if it's missing
         if (!page.url.endsWith('/')) {
             page.url += '/';
         }
         await insertOrUpdatePage(page.website_id, page.url, page.content, summaryStr, false);
     }
     console.log('All pages inserted into the database.');
-    // add the external URLs to the database, with this site as the parent, and external set to true
+    
     for (let [url, content] of externalUrlContentMap.entries()) {
-        console.log(`Inserting external page: ${url}`);
-        // if it does not end with a /, add one
         if (!url.endsWith('/')) {
             url += '/';
         }
-        await insertOrUpdatePage(website.id, url, content, '', true); // NOTE: External pages are not summarized
+        await insertOrUpdatePage(website.id, url, content, '', true);
     }
 }
 

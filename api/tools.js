@@ -46,25 +46,27 @@ async function readPageContent(params) {
     // convert params to json
     params = JSON.parse(params);
     let path = params.path;
-    console.log(path);
+    
     // if the path does not begin with http, add the default path
     if (!path.startsWith("http")) {
         path = defaultPath + path;
     }
-    console.log(path);
+    
     // if the path ends with #something, remove the #something
     if (path.includes("#")) {
         path = path.split("#")[0];
     }
+    
     // if there's a //:www. in the path, remove it
     if (path.includes("://www.")) {
         path = path.replace("://www.", "://");
     }
+    
     // if there's no / at the end add it
     if (path[path.length - 1] !== "/") {
         path = path + "/";
     }
-    console.log(path);
+    
     const page = await getPageByUrl(path);
     if (page) {
         return page.content;
