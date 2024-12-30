@@ -163,24 +163,6 @@ async function getChatbotResponse(sessionId, chatbotId) {
     };
 }
 
-async function useTool(toolCall) {
-    // ... existing tool usage code ...
-    
-    // Broadcast tool usage event
-    let reference = '';
-    if (toolCall.function.name === 'read_file') {
-        reference = `file "${toolCall.function.arguments.relative_workspace_path}"`;
-    } else if (toolCall.function.name === 'codebase_search') {
-        reference = `search "${toolCall.function.arguments.query}"`;
-    } else if (toolCall.function.name === 'grep_search') {
-        reference = `pattern "${toolCall.function.arguments.query}"`;
-    }
-    
-    broadcastToolUsage(toolCall.function.name, reference);
-    
-    // ... rest of existing tool usage code ...
-}
-
 module.exports = {
     getChatbotResponse
 };

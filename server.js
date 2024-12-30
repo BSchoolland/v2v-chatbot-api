@@ -2,30 +2,27 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const { initializeDatabase } = require('./database/database.js');
 const { ScraperManager } = require('./webscraping/scraperManager.js');
-const WebSocket = require('ws');
+const expressWs = require('express-ws');
 const http = require('http');
+const wsManager = require('./chatbot-api/wsManager');
 
 const websiteApiRoutes = require('./website-api/routes.js');
 const chatbotApiRoutes = require('./chatbot-api/routes.js');
+
 const app = express();
 const server = http.createServer(app);
-const wss = new WebSocket.Server({ server });
 
-const port = 3000;
-
-// WebSocket connection handling
-wss.on('connection', (ws) => {
-    console.log('New WebSocket connection');
-    
-    ws.on('error', console.error);
-    
-    ws.on('close', () => {
-        console.log('Client disconnected');
-    });
+// Initialize express-ws with options
+const wsInstance = expressWs(app, server, {
+    wsOptions: {
+        perMessageDeflate: false
+    }
 });
 
-// Export WebSocket server for use in other modules
-module.exports.wss = wss;
+// Initialize WebSocket manager with the express-ws instance
+wsManager.initialize(wsInstance.getWss());
+
+const port = 3000;
 
 // allow all cors origins as this is a public api
 const cors = require('cors');
@@ -51,7 +48,6 @@ process.on('unhandledRejection', (reason, promise) => {
 // Use chatbot and website API routes
 app.use('/website/api', websiteApiRoutes);
 app.use('/chatbot/api', chatbotApiRoutes);
-
 
 // set development-ui as the public folder
 app.use(express.static('development-ui'));

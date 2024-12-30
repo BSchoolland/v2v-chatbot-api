@@ -85,39 +85,33 @@
         loadStylesAndHtml();
     };
 
-    const createToolUsageIndicator = (toolName, reference) => {
-        const indicator = document.createElement('div');
-        indicator.className = 'tool-usage-indicator';
-        indicator.innerHTML = `Chatbot referenced <code>${reference}</code>`;
-        return indicator;
-    };
-
-    const appendToolUsageIndicator = (chatbox, toolName, reference) => {
-        const indicator = createToolUsageIndicator(toolName, reference);
-        chatbox.appendChild(indicator);
-        chatbox.scrollTop = chatbox.scrollHeight;
-    };
-
     const initializeChatInterface = (shadow, baseUrl) => {
         const chatbox = shadow.querySelector('.chatbox');
         let ws = null;
 
+        /**
+         * Establishes and manages WebSocket connection for real-time updates
+         * Handles connection events, tool usage notifications, and automatic reconnection
+         */
         const connectWebSocket = () => {
-            ws = new WebSocket(`${baseUrl.replace('http', 'ws')}/chatbot/ws`);
+            ws = new WebSocket(`${baseUrl.replace('http', 'ws')}/chatbot/api/ws`);
+            
+            ws.onopen = () => {
+                console.log('Connected to WebSocket server');
+            };
             
             ws.onmessage = (event) => {
                 const data = JSON.parse(event.data);
                 
                 if (data.type === 'tool_usage') {
                     appendToolUsageIndicator(chatbox, data.toolName, data.reference);
-                } else if (data.type === 'message') {
-                    appendMessage(chatbox, data.message, data.imgSrc || '', false);
+                } else if (data.type === 'connection_status') {
+                    console.log('WebSocket status:', data.status);
                 }
             };
 
             ws.onerror = (error) => {
                 console.error('WebSocket error:', error);
-                appendMessage(chatbox, 'Error connecting to the chatbot. Please try again.', '', false, true);
             };
 
             ws.onclose = () => {
@@ -127,7 +121,33 @@
             };
         };
 
+        // Connect to WebSocket server
         connectWebSocket();
+
+        /**
+         * Creates a visual indicator for tool usage events
+         * @param {string} toolName - The name of the tool being used
+         * @param {string} reference - The reference being accessed by the tool
+         * @returns {HTMLElement} The created indicator element
+         */
+        const createToolUsageIndicator = (toolName, reference) => {
+            const indicator = document.createElement('div');
+            indicator.className = 'tool-usage-indicator';
+            indicator.innerHTML = `Chatbot referenced <code>${reference}</code>`;
+            return indicator;
+        };
+
+        /**
+         * Appends a tool usage indicator to the chatbox and scrolls to it
+         * @param {HTMLElement} chatbox - The chatbox element to append to
+         * @param {string} toolName - The name of the tool being used
+         * @param {string} reference - The reference being accessed by the tool
+         */
+        const appendToolUsageIndicator = (chatbox, toolName, reference) => {
+            const indicator = createToolUsageIndicator(toolName, reference);
+            chatbox.appendChild(indicator);
+            chatbox.scrollTop = chatbox.scrollHeight;
+        };
 
         // Add initial welcome message
         const addInitialMessage = async () => {
