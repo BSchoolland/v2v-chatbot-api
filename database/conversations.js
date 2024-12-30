@@ -1,49 +1,82 @@
-import { db } from './database.js';
+const { dbRun, dbGet, dbAll } = require('./database');
 
 // Store a recorded conversation
-function storeConversation(chatbotId, conversation, pageUrl, date) {
-    return new Promise((resolve, reject) => {
-      db.run(
-        `INSERT INTO recorded_conversation (chatbot_id, conversation, page_url, date) VALUES (?, ?, ?, ?)`,
-        [chatbotId, conversation, pageUrl, date],
-        function (err) {
-          if (err) reject(err);
-          else resolve(this.lastID);
-        }
-      );
-    });
-  }
-  
-  // Retrieve conversations for a chatbot
-  function getConversationsByChatbot(chatbotId) {
-    return new Promise((resolve, reject) => {
-      db.all(
-        `SELECT * FROM recorded_conversation WHERE chatbot_id = ?`,
-        [chatbotId],
-        (err, rows) => {
-          if (err) reject(err);
-          else resolve(rows);
-        }
-      );
-    });
-  }
-  
-  // Delete a recorded conversation
-  function deleteConversation(recordedConversationId) {
-    return new Promise((resolve, reject) => {
-      db.run(
-        `DELETE FROM recorded_conversation WHERE recorded_conversation_id = ?`,
-        [recordedConversationId],
-        function (err) {
-          if (err) reject(err);
-          else resolve();
-        }
-      );
-    });
+async function storeConversation(chatbotId, conversation, pageUrl, date) {
+    return await dbRun(
+        `INSERT INTO recorded_conversations (chatbot_id, conversation, page_url, date) VALUES (?, ?, ?, ?)`,
+        [chatbotId, JSON.stringify(conversation), pageUrl, date]
+    );
+}
+
+// Retrieve conversations for a chatbot with pagination and filters
+async function getConversationsByChatbot(chatbotId, page = 1, limit = 10, dateFilter = null, pageFilter = '') {
+    const offset = (page - 1) * limit;
+    
+    // Build the WHERE clause based on filters
+    let whereClause = 'WHERE chatbot_id = ?';
+    const params = [chatbotId];
+    
+    if (dateFilter) {
+        whereClause += ' AND date >= ?';
+        params.push(dateFilter);
+    }
+    
+    if (pageFilter) {
+        whereClause += ' AND page_url LIKE ?';
+        params.push(`%${pageFilter}%`);
+    }
+    
+    // Get total count with filters
+    const totalCount = await dbGet(
+        `SELECT COUNT(*) as count FROM recorded_conversations ${whereClause}`,
+        params
+    );
+
+    // Get paginated conversations with filters
+    const conversations = await dbAll(
+        `SELECT * FROM recorded_conversations 
+         ${whereClause}
+         ORDER BY date DESC 
+         LIMIT ? OFFSET ?`,
+        [...params, limit, offset]
+    );
+
+    // Parse conversation JSON strings back to objects
+    const parsedConversations = conversations.map(conv => ({
+        ...conv,
+        conversation: JSON.parse(conv.conversation)
+    }));
+
+    return {
+        conversations: parsedConversations,
+        totalCount: totalCount.count,
+        currentPage: page,
+        totalPages: Math.ceil(totalCount.count / limit)
+    };
+}
+
+// Delete a recorded conversation
+async function deleteConversation(conversationId) {
+    return await dbRun(
+        `DELETE FROM recorded_conversations WHERE recorded_conversation_id = ?`,
+        [conversationId]
+    );
+}
+
+// Delete old conversations (retention policy)
+async function deleteOldConversations(daysToKeep = 30) {
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - daysToKeep);
+    
+    return await dbRun(
+        `DELETE FROM recorded_conversations WHERE date < ?`,
+        [cutoffDate.toISOString()]
+    );
 }
 
 module.exports = {
     storeConversation,
     getConversationsByChatbot,
     deleteConversation,
+    deleteOldConversations
 };

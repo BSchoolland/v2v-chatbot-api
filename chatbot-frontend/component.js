@@ -190,6 +190,7 @@
         const userInput = shadow.querySelector('.user-input');
         const chatbox = shadow.querySelector('.chatbox');
         const message = userInput.value.trim();
+        const currentUrl = window.location.href;
 
         if (!message) return;
 
@@ -221,6 +222,24 @@
             }
             appendMessage(chatbox, botMessageHtml, `${baseUrl}/chatbot/api/frontend/chatbot-logo.png`, false, isError);
             chatId = data.chatId;
+
+            // Store the conversation
+            try {
+                await fetch(`${baseUrl}/api/conversations/store`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        chatbotId,
+                        conversation: [
+                            { role: 'user', content: message },
+                            { role: 'assistant', content: data.message || data.error }
+                        ],
+                        pageUrl: currentUrl
+                    })
+                });
+            } catch (error) {
+                console.error('Error storing conversation:', error);
+            }
         } catch (error) {
             console.error('Error sending message:', error);
             chatbox.removeChild(loadingContainer);
