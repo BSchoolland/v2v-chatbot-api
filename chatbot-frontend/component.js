@@ -1,4 +1,5 @@
 (function() {
+    let chatId = -1;
     const scriptTag = document.currentScript;
 
     const chatbotId = scriptTag.getAttribute('chatbot-id') || '9c80e92f232b8542b22ec31744221aa8';
@@ -203,7 +204,6 @@
         chatbox.appendChild(loadingContainer);
         chatbox.scrollTop = chatbox.scrollHeight;
 
-        let chatId = -1;
         try {
             const response = await fetch(`${baseUrl}/chatbot/api/chat/${chatbotId}`, {
                 method: 'POST',
