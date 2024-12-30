@@ -29,18 +29,24 @@ router.post('/chat/:chatbotId', async (req, res) => {
 
     // Store the conversation after getting the response
     try {
-        const messages = getSession(chatId).map(msg => ({
-            role: msg.role,
-            content: msg.content
-        }));
+        // Filter out tool responses and only keep user and assistant messages
+        const messages = getSession(chatId)
+            .filter(msg => msg.role === 'user' || (msg.role === 'assistant' && !msg.tool_calls && !msg.tool_call_id && !msg.tool_name))
+            .map(msg => ({
+                role: msg.role,
+                content: msg.content
+            }));
         
-        await storeConversation(
-            req.params.chatbotId,
-            messages,
-            req.headers.referer || 'Unknown',
-            new Date().toISOString(),
-            chatId
-        );
+        // Only store if there's a complete exchange (user message followed by assistant response)
+        if (messages.length >= 2 && messages[messages.length - 1].role === 'assistant') {
+            await storeConversation(
+                req.params.chatbotId,
+                messages,
+                req.headers.referer || 'Unknown',
+                new Date().toISOString(),
+                chatId
+            );
+        }
     } catch (error) {
         console.error('Error storing conversation:', error);
         // Don't fail the request if storage fails
