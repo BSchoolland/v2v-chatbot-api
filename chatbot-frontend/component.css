@@ -200,6 +200,7 @@
 
 /* Chat Button Styles */
 .v2v-chatbot-button {
+    z-index: 1000;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -233,7 +234,6 @@
 }
 
 .v2v-chatbot-button-text {
-    z-index: 1000;
     background: none;
     border: none;
     font-size: 16px;
