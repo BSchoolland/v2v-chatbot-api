@@ -233,6 +233,7 @@
 }
 
 .v2v-chatbot-button-text {
+    z-index: 1000;
     background: none;
     border: none;
     font-size: 16px;
