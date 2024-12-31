@@ -363,3 +363,76 @@
         transform: translateY(0);
     }
 }
+
+/* Responsive Design */
+@media screen and (max-width: 768px) {
+    .v2v-chatbot-container {
+        width: 100%;
+        height: 100vh;
+        right: 0;
+        bottom: 0;
+    }
+
+    .v2v-chatbot-header h1 {
+        font-size: 18px;
+    }
+
+    .message-text, .user-message-text {
+        max-width: 90%;
+        font-size: 14px;
+    }
+
+    .user-input {
+        padding: 15px 40px 15px 20px;
+        font-size: 14px;
+    }
+
+    .v2v-chatbot-button {
+        max-width: calc(100% - 50px);
+        padding: 10px 12px;
+    }
+
+    .v2v-chatbot-button-text {
+        font-size: 14px;
+    }
+
+    .faq-button {
+        padding: 8px 12px;
+        font-size: 13px;
+    }
+}
+
+@media screen and (max-width: 480px) {
+    .v2v-chatbot-header {
+        padding: 8px 12px;
+    }
+
+    .v2v-chatbot-body {
+        padding: 12px;
+    }
+
+    .message-image, .user-message-image {
+        width: 28px;
+        height: 28px;
+    }
+
+    .message-container, .user-message-container {
+        gap: 8px;
+        margin: 12px 0;
+    }
+
+    .v2v-chatbot-button {
+        bottom: 15px;
+        right: 15px;
+    }
+
+    .v2v-chatbot-button-icon {
+        width: 20px;
+        height: 20px;
+    }
+
+    .tool-usage-indicator {
+        font-size: 12px;
+        padding: 4px 8px;
+    }
+}

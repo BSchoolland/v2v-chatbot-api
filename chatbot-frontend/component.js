@@ -225,7 +225,38 @@
             container.style.display = isVisible ? 'flex' : 'none';
             button.style.display = isVisible ? 'none' : 'flex';
             overlay.style.display = isVisible ? 'block' : 'none';
+            
+            // Prevent body scroll when chat is open on mobile
+            if (window.innerWidth <= 768) {
+                document.body.style.overflow = isVisible ? 'hidden' : '';
+            }
         };
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            if (window.innerWidth > 768) {
+                document.body.style.overflow = '';
+            } else if (container.style.display === 'flex') {
+                document.body.style.overflow = 'hidden';
+            }
+        });
+
+        // Handle keyboard navigation
+        button.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                toggleChatVisibility(true);
+            }
+        });
+
+        // Ensure chat is properly sized on mobile orientation change
+        window.addEventListener('orientationchange', () => {
+            if (container.style.display === 'flex') {
+                setTimeout(() => {
+                    container.style.height = `${window.innerHeight}px`;
+                }, 100);
+            }
+        });
 
         button.addEventListener('click', () => toggleChatVisibility(true));
         closeButton.addEventListener('click', () => toggleChatVisibility(false));
@@ -235,6 +266,33 @@
 
         shadow.querySelector('.submit-button img').src = `${baseUrl}/chatbot/api/frontend/send.png`;
         shadow.querySelector('.v2v-chatbot-button-icon').src = `${baseUrl}/chatbot/api/frontend/chatbot-logo.png`;
+
+        // Add touch event handling for better mobile experience
+        let touchStartY = 0;
+        let touchEndY = 0;
+        
+        container.addEventListener('touchstart', (e) => {
+            touchStartY = e.touches[0].clientY;
+        }, { passive: true });
+
+        container.addEventListener('touchmove', (e) => {
+            touchEndY = e.touches[0].clientY;
+            const diff = touchStartY - touchEndY;
+            
+            // If user is scrolling up and chatbox is at top, prevent pull-to-refresh
+            if (diff < 0 && chatbox.scrollTop === 0) {
+                e.preventDefault();
+            }
+        }, { passive: false });
+
+        // Improve input handling on mobile
+        userInput.addEventListener('focus', () => {
+            if (window.innerWidth <= 768) {
+                setTimeout(() => {
+                    container.scrollTop = container.scrollHeight;
+                }, 300);
+            }
+        });
     };
 
     const chatbotComponent = (chatbotId) => {
