@@ -3,7 +3,7 @@ name: Deploy to VPS
 on:
   push:
     branches:
-      - main
+      - production
 
 jobs:
   deploy:
@@ -22,7 +22,7 @@ jobs:
         run: |
           ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} '\
             cd /root/v2v-chatbot-api/ && \
-            git pull origin main && \
+            git pull origin production && \
             docker system prune -f && \
             docker-compose down && \
             sleep 10 && \
