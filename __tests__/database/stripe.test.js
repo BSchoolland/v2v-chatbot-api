@@ -1,3 +1,26 @@
+// Mock Stripe
+jest.mock('stripe', () => {
+  const mockStripe = {
+    customers: {
+      create: jest.fn()
+    },
+    subscriptions: {
+      create: jest.fn()
+    },
+    paymentMethods: {
+      retrieve: jest.fn()
+    }
+  };
+  return jest.fn(() => mockStripe);
+});
+
+// Mock database functions
+jest.mock('../../database/database', () => ({
+  dbRun: jest.fn(),
+  dbGet: jest.fn(),
+  dbAll: jest.fn()
+}));
+
 const stripe = require('stripe');
 const { 
   createStripeCustomer,
@@ -9,8 +32,8 @@ const {
 } = require('../../database/stripe');
 const { dbRun, dbGet, dbAll } = require('../../database/database');
 
-// Mock Stripe
-jest.mock('stripe');
+// Get the mock Stripe instance
+const mockStripe = stripe();
 
 describe('Stripe Database Operations', () => {
   beforeEach(() => {
@@ -25,14 +48,14 @@ describe('Stripe Database Operations', () => {
         email: 'test@example.com'
       };
 
-      stripe.customers.create.mockResolvedValue(mockStripeCustomer);
-      jest.spyOn(dbRun, 'run').mockResolvedValue({ lastID: 1 });
+      mockStripe.customers.create.mockResolvedValue(mockStripeCustomer);
+      dbRun.mockResolvedValue({ lastID: 1 });
 
       const userId = 1;
       const email = 'test@example.com';
       const result = await createStripeCustomer(userId, email);
 
-      expect(stripe.customers.create).toHaveBeenCalledWith({
+      expect(mockStripe.customers.create).toHaveBeenCalledWith({
         email,
         metadata: { userId: '1' }
       });
@@ -50,7 +73,7 @@ describe('Stripe Database Operations', () => {
         stripe_customer_id: 'cus_123'
       };
 
-      jest.spyOn(dbGet, 'get').mockResolvedValue(mockCustomer);
+      dbGet.mockResolvedValue(mockCustomer);
 
       const result = await getStripeCustomer(1);
 
@@ -80,15 +103,15 @@ describe('Stripe Database Operations', () => {
         current_period_end: 1234567890
       };
 
-      jest.spyOn(dbGet, 'get')
+      dbGet
         .mockResolvedValueOnce(mockPlan)
         .mockResolvedValueOnce(mockPlanType);
-      jest.spyOn(dbRun, 'run').mockResolvedValue({ lastID: 1 });
-      stripe.subscriptions.create.mockResolvedValue(mockStripeSubscription);
+      dbRun.mockResolvedValue({ lastID: 1 });
+      mockStripe.subscriptions.create.mockResolvedValue(mockStripeSubscription);
 
       const result = await createSubscription('cus_123', 1, 'pm_123');
 
-      expect(stripe.subscriptions.create).toHaveBeenCalledWith({
+      expect(mockStripe.subscriptions.create).toHaveBeenCalledWith({
         customer: 'cus_123',
         items: [
           {
@@ -124,12 +147,12 @@ describe('Stripe Database Operations', () => {
         }
       };
 
-      stripe.paymentMethods.retrieve.mockResolvedValue(mockPaymentMethod);
-      jest.spyOn(dbRun, 'run').mockResolvedValue({ lastID: 1 });
+      mockStripe.paymentMethods.retrieve.mockResolvedValue(mockPaymentMethod);
+      dbRun.mockResolvedValue({ lastID: 1 });
 
       const result = await addPaymentMethod(1, 'pm_123', true);
 
-      expect(stripe.paymentMethods.retrieve).toHaveBeenCalledWith('pm_123');
+      expect(mockStripe.paymentMethods.retrieve).toHaveBeenCalledWith('pm_123');
       expect(dbRun).toHaveBeenCalledWith(
         expect.stringContaining('INSERT INTO stripe_payment_methods'),
         [
@@ -165,10 +188,10 @@ describe('Stripe Database Operations', () => {
       const mockCustomer = { customer_id: 1 };
       const mockSubscription = { subscription_id: 1 };
 
-      jest.spyOn(dbGet, 'get')
+      dbGet
         .mockResolvedValueOnce(mockCustomer)
         .mockResolvedValueOnce(mockSubscription);
-      jest.spyOn(dbRun, 'run').mockResolvedValue({ lastID: 1 });
+      dbRun.mockResolvedValue({ lastID: 1 });
 
       await recordInvoice(mockStripeInvoice);
 

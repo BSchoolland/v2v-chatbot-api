@@ -12,7 +12,7 @@ When the user uses /do-issue:
         - Check for any regressions or side effects
         - If bugs are found, fix them before proceeding
     5. Ask the user for confirmation before moving on to step 6
-    6. Commit changes using appropriate conventional commit type
+    6. Commit changes using appropriate conventional commit type ALWAYS CONFIRM FIRST
     7. Create a comprehensive PR back into the initial branch, linking to the issue
         - Use printf to format PR descriptions with proper newlines:
           Example: `printf "Title\n\nDescription with:\n- Bullet points\n- More points" | gh pr create --title "feat: something" --body-file -`
