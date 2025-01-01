@@ -27,7 +27,11 @@ When the user uses /learn:
     3. If the user then asks for modification to the code, read any additional code that could be useful for this modification
 
 When the user uses /commit:
-    1. Commit the current changes to github, for example "feat: do something" "full description..."
+    1. ALWAYS ask for user confirmation before committing, showing them:
+        - The files that will be committed
+        - The commit message that will be used
+    2. Only proceed with the commit after explicit user confirmation
+    3. Use conventional commit format (e.g., "feat:", "fix:", etc.)
 
 When the user uses /pr:
     1. Find the diff between this branch and main
