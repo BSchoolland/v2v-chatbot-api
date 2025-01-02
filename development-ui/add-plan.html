@@ -100,6 +100,54 @@
                 alert('An unknown error occurred');
             });
         });
+
+        function getPlanDetails(planTypeId) {
+            switch(planTypeId) {
+                case 0:
+                    return {
+                        name: 'Free Plan',
+                        description: 'Perfect for personal projects and testing',
+                        features: [
+                            '50 monthly credits',
+                            'Basic chatbot customization',
+                            'Standard support',
+                            'Perfect for personal websites'
+                        ],
+                        price: '$0/month'
+                    };
+                case 1:
+                    return {
+                        name: 'Basic Plan',
+                        description: 'Enhanced features with moderate usage',
+                        features: [
+                            '1,000 monthly credits',
+                            'Advanced customization',
+                            'Priority support',
+                            'Ideal for small businesses'
+                        ],
+                        price: '$10/month'
+                    };
+                case 2:
+                    return {
+                        name: 'Pro Plan',
+                        description: 'Full features with high usage limits',
+                        features: [
+                            '10,000 monthly credits',
+                            'Full customization options',
+                            'Premium support',
+                            'Perfect for high-traffic sites'
+                        ],
+                        price: '$50/month'
+                    };
+                default:
+                    return {
+                        name: 'Unknown Plan',
+                        description: '',
+                        features: [],
+                        price: ''
+                    };
+            }
+        }
     </script>
 </body>
 </html>

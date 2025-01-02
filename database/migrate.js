@@ -68,7 +68,7 @@ async function planTypeMigration(dbGet, dbRun, dbAll) {
         {
             id: 0,
             name: 'Free Plan',
-            description: 'Basic features with limited usage',
+            description: 'Perfect for personal projects and testing - includes 50 monthly credits',
             monthly_credits: 50,
             cost_monthly: 0,
             cost_yearly: 0
