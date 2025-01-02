@@ -12,6 +12,14 @@ const {
   recordInvoice
 } = require('../database/stripe.js');
 
+// Get Stripe publishable key
+router.get('/config', async (req, res) => {
+  res.json({
+    success: true,
+    publishableKey: process.env.STRIPE_PUBLIC_KEY
+  });
+});
+
 // Create a payment intent for initial setup
 router.post('/create-setup-intent', authMiddleware, async (req, res) => {
   try {
@@ -28,10 +36,10 @@ router.post('/create-setup-intent', authMiddleware, async (req, res) => {
       payment_method_types: ['card'],
     });
 
-    res.json({ clientSecret: setupIntent.client_secret });
+    res.json({ success: true, clientSecret: setupIntent.client_secret });
   } catch (error) {
     console.error('Error creating setup intent:', error);
-    res.status(500).json({ error: 'Failed to create setup intent' });
+    res.status(500).json({ success: false, message: 'Failed to create setup intent' });
   }
 });
 
@@ -48,17 +56,17 @@ router.post('/create-subscription', authMiddleware, async (req, res) => {
     // Add the payment method to the customer if it's new
     await addPaymentMethod(customer.stripe_customer_id, paymentMethodId, true);
 
-    // Create the subscription
+    // Create subscription with the payment method
     const subscription = await createSubscription(
       customer.stripe_customer_id,
       planId,
       paymentMethodId
     );
 
-    res.json({ subscription });
+    res.json({ success: true, subscription });
   } catch (error) {
     console.error('Error creating subscription:', error);
-    res.status(500).json({ error: 'Failed to create subscription' });
+    res.status(500).json({ success: false, message: 'Failed to create subscription' });
   }
 });
 
