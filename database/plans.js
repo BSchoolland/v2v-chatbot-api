@@ -1,4 +1,5 @@
 const { dbAll, dbRun, dbGet } = require('./database');
+const { allocateMonthlyCredits } = require('./credits');
 // schema:
 // 
 // plan_id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -33,7 +34,14 @@ async function addPlan(userId, chatbotId, planTypeId, planName) {
     // renews_at is the date the plan will renew, one month from now
     const renewsAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
     const plan = await dbRun('INSERT INTO plans (user_id, chatbot_id, plan_type_id, rate_limiting_policy, name, renews_at) VALUES (?, ?, ?, ?, ?, ?)', [userId, chatbotId, planTypeId, "default", planName, renewsAt]);
-    return plan;
+    
+    // Get the plan ID from the last insert
+    const newPlan = await dbGet('SELECT * FROM plans WHERE rowid = last_insert_rowid()');
+    
+    // Allocate initial credits
+    await allocateMonthlyCredits(newPlan.plan_id);
+    
+    return newPlan;
 }
 
 // get a plan for a user
