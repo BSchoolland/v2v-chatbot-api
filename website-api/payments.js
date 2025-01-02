@@ -3,6 +3,7 @@ const router = express.Router();
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const { authMiddleware } = require('./middleware.js');
 const { getUserById } = require('../database/users.js');
+const { dbRun, dbGet } = require('../database/database.js');
 const {
   createStripeCustomer,
   getStripeCustomer,
@@ -127,5 +128,72 @@ async function handleSubscriptionUpdated(subscription) {
 async function handleSubscriptionDeleted(subscription) {
   await updateSubscription(subscription.id, 'canceled');
 }
+
+// Cancel subscription
+router.post('/cancel-subscription', authMiddleware, async (req, res) => {
+  try {
+    console.log('Cancel subscription request received');
+    console.log('Request body:', req.body);
+    console.log('User ID from auth:', req.userId);
+    
+    const { planId } = req.body;
+    if (!planId) {
+      return res.status(400).json({ success: false, message: 'Plan ID is required' });
+    }
+
+    // First check if the customer exists
+    const customer = await dbGet(
+      'SELECT * FROM stripe_customers WHERE user_id = ?',
+      [req.userId]
+    );
+    console.log('Found customer:', customer);
+
+    if (!customer) {
+      return res.status(404).json({ success: false, message: 'Customer not found' });
+    }
+    
+    // Get the subscription from our database with a simpler query first
+    const subscription = await dbGet(
+      `SELECT ss.* FROM stripe_subscriptions ss
+       WHERE ss.customer_id = ? AND ss.plan_id = ? AND ss.status = 'active'`,
+      [customer.stripe_customer_id, planId]
+    );
+    console.log('Found subscription:', subscription);
+
+    if (!subscription) {
+      return res.status(404).json({ success: false, message: 'Active subscription not found' });
+    }
+
+    // Cancel the subscription in Stripe
+    await stripe.subscriptions.cancel(subscription.stripe_subscription_id);
+
+    // Update subscription status in our database
+    await dbRun(
+      `UPDATE stripe_subscriptions 
+       SET status = 'canceled', updated_at = CURRENT_TIMESTAMP 
+       WHERE stripe_subscription_id = ?`,
+      [subscription.stripe_subscription_id]
+    );
+
+    // Update plan type to free (0) and mark as inactive
+    await dbRun(
+      `UPDATE plans 
+       SET plan_type_id = 0, subscription_active = 0 
+       WHERE plan_id = ?`,
+      [planId]
+    );
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error canceling subscription:', error);
+    console.error('Error details:', {
+      userId: req.userId,
+      planId: req.body.planId,
+      error: error.message,
+      stack: error.stack
+    });
+    res.status(500).json({ success: false, message: 'Failed to cancel subscription' });
+  }
+});
 
 module.exports = router; 
