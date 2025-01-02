@@ -133,6 +133,7 @@
         }
 
         let stripe;
+        let card;
 
         // Initialize Stripe with key from backend
         async function initializeStripe() {
@@ -146,7 +147,7 @@
                 const elements = stripe.elements();
                 
                 // Create card Element
-                const card = elements.create('card');
+                card = elements.create('card');
                 card.mount('#card-element');
 
                 // Handle real-time validation errors
@@ -208,6 +209,12 @@
         const form = document.getElementById('payment-form');
         form.addEventListener('submit', async function(event) {
             event.preventDefault();
+
+            if (!stripe || !card) {
+                const errorElement = document.getElementById('card-errors');
+                errorElement.textContent = 'Payment system is not initialized. Please refresh the page and try again.';
+                return;
+            }
 
             const submitButton = document.getElementById('submit-button');
             const spinner = document.getElementById('spinner');

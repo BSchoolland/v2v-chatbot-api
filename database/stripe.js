@@ -41,32 +41,52 @@ async function getStripeCustomer(userId) {
 // Subscription operations
 async function createSubscription(customerId, planId, paymentMethodId) {
   try {
+    console.log(`Starting subscription creation for planId: ${planId}, customerId: ${customerId}`);
+
     // Get the plan details from our database
     const plan = await dbGet('SELECT * FROM plans WHERE plan_id = ?', [planId]);
-    const planType = await dbGet('SELECT * FROM plan_type WHERE plan_type_id = ?', [plan.plan_type_id]);
+    console.log('Fetched plan:', plan);
+    if (!plan) {
+      throw new Error('Plan not found');
+    }
 
-    // Create subscription in Stripe
+    const planType = await dbGet('SELECT * FROM plan_type WHERE plan_type_id = ?', [plan.plan_type_id]);
+    console.log('Fetched plan type:', planType);
+    if (!planType) {
+      throw new Error('Plan type not found');
+    }
+
+    // First create a product
+    console.log('Creating Stripe product...');
+    const product = await stripe.products.create({
+      name: `${planType.name} - ${plan.name}`,
+      description: planType.description || `${planType.name} Subscription`
+    });
+    console.log('Created Stripe product:', product.id);
+
+    // Then create a price for the product
+    console.log('Creating Stripe price...');
+    const price = await stripe.prices.create({
+      product: product.id,
+      unit_amount: planType.cost_monthly * 100, // Convert to cents
+      currency: 'usd',
+      recurring: {
+        interval: 'month'
+      }
+    });
+    console.log('Created Stripe price:', price.id);
+
+    // Create subscription using the price
+    console.log('Creating Stripe subscription...');
     const subscription = await stripe.subscriptions.create({
       customer: customerId,
-      items: [
-        {
-          price_data: {
-            currency: 'usd',
-            product_data: {
-              name: planType.name,
-              description: planType.description
-            },
-            unit_amount: planType.cost_monthly * 100, // Convert to cents
-            recurring: {
-              interval: 'month'
-            }
-          }
-        }
-      ],
+      items: [{ price: price.id }],
       default_payment_method: paymentMethodId
     });
+    console.log('Created Stripe subscription:', subscription.id);
 
     // Store subscription in our database
+    console.log('Storing subscription in database...');
     await dbRun(
       `INSERT INTO stripe_subscriptions 
        (customer_id, stripe_subscription_id, plan_id, status, 
@@ -81,10 +101,29 @@ async function createSubscription(customerId, planId, paymentMethodId) {
         subscription.current_period_end
       ]
     );
+    console.log('Stored subscription in database');
+
+    // Update plan's subscription status to active
+    console.log('Updating plan subscription status to active...');
+    const result = await dbRun(
+      `UPDATE plans SET subscription_active = 1 WHERE plan_id = ?`,
+      [planId]
+    );
+    console.log('Update result:', result);
+    
+    // Verify the update
+    const updatedPlan = await dbGet('SELECT subscription_active FROM plans WHERE plan_id = ?', [planId]);
+    console.log('Verified plan status after update:', updatedPlan);
 
     return subscription;
   } catch (error) {
     console.error('Error creating subscription:', error);
+    console.error('Error details:', {
+      message: error.message,
+      code: error.code,
+      type: error.type,
+      stack: error.stack
+    });
     throw error;
   }
 }
