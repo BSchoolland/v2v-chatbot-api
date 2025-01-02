@@ -12,6 +12,11 @@ const {
   addPaymentMethod,
   recordInvoice
 } = require('../database/stripe.js');
+const {
+  allocateMonthlyCredits,
+  resetToFreeCredits,
+  checkAndRenewCredits
+} = require('../database/credits.js');
 
 // Get Stripe publishable key
 router.get('/config', async (req, res) => {
@@ -63,6 +68,9 @@ router.post('/create-subscription', authMiddleware, async (req, res) => {
       planId,
       paymentMethodId
     );
+
+    // Allocate monthly credits for the plan
+    await allocateMonthlyCredits(planId);
 
     res.json({ success: true, subscription });
   } catch (error) {
@@ -182,6 +190,9 @@ router.post('/cancel-subscription', authMiddleware, async (req, res) => {
        WHERE plan_id = ?`,
       [planId]
     );
+
+    // Reset to free plan credits
+    await resetToFreeCredits(planId);
 
     res.json({ success: true });
   } catch (error) {

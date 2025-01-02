@@ -31,6 +31,18 @@
             color: #666;
         }
 
+        .plan-credits {
+            font-size: 0.9em;
+            color: #28a745;
+            margin-top: 5px;
+        }
+
+        .plan-renewal {
+            font-size: 0.8em;
+            color: #666;
+            margin-top: 2px;
+        }
+
         .subscription-status {
             padding: 4px 8px;
             border-radius: 4px;
@@ -146,6 +158,8 @@
                     nameAndType.innerHTML = `
                         <div class="plan-name">${plan.name}</div>
                         <div class="plan-type">${planDetails.name} - ${planDetails.price}</div>
+                        <div class="plan-credits">Credits: ${plan.remaining_credits} remaining</div>
+                        <div class="plan-renewal">Renews: ${plan.renews_at ? new Date(plan.renews_at).toLocaleDateString() : 'N/A'}</div>
                     `;
                     
                     const statusClass = planDetails.status === 'free' 
