@@ -54,6 +54,9 @@ router.post('/create-subscription', authMiddleware, async (req, res) => {
       return res.status(400).json({ error: 'Customer not found' });
     }
 
+    // Cancel any existing active subscriptions for this plan
+    await cancelActiveSubscriptions(planId);
+
     // Add the payment method to the customer if it's new
     await addPaymentMethod(customer.stripe_customer_id, paymentMethodId, true);
 

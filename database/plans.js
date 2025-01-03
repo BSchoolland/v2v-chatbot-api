@@ -1,4 +1,6 @@
 const { dbAll, dbRun, dbGet } = require('./database');
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+
 // schema:
 // 
 // plan_id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -42,11 +44,64 @@ async function getPlan(planId) {
     return plan;
 }
 
+// Cancel any active subscriptions for a plan
+async function cancelActiveSubscriptions(planId) {
+    try {
+        // Get active subscriptions for this plan
+        const subscriptions = await dbAll(
+            `SELECT * FROM stripe_subscriptions 
+             WHERE plan_id = ? AND status = 'active'`,
+            [planId]
+        );
+
+        for (const sub of subscriptions) {
+            // Cancel in Stripe
+            await stripe.subscriptions.cancel(sub.stripe_subscription_id);
+            
+            // Update our database
+            await dbRun(
+                `UPDATE stripe_subscriptions 
+                 SET status = 'canceled', updated_at = CURRENT_TIMESTAMP 
+                 WHERE stripe_subscription_id = ?`,
+                [sub.stripe_subscription_id]
+            );
+        }
+    } catch (error) {
+        console.error('Error canceling subscriptions:', error);
+        throw error;
+    }
+}
+
 // update a plan for a user
 async function updatePlan(planId, userId, chatbotId, planName, planTypeId) {
-    // FIXME: this will overwrite other data in the plan
-    const plan = await dbRun('REPLACE INTO plans (user_id, chatbot_id, plan_id, name, plan_type_id) VALUES (?, ?, ?, ?, ?)', [userId, chatbotId, planId, planName, planTypeId]);
-    return plan;
+    try {
+        // Get current plan to check if we're changing plan type
+        const currentPlan = await getPlan(planId);
+        if (currentPlan && currentPlan.plan_type_id !== planTypeId) {
+            // If changing plan type, cancel any active subscriptions
+            await cancelActiveSubscriptions(planId);
+        }
+
+        // Update the plan details
+        await dbRun(
+            `UPDATE plans 
+             SET user_id = ?, 
+                 chatbot_id = ?, 
+                 name = ?, 
+                 plan_type_id = ?,
+                 subscription_active = CASE 
+                     WHEN ? = 0 THEN 1  -- Free plans are always "active"
+                     ELSE 0             -- Paid plans need subscription
+                 END
+             WHERE plan_id = ?`,
+            [userId, chatbotId, planName, planTypeId, planTypeId, planId]
+        );
+
+        return await getPlan(planId);
+    } catch (error) {
+        console.error('Error updating plan:', error);
+        throw error;
+    }
 }
 
 // set chatbot id for a plan
@@ -81,5 +136,6 @@ module.exports = {
     updatePlan,
     setChatbotIdForPlan,
     subtractFromPlan,
-    getPlanFromChatbotId
+    getPlanFromChatbotId,
+    cancelActiveSubscriptions
 };
