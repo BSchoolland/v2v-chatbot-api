@@ -75,7 +75,7 @@ async function resetToFreeCredits(planId) {
 async function checkAndRenewCredits(planId) {
     try {
         const plan = await dbGet(
-            `SELECT p.*, pt.monthly_credits 
+            `SELECT p.*, pt.monthly_credits, pt.plan_type_id
              FROM plans p
              JOIN plan_type pt ON p.plan_type_id = pt.plan_type_id
              WHERE p.plan_id = ?`,
@@ -86,11 +86,19 @@ async function checkAndRenewCredits(planId) {
             throw new Error('Plan not found');
         }
 
-        // Check if renewal is due
-        const renewalDate = new Date(plan.renews_at);
         const now = new Date();
+        let shouldRenew = false;
 
-        if (now >= renewalDate) {
+        // For free plans (plan_type_id = 0), always check renewal
+        if (plan.plan_type_id === 0) {
+            // If no renewal date set, or renewal date is in the past
+            shouldRenew = !plan.renews_at || now >= new Date(plan.renews_at);
+        } else {
+            // For paid plans, only renew if there's an active subscription and renewal is due
+            shouldRenew = plan.subscription_active && plan.renews_at && now >= new Date(plan.renews_at);
+        }
+
+        if (shouldRenew) {
             // Renew credits
             const nextRenewal = new Date();
             nextRenewal.setMonth(nextRenewal.getMonth() + 1);
