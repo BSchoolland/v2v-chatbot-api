@@ -43,26 +43,35 @@ async function createSubscription(customerId, planId, paymentMethodId) {
   try {
     // Get the plan details from our database
     const plan = await dbGet('SELECT * FROM plans WHERE plan_id = ?', [planId]);
-    const planType = await dbGet('SELECT * FROM plan_type WHERE plan_type_id = ?', [plan.plan_type_id]);
+    if (!plan) {
+      throw new Error('Plan not found');
+    }
 
-    // Create subscription in Stripe
+    const planType = await dbGet('SELECT * FROM plan_type WHERE plan_type_id = ?', [plan.plan_type_id]);
+    if (!planType) {
+      throw new Error('Plan type not found');
+    }
+
+    // First create a product
+    const product = await stripe.products.create({
+      name: `${planType.name} - ${plan.name}`,
+      description: planType.description || `${planType.name} Subscription`
+    });
+
+    // Then create a price for the product
+    const price = await stripe.prices.create({
+      product: product.id,
+      unit_amount: planType.cost_monthly * 100, // Convert to cents
+      currency: 'usd',
+      recurring: {
+        interval: 'month'
+      }
+    });
+
+    // Create subscription using the price
     const subscription = await stripe.subscriptions.create({
       customer: customerId,
-      items: [
-        {
-          price_data: {
-            currency: 'usd',
-            product_data: {
-              name: planType.name,
-              description: planType.description
-            },
-            unit_amount: planType.cost_monthly * 100, // Convert to cents
-            recurring: {
-              interval: 'month'
-            }
-          }
-        }
-      ],
+      items: [{ price: price.id }],
       default_payment_method: paymentMethodId
     });
 
@@ -80,6 +89,12 @@ async function createSubscription(customerId, planId, paymentMethodId) {
         subscription.current_period_start,
         subscription.current_period_end
       ]
+    );
+
+    // Update plan's subscription status to active
+    await dbRun(
+      `UPDATE plans SET subscription_active = 1 WHERE plan_id = ?`,
+      [planId]
     );
 
     return subscription;

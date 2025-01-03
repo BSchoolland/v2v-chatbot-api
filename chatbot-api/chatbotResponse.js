@@ -12,6 +12,8 @@ const { getPlanFromChatbotId, subtractFromPlan } = require('../database/plans.js
 
 const { getSystemPrompt } = require('../database/chatbots.js');
 
+const { checkAndRenewCredits } = require('../database/credits.js');
+
 // use tool requires tool name and params
 const { getTools, useTool } = require('./builtInTools.js');
 
@@ -88,8 +90,18 @@ async function getChatbotResponse(sessionId, chatbotId) {
     }
     const model = await getChatbotModel(chatbotId);
     const systemPrompt = await getSystemPrompt(chatbotId);
+    
     // check if the plan has enough tokens
-    const plan = await getPlanFromChatbotId(chatbotId);
+    let plan = await getPlanFromChatbotId(chatbotId);
+    
+    // If credits are low, try to renew them
+    if (plan.remaining_credits + plan.additional_credits < model.message_cost) {
+        // Attempt to renew credits
+        await checkAndRenewCredits(plan.plan_id);
+        // Get updated plan after potential renewal
+        plan = await getPlanFromChatbotId(chatbotId);
+    }
+
     // TODO: email the client in a variety of different situations
     // If they get below 10% of their credits, send an email
     // If they cross into their additional credits, send an email
@@ -102,6 +114,7 @@ async function getChatbotResponse(sessionId, chatbotId) {
             chatId: sessionId
         };
     }
+
     while (toolCallsExist) {
         const {message, tool_calls} = await llmCall(systemPrompt, history, chatbotId, model.api_string, model.service);
         // Add the assistant's message to the history

@@ -62,6 +62,9 @@
             window.location.href = '/dashboard.html';
         }
 
+        // Add this variable at the top of the script
+        let currentPlanTypeId = 0;
+
         // Fetch plan details
         fetch(`/website/api/user-plan/${planId}`, {
             method: 'GET',
@@ -73,8 +76,10 @@
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                const plan = data.plan[0];
+                console.log(data);
+                const plan = data.plan;
                 document.getElementById('planName').value = plan.name;
+                currentPlanTypeId = plan.plan_type_id; // Store the current plan type
                 if (plan.plan_type_id === 0) {
                     document.getElementById('free').checked = true;
                 } else if (plan.plan_type_id === 1) {
@@ -89,7 +94,7 @@
         })
         .catch(error => {
             console.error('Error:', error);
-            alert('An unknown error occurred');
+            alert('An unknown error occurred:', error);
             window.location.href = '/dashboard.html';
         });
 
@@ -106,7 +111,38 @@
                 planTypeId = 2;
             }
 
-            fetch(`${API_URL}/website/api/user-plan/${planId}`, {
+            // If upgrading to a paid plan, redirect to payment page
+            if ((planTypeId === 1 || planTypeId === 2) && currentPlanTypeId === 0) {
+                // Save plan details first
+                fetch(`/website/api/user-plan/${planId}`, {
+                    method: 'PUT',
+                    credentials: 'include',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        planName: planName,
+                        planTypeId: planTypeId
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Redirect to payment page
+                        window.location.href = `/payment.html?id=${planId}`;
+                    } else {
+                        alert('Error updating plan');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('An unknown error occurred');
+                });
+                return;
+            }
+
+            // For free plan or plan downgrades, just update the plan
+            fetch(`/website/api/user-plan/${planId}`, {
                 method: 'PUT',
                 credentials: 'include',
                 headers: {
