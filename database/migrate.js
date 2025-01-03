@@ -63,12 +63,23 @@ async function planTypeMigration(dbGet, dbRun, dbAll) {
         await dbRun(`ALTER TABLE plans ADD COLUMN subscription_active INTEGER DEFAULT 0`);
     }
 
+    // Add Stripe columns to plan_type if they don't exist
+    if (!(await columnExists('plan_type', 'stripe_product_id', dbAll))) {
+        console.log('Adding stripe_product_id column to plan_type table...');
+        await dbRun(`ALTER TABLE plan_type ADD COLUMN stripe_product_id TEXT`);
+    }
+
+    if (!(await columnExists('plan_type', 'stripe_price_id', dbAll))) {
+        console.log('Adding stripe_price_id column to plan_type table...');
+        await dbRun(`ALTER TABLE plan_type ADD COLUMN stripe_price_id TEXT`);
+    }
+
     // Insert default plan types if they don't exist
     const planTypes = [
         {
             id: 0,
             name: 'Free Plan',
-            description: 'Basic features with limited usage',
+            description: 'Perfect for personal projects and testing - includes 50 monthly credits',
             monthly_credits: 50,
             cost_monthly: 0,
             cost_yearly: 0
