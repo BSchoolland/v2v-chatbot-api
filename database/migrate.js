@@ -54,9 +54,71 @@ async function conversationMigration(dbGet, dbRun, dbAll) {
     }
 }
 
+async function planTypeMigration(dbGet, dbRun, dbAll) {
+    console.log('Migrating plan types if necessary...');
+
+    // Add subscription_active column to plans table if it doesn't exist
+    if (!(await columnExists('plans', 'subscription_active', dbAll))) {
+        console.log('Adding subscription_active column to plans table...');
+        await dbRun(`ALTER TABLE plans ADD COLUMN subscription_active INTEGER DEFAULT 0`);
+    }
+
+    // Add Stripe columns to plan_type if they don't exist
+    if (!(await columnExists('plan_type', 'stripe_product_id', dbAll))) {
+        console.log('Adding stripe_product_id column to plan_type table...');
+        await dbRun(`ALTER TABLE plan_type ADD COLUMN stripe_product_id TEXT`);
+    }
+
+    if (!(await columnExists('plan_type', 'stripe_price_id', dbAll))) {
+        console.log('Adding stripe_price_id column to plan_type table...');
+        await dbRun(`ALTER TABLE plan_type ADD COLUMN stripe_price_id TEXT`);
+    }
+
+    // Insert default plan types if they don't exist
+    const planTypes = [
+        {
+            id: 0,
+            name: 'Free Plan',
+            description: 'Perfect for personal projects and testing - includes 50 monthly credits',
+            monthly_credits: 50,
+            cost_monthly: 0,
+            cost_yearly: 0
+        },
+        {
+            id: 1,
+            name: 'Basic Plan',
+            description: 'Enhanced features with moderate usage',
+            monthly_credits: 1000,
+            cost_monthly: 10,
+            cost_yearly: 100
+        },
+        {
+            id: 2,
+            name: 'Pro Plan',
+            description: 'Full features with high usage limits',
+            monthly_credits: 10000,
+            cost_monthly: 50,
+            cost_yearly: 500
+        }
+    ];
+
+    for (const planType of planTypes) {
+        const exists = await dbGet('SELECT 1 FROM plan_type WHERE plan_type_id = ?', [planType.id]);
+        if (!exists) {
+            console.log(`Adding plan type: ${planType.name}`);
+            await dbRun(
+                `INSERT INTO plan_type (plan_type_id, name, description, monthly_credits, cost_monthly, cost_yearly) 
+                 VALUES (?, ?, ?, ?, ?, ?)`,
+                [planType.id, planType.name, planType.description, planType.monthly_credits, planType.cost_monthly, planType.cost_yearly]
+            );
+        }
+    }
+}
+
 async function migrate(dbGet, dbRun, dbAll) {
     await chatbotMigration(dbGet, dbRun, dbAll);
     await conversationMigration(dbGet, dbRun, dbAll);
+    await planTypeMigration(dbGet, dbRun, dbAll);
 }
 
 module.exports = {

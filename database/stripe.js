@@ -42,47 +42,84 @@ async function getStripeCustomer(userId) {
 async function createSubscription(customerId, planId, paymentMethodId) {
   try {
     // Get the plan details from our database
-    const plan = await dbGet('SELECT * FROM plans WHERE plan_id = ?', [planId]);
-    const planType = await dbGet('SELECT * FROM plan_type WHERE plan_type_id = ?', [plan.plan_type_id]);
-
-    // Create subscription in Stripe
-    const subscription = await stripe.subscriptions.create({
-      customer: customerId,
-      items: [
-        {
-          price_data: {
-            currency: 'usd',
-            product_data: {
-              name: planType.name,
-              description: planType.description
-            },
-            unit_amount: planType.cost_monthly * 100, // Convert to cents
-            recurring: {
-              interval: 'month'
-            }
-          }
-        }
-      ],
-      default_payment_method: paymentMethodId
-    });
-
-    // Store subscription in our database
-    await dbRun(
-      `INSERT INTO stripe_subscriptions 
-       (customer_id, stripe_subscription_id, plan_id, status, 
-        current_period_start, current_period_end) 
-       VALUES (?, ?, ?, ?, datetime(?,'unixepoch'), datetime(?,'unixepoch'))`,
-      [
-        customerId,
-        subscription.id,
-        planId,
-        subscription.status,
-        subscription.current_period_start,
-        subscription.current_period_end
-      ]
+    const plan = await dbGet(
+      `SELECT p.*, pt.stripe_product_id, pt.stripe_price_id, pt.name as plan_type_name, pt.description, pt.cost_monthly
+       FROM plans p
+       JOIN plan_type pt ON p.plan_type_id = pt.plan_type_id
+       WHERE p.plan_id = ?`,
+      [planId]
     );
 
-    return subscription;
+    if (!plan) {
+      throw new Error('Plan not found');
+    }
+
+    // For paid plans, ensure we have a Stripe product and price
+    if (plan.cost_monthly > 0) {
+      // Create or get product if not exists
+      if (!plan.stripe_product_id) {
+        const product = await stripe.products.create({
+          name: plan.plan_type_name,
+          description: plan.description
+        });
+        await dbRun(
+          'UPDATE plan_type SET stripe_product_id = ? WHERE plan_type_id = ?',
+          [product.id, plan.plan_type_id]
+        );
+        plan.stripe_product_id = product.id;
+      }
+
+      // Create or get price if not exists
+      if (!plan.stripe_price_id) {
+        const price = await stripe.prices.create({
+          product: plan.stripe_product_id,
+          unit_amount: plan.cost_monthly * 100, // Convert to cents
+          currency: 'usd',
+          recurring: {
+            interval: 'month'
+          }
+        });
+        await dbRun(
+          'UPDATE plan_type SET stripe_price_id = ? WHERE plan_type_id = ?',
+          [price.id, plan.plan_type_id]
+        );
+        plan.stripe_price_id = price.id;
+      }
+
+      // Create subscription using the price
+      const subscription = await stripe.subscriptions.create({
+        customer: customerId,
+        items: [{ price: plan.stripe_price_id }],
+        default_payment_method: paymentMethodId
+      });
+
+      // Store subscription in our database
+      await dbRun(
+        `INSERT INTO stripe_subscriptions 
+         (customer_id, stripe_subscription_id, plan_id, status, 
+          current_period_start, current_period_end) 
+         VALUES (?, ?, ?, ?, datetime(?,'unixepoch'), datetime(?,'unixepoch'))`,
+        [
+          customerId,
+          subscription.id,
+          planId,
+          subscription.status,
+          subscription.current_period_start,
+          subscription.current_period_end
+        ]
+      );
+
+      // Update plan's subscription status to active
+      await dbRun(
+        `UPDATE plans SET subscription_active = 1 WHERE plan_id = ?`,
+        [planId]
+      );
+
+      return subscription;
+    } else {
+      // For free plans, just return success
+      return { status: 'active', free_plan: true };
+    }
   } catch (error) {
     console.error('Error creating subscription:', error);
     throw error;

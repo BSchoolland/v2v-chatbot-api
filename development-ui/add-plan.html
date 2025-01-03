@@ -85,8 +85,12 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    alert('Plan created successfully!');
-                    window.location.href = '/dashboard.html';
+                    if (planTypeId === 0) {
+                        alert('Plan created successfully!');
+                        window.location.href = '/dashboard.html';
+                    } else {
+                        window.location.href = `/payment.html?id=${data.plan}`;
+                    }
                 } else {
                     alert(data.message || 'Error creating plan');
                 }
