@@ -69,7 +69,24 @@ router.post('/create-subscription', authMiddleware, async (req, res) => {
       paymentMethodId
     );
 
-    // Allocate monthly credits for the plan
+    // Get the plan type to determine credit amount
+    const plan = await dbGet(
+      `SELECT p.*, pt.plan_type_id 
+       FROM plans p
+       JOIN plan_type pt ON p.plan_type_id = pt.plan_type_id
+       WHERE p.plan_id = ?`,
+      [planId]
+    );
+
+    // Set subscription active and allocate full credits for the plan type
+    await dbRun(
+      `UPDATE plans 
+       SET subscription_active = 1
+       WHERE plan_id = ?`,
+      [planId]
+    );
+
+    // Allocate monthly credits (this will give full plan credits)
     await allocateMonthlyCredits(planId);
 
     res.json({ success: true, subscription });
