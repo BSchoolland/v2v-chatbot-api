@@ -141,8 +141,31 @@ router.post('/webhook', express.raw({type: 'application/json'}), async (req, res
 
 // Webhook event handlers
 async function handleInvoicePaid(invoice) {
-  await recordInvoice(invoice);
-  // Additional logic for successful payment
+  try {
+    await recordInvoice(invoice);
+
+    // If this is a proration invoice, no need to apply credits
+    if (invoice.billing_reason === 'subscription_update') {
+      return;
+    }
+
+    // Apply any available proration credits
+    const appliedAmount = await applyProrationCredits(invoice.customer, invoice.id);
+
+    if (appliedAmount > 0) {
+      // Update invoice in our database to reflect applied credits
+      await dbRun(
+        `UPDATE stripe_invoices 
+         SET proration_applied = 1,
+             proration_amount = ?
+         WHERE stripe_invoice_id = ?`,
+        [appliedAmount, invoice.id]
+      );
+    }
+  } catch (error) {
+    console.error('Error handling paid invoice:', error);
+    throw error;
+  }
 }
 
 async function handleInvoicePaymentFailed(invoice) {
@@ -228,66 +251,96 @@ router.post('/cancel-subscription', authMiddleware, async (req, res) => {
   }
 });
 
-// Change subscription (handles both upgrades and downgrades)
+// Preview subscription change
+router.post('/preview-subscription-change', authMiddleware, async (req, res) => {
+    try {
+        const { planId, newPlanId } = req.body;
+        
+        let customer = await getStripeCustomer(req.userId);
+        if (!customer) {
+            return res.status(400).json({ error: 'Customer not found' });
+        }
+
+        // Calculate proration
+        const proration = await calculateProrationAmount(
+            customer.stripe_customer_id,
+            planId,
+            newPlanId
+        );
+
+        res.json({ 
+            success: true, 
+            proration: {
+                amount: proration.prorationAmount,
+                currentPrice: proration.currentPrice,
+                newPrice: proration.newPrice,
+                nextBillingDate: proration.nextBillingDate,
+                isUpgrade: proration.isUpgrade
+            }
+        });
+    } catch (error) {
+        console.error('Error previewing subscription change:', error);
+        res.status(500).json({ success: false, message: 'Failed to preview subscription change' });
+    }
+});
+
+// Change subscription (handles both upgrades and downgrades with proration)
 router.post('/upgrade-subscription', authMiddleware, async (req, res) => {
-  try {
-    const { planId } = req.body;
-    
-    let customer = await getStripeCustomer(req.userId);
-    if (!customer) {
-      return res.status(400).json({ error: 'Customer not found' });
+    try {
+        const { planId, newPlanId } = req.body;
+        
+        let customer = await getStripeCustomer(req.userId);
+        if (!customer) {
+            return res.status(400).json({ error: 'Customer not found' });
+        }
+
+        // Get the current active payment method
+        const paymentMethod = await dbGet(
+            `SELECT stripe_payment_method_id 
+             FROM stripe_payment_methods 
+             WHERE customer_id = ? AND is_default = 1`,
+            [customer.stripe_customer_id]
+        );
+
+        if (!paymentMethod) {
+            return res.status(400).json({ error: 'No payment method found' });
+        }
+
+        // Change subscription with proration
+        const result = await changeSubscriptionWithProration(
+            customer.stripe_customer_id,
+            planId,
+            newPlanId
+        );
+
+        if (result.subscription.status === 'active') {
+            // Set subscription active and allocate credits for the plan type
+            await dbRun(
+                `UPDATE plans 
+                 SET subscription_active = 1
+                 WHERE plan_id = ?`,
+                [newPlanId]
+            );
+
+            // Allocate monthly credits
+            await allocateMonthlyCredits(newPlanId);
+        }
+
+        res.json({ 
+            success: true, 
+            subscription: result.subscription,
+            proration: {
+                amount: result.proration.prorationAmount,
+                currentPrice: result.proration.currentPrice,
+                newPrice: result.proration.newPrice,
+                nextBillingDate: result.proration.nextBillingDate,
+                isUpgrade: result.proration.isUpgrade
+            }
+        });
+    } catch (error) {
+        console.error('Error changing subscription:', error);
+        res.status(500).json({ success: false, message: 'Failed to change subscription' });
     }
-
-    // Get the current active payment method
-    const paymentMethod = await dbGet(
-      `SELECT stripe_payment_method_id 
-       FROM stripe_payment_methods 
-       WHERE customer_id = ? AND is_default = 1`,
-      [customer.stripe_customer_id]
-    );
-
-    if (!paymentMethod) {
-      return res.status(400).json({ error: 'No payment method found' });
-    }
-
-    // Get current subscription to ensure it's a valid change
-    const currentPlan = await dbGet(
-      `SELECT p.*, pt.plan_type_id, pt.cost_monthly
-       FROM plans p
-       JOIN plan_type pt ON p.plan_type_id = pt.plan_type_id
-       WHERE p.plan_id = ?`,
-      [planId]
-    );
-
-    if (!currentPlan) {
-      return res.status(400).json({ error: 'Plan not found' });
-    }
-
-    // Create new subscription (this will handle canceling the old one)
-    const subscription = await createSubscription(
-      customer.stripe_customer_id,
-      planId,
-      paymentMethod.stripe_payment_method_id
-    );
-
-    if (subscription.status === 'active') {
-      // Set subscription active and allocate full credits for the plan type
-      await dbRun(
-        `UPDATE plans 
-         SET subscription_active = 1
-         WHERE plan_id = ?`,
-        [planId]
-      );
-
-      // Allocate monthly credits (this will give full plan credits)
-      await allocateMonthlyCredits(planId);
-    }
-
-    res.json({ success: true, subscription });
-  } catch (error) {
-    console.error('Error changing subscription:', error);
-    res.status(500).json({ success: false, message: 'Failed to change subscription' });
-  }
 });
 
 module.exports = router; 

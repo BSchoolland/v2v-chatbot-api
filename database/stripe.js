@@ -206,11 +206,191 @@ async function recordInvoice(stripeInvoice) {
   }
 }
 
+// Calculate proration for a subscription change
+async function calculateProrationAmount(customerId, currentPlanId, newPlanId) {
+    try {
+        // Get current subscription
+        const currentSubscription = await dbGet(
+            `SELECT ss.*, pt.cost_monthly as current_price, pt.stripe_price_id as current_price_id
+             FROM stripe_subscriptions ss
+             JOIN plans p ON ss.plan_id = p.plan_id
+             JOIN plan_type pt ON p.plan_type_id = pt.plan_type_id
+             WHERE ss.customer_id = ? AND ss.plan_id = ? AND ss.status = 'active'`,
+            [customerId, currentPlanId]
+        );
+
+        // Get new plan details
+        const newPlan = await dbGet(
+            `SELECT p.*, pt.cost_monthly as new_price, pt.stripe_price_id as new_price_id
+             FROM plans p
+             JOIN plan_type pt ON p.plan_type_id = pt.plan_type_id
+             WHERE p.plan_id = ?`,
+            [newPlanId]
+        );
+
+        if (!currentSubscription || !newPlan) {
+            throw new Error('Invalid plan change request');
+        }
+
+        // Calculate proration using Stripe's API
+        const prorationDate = Math.floor(Date.now() / 1000);
+        const subscription = await stripe.subscriptions.retrieve(currentSubscription.stripe_subscription_id);
+
+        const items = [{
+            id: subscription.items.data[0].id,
+            price: newPlan.new_price_id, // Switch to new price
+        }];
+
+        const invoice = await stripe.invoices.retrieveUpcoming({
+            customer: customerId,
+            subscription: subscription.id,
+            subscription_items: items,
+            subscription_proration_date: prorationDate,
+        });
+
+        return {
+            prorationAmount: invoice.total,
+            currentPrice: currentSubscription.current_price,
+            newPrice: newPlan.new_price,
+            nextBillingDate: new Date(subscription.current_period_end * 1000).toISOString(),
+            isUpgrade: newPlan.new_price > currentSubscription.current_price
+        };
+    } catch (error) {
+        console.error('Error calculating proration:', error);
+        throw error;
+    }
+}
+
+// Handle subscription change with proration
+async function changeSubscriptionWithProration(customerId, currentPlanId, newPlanId) {
+    try {
+        const proration = await calculateProrationAmount(customerId, currentPlanId, newPlanId);
+        
+        // Get current subscription
+        const currentSubscription = await dbGet(
+            `SELECT * FROM stripe_subscriptions 
+             WHERE customer_id = ? AND plan_id = ? AND status = 'active'`,
+            [customerId, currentPlanId]
+        );
+
+        if (!currentSubscription) {
+            throw new Error('No active subscription found');
+        }
+
+        // Update the subscription in Stripe
+        const subscription = await stripe.subscriptions.retrieve(currentSubscription.stripe_subscription_id);
+        const updatedSubscription = await stripe.subscriptions.update(subscription.id, {
+            items: [{
+                id: subscription.items.data[0].id,
+                price: proration.new_price_id,
+            }],
+            proration_behavior: 'always_invoice', // This will create an immediate invoice for the proration
+        });
+
+        // Store the proration credit if it's a downgrade
+        if (!proration.isUpgrade && proration.prorationAmount < 0) {
+            await dbRun(
+                `INSERT INTO proration_credits 
+                 (customer_id, plan_id, amount, expires_at, source_subscription_id)
+                 VALUES (?, ?, ?, datetime(?, 'unixepoch'), ?)`,
+                [
+                    customerId,
+                    newPlanId,
+                    Math.abs(proration.prorationAmount),
+                    subscription.current_period_end,
+                    subscription.id
+                ]
+            );
+        }
+
+        // Update our database
+        await dbRun(
+            `UPDATE stripe_subscriptions 
+             SET status = 'updated',
+                 previous_plan_id = ?,
+                 proration_credit = ?,
+                 updated_at = CURRENT_TIMESTAMP
+             WHERE stripe_subscription_id = ?`,
+            [currentPlanId, proration.prorationAmount, subscription.id]
+        );
+
+        return {
+            subscription: updatedSubscription,
+            proration: proration
+        };
+    } catch (error) {
+        console.error('Error changing subscription with proration:', error);
+        throw error;
+    }
+}
+
+// Apply available proration credits to an invoice
+async function applyProrationCredits(customerId, invoiceId) {
+    try {
+        // Get available credits
+        const credits = await dbAll(
+            `SELECT * FROM proration_credits 
+             WHERE customer_id = ? 
+             AND status = 'active'
+             AND used_amount < amount
+             AND (expires_at IS NULL OR expires_at > CURRENT_TIMESTAMP)
+             ORDER BY created_at ASC`,
+            [customerId]
+        );
+
+        if (!credits || credits.length === 0) {
+            return 0;
+        }
+
+        const invoice = await stripe.invoices.retrieve(invoiceId);
+        let remainingAmount = invoice.total;
+        let totalApplied = 0;
+
+        for (const credit of credits) {
+            if (remainingAmount <= 0) break;
+
+            const availableCredit = credit.amount - credit.used_amount;
+            const amountToApply = Math.min(availableCredit, remainingAmount);
+
+            // Apply credit to invoice
+            await stripe.invoices.update(invoiceId, {
+                metadata: {
+                    proration_credit_applied: 'true',
+                    credit_id: credit.credit_id.toString()
+                }
+            });
+
+            // Update credit usage
+            await dbRun(
+                `UPDATE proration_credits 
+                 SET used_amount = used_amount + ?,
+                     status = CASE 
+                         WHEN used_amount + ? >= amount THEN 'used'
+                         ELSE status 
+                     END
+                 WHERE credit_id = ?`,
+                [amountToApply, amountToApply, credit.credit_id]
+            );
+
+            remainingAmount -= amountToApply;
+            totalApplied += amountToApply;
+        }
+
+        return totalApplied;
+    } catch (error) {
+        console.error('Error applying proration credits:', error);
+        throw error;
+    }
+}
+
 module.exports = {
   createStripeCustomer,
   getStripeCustomer,
   createSubscription,
   updateSubscription,
   addPaymentMethod,
-  recordInvoice
+  recordInvoice,
+  calculateProrationAmount,
+  changeSubscriptionWithProration,
+  applyProrationCredits
 }; 

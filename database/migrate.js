@@ -115,10 +115,57 @@ async function planTypeMigration(dbGet, dbRun, dbAll) {
     }
 }
 
+async function prorationMigration(dbGet, dbRun, dbAll) {
+    console.log('Migrating proration-related tables if necessary...');
+
+    // Add proration fields to stripe_subscriptions table
+    if (!(await columnExists('stripe_subscriptions', 'proration_credit', dbAll))) {
+        console.log('Adding proration_credit column to stripe_subscriptions table...');
+        await dbRun(`ALTER TABLE stripe_subscriptions ADD COLUMN proration_credit INTEGER DEFAULT 0`);
+    }
+
+    if (!(await columnExists('stripe_subscriptions', 'previous_plan_id', dbAll))) {
+        console.log('Adding previous_plan_id column to stripe_subscriptions table...');
+        await dbRun(`ALTER TABLE stripe_subscriptions ADD COLUMN previous_plan_id INTEGER REFERENCES plans(plan_id)`);
+    }
+
+    // Add proration fields to stripe_invoices table
+    if (!(await columnExists('stripe_invoices', 'proration_applied', dbAll))) {
+        console.log('Adding proration_applied column to stripe_invoices table...');
+        await dbRun(`ALTER TABLE stripe_invoices ADD COLUMN proration_applied INTEGER DEFAULT 0`);
+    }
+
+    if (!(await columnExists('stripe_invoices', 'proration_amount', dbAll))) {
+        console.log('Adding proration_amount column to stripe_invoices table...');
+        await dbRun(`ALTER TABLE stripe_invoices ADD COLUMN proration_amount INTEGER DEFAULT 0`);
+    }
+
+    // Create proration_credits table if it doesn't exist
+    await dbRun(`CREATE TABLE IF NOT EXISTS proration_credits (
+        credit_id INTEGER PRIMARY KEY AUTOINCREMENT,
+        customer_id TEXT NOT NULL,
+        plan_id INTEGER NOT NULL,
+        amount INTEGER NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        expires_at TIMESTAMP,
+        used_amount INTEGER DEFAULT 0,
+        status TEXT DEFAULT 'active',
+        source_subscription_id TEXT,
+        FOREIGN KEY (plan_id) REFERENCES plans(plan_id),
+        FOREIGN KEY (customer_id) REFERENCES stripe_customers(stripe_customer_id)
+    )`);
+
+    // Create indices for better performance
+    await dbRun(`CREATE INDEX IF NOT EXISTS idx_proration_credits_customer ON proration_credits(customer_id)`);
+    await dbRun(`CREATE INDEX IF NOT EXISTS idx_proration_credits_plan ON proration_credits(plan_id)`);
+    await dbRun(`CREATE INDEX IF NOT EXISTS idx_proration_credits_status ON proration_credits(status)`);
+}
+
 async function migrate(dbGet, dbRun, dbAll) {
     await chatbotMigration(dbGet, dbRun, dbAll);
     await conversationMigration(dbGet, dbRun, dbAll);
     await planTypeMigration(dbGet, dbRun, dbAll);
+    await prorationMigration(dbGet, dbRun, dbAll);
 }
 
 module.exports = {
