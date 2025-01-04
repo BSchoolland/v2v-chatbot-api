@@ -111,37 +111,7 @@
                 planTypeId = 2;
             }
 
-            // If upgrading to a paid plan, redirect to payment page
-            if ((planTypeId === 1 || planTypeId === 2) && currentPlanTypeId === 0) {
-                // Save plan details first
-                fetch(`/website/api/user-plan/${planId}`, {
-                    method: 'PUT',
-                    credentials: 'include',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        planName: planName,
-                        planTypeId: planTypeId
-                    })
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        // Redirect to payment page
-                        window.location.href = `/payment.html?id=${planId}`;
-                    } else {
-                        alert('Error updating plan');
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    alert('An unknown error occurred');
-                });
-                return;
-            }
-
-            // For free plan or plan downgrades, just update the plan
+            // First update the plan details
             fetch(`/website/api/user-plan/${planId}`, {
                 method: 'PUT',
                 credentials: 'include',
@@ -156,10 +126,45 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    alert('Plan updated successfully');
-                    window.location.reload();
+                    if (planTypeId === 0) {
+                        // Free plan - we're done
+                        alert('Plan updated successfully');
+                        window.location.href = '/dashboard.html';
+                    } else if (currentPlanTypeId === 0) {
+                        // Upgrading from free - need payment
+                        window.location.href = `/payment.html?id=${planId}`;
+                    } else if (planTypeId !== currentPlanTypeId) {
+                        // Changing between paid plans - use existing payment method
+                        return fetch('/website/api/payments/upgrade-subscription', {
+                            method: 'POST',
+                            credentials: 'include',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                planId: planId
+                            })
+                        });
+                    } else {
+                        // No plan type change - just name update
+                        alert('Plan updated successfully');
+                        window.location.href = '/dashboard.html';
+                    }
                 } else {
                     alert('Error updating plan');
+                }
+            })
+            .then(response => {
+                if (response) {
+                    return response.json();
+                }
+            })
+            .then(data => {
+                if (data && data.success) {
+                    alert('Plan upgraded successfully');
+                    window.location.href = '/dashboard.html';
+                } else if (data) {
+                    alert(data.message || 'Error upgrading plan');
                 }
             })
             .catch(error => {

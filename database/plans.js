@@ -126,7 +126,8 @@ async function updatePlan(planId, userId, chatbotId, planName, planTypeId) {
                 // Downgrading: Keep current credits even if above new plan limit
                 newCredits = currentPlan.remaining_credits;
             }
-            subscriptionActive = 0; // Need new subscription
+            // Keep subscription active until new one is created
+            subscriptionActive = currentPlan.subscription_active;
         }
 
         // Update the plan with all fields preserved

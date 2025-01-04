@@ -228,4 +228,66 @@ router.post('/cancel-subscription', authMiddleware, async (req, res) => {
   }
 });
 
+// Change subscription (handles both upgrades and downgrades)
+router.post('/upgrade-subscription', authMiddleware, async (req, res) => {
+  try {
+    const { planId } = req.body;
+    
+    let customer = await getStripeCustomer(req.userId);
+    if (!customer) {
+      return res.status(400).json({ error: 'Customer not found' });
+    }
+
+    // Get the current active payment method
+    const paymentMethod = await dbGet(
+      `SELECT stripe_payment_method_id 
+       FROM stripe_payment_methods 
+       WHERE customer_id = ? AND is_default = 1`,
+      [customer.stripe_customer_id]
+    );
+
+    if (!paymentMethod) {
+      return res.status(400).json({ error: 'No payment method found' });
+    }
+
+    // Get current subscription to ensure it's a valid change
+    const currentPlan = await dbGet(
+      `SELECT p.*, pt.plan_type_id, pt.cost_monthly
+       FROM plans p
+       JOIN plan_type pt ON p.plan_type_id = pt.plan_type_id
+       WHERE p.plan_id = ?`,
+      [planId]
+    );
+
+    if (!currentPlan) {
+      return res.status(400).json({ error: 'Plan not found' });
+    }
+
+    // Create new subscription (this will handle canceling the old one)
+    const subscription = await createSubscription(
+      customer.stripe_customer_id,
+      planId,
+      paymentMethod.stripe_payment_method_id
+    );
+
+    if (subscription.status === 'active') {
+      // Set subscription active and allocate full credits for the plan type
+      await dbRun(
+        `UPDATE plans 
+         SET subscription_active = 1
+         WHERE plan_id = ?`,
+        [planId]
+      );
+
+      // Allocate monthly credits (this will give full plan credits)
+      await allocateMonthlyCredits(planId);
+    }
+
+    res.json({ success: true, subscription });
+  } catch (error) {
+    console.error('Error changing subscription:', error);
+    res.status(500).json({ success: false, message: 'Failed to change subscription' });
+  }
+});
+
 module.exports = router; 
