@@ -17,6 +17,7 @@ const {
   resetToFreeCredits,
   checkAndRenewCredits
 } = require('../database/credits.js');
+const { cancelActiveSubscriptions } = require('../database/plans.js');
 
 // Get Stripe publishable key
 router.get('/config', async (req, res) => {
