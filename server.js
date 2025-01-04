@@ -1,7 +1,10 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const { initializeDatabase } = require('./database/database.js');
+const { migrate } = require('./database/migrate.js');
+const { dbRun, dbGet, dbAll } = require('./database/database.js');
 const { ScraperManager } = require('./webscraping/scraperManager.js');
+const { scheduleCreditRenewal } = require('./services/scheduler.js');
 const expressWs = require('express-ws');
 const http = require('http');
 const wsManager = require('./chatbot-api/wsManager');
@@ -58,19 +61,24 @@ app.use(express.static('development-ui'));
 
 const scraperManager = new ScraperManager();
 
-// Wrap the initialization in an async IIFE
-(async () => {
+async function startServer() {
     try {
-        console.log('Initializing database...');
-        await initializeDatabase();
-        console.log('Database initialization complete, starting server...');
+        // Run database migrations
+        await migrate(dbGet, dbRun, dbAll);
         
-        server.listen(port, () => {
-            console.log(`Server is running on http://localhost:${port}`);
+        // Initialize credit renewal scheduler
+        scheduleCreditRenewal();
+        
+        // Start the server
+        const port = process.env.PORT || 3000;
+        app.listen(port, () => {
+            console.log(`Server is running on port ${port}`);
         });
-    } catch (err) {
-        console.error('Failed to initialize database, exiting:', err);
+    } catch (error) {
+        console.error('Failed to start server:', error);
         process.exit(1);
     }
-})();
+}
+
+startServer();
 

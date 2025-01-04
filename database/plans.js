@@ -1,4 +1,5 @@
 const { dbAll, dbRun, dbGet } = require('./database');
+const { allocateMonthlyCredits } = require('./credits');
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 
 // schema:
@@ -35,7 +36,14 @@ async function addPlan(userId, chatbotId, planTypeId, planName) {
     // renews_at is the date the plan will renew, one month from now
     const renewsAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
     const plan = await dbRun('INSERT INTO plans (user_id, chatbot_id, plan_type_id, rate_limiting_policy, name, renews_at) VALUES (?, ?, ?, ?, ?, ?)', [userId, chatbotId, planTypeId, "default", planName, renewsAt]);
-    return plan;
+    
+    // Get the plan ID from the last insert
+    const newPlan = await dbGet('SELECT * FROM plans WHERE rowid = last_insert_rowid()');
+    
+    // Allocate initial credits
+    await allocateMonthlyCredits(newPlan.plan_id);
+    
+    return newPlan;
 }
 
 // get a plan for a user
@@ -75,26 +83,76 @@ async function cancelActiveSubscriptions(planId) {
 // update a plan for a user
 async function updatePlan(planId, userId, chatbotId, planName, planTypeId) {
     try {
-        // Get current plan to check if we're changing plan type
+        // Get current plan details
         const currentPlan = await getPlan(planId);
-        if (currentPlan && currentPlan.plan_type_id !== planTypeId) {
-            // If changing plan type, cancel any active subscriptions
+        if (!currentPlan) {
+            throw new Error('Plan not found');
+        }
+
+        // If changing plan type, cancel any active subscriptions
+        if (currentPlan.plan_type_id !== planTypeId) {
             await cancelActiveSubscriptions(planId);
         }
 
-        // Update the plan details
+        // Get plan type details for credit amounts
+        const planTypeCredits = {
+            0: 50,      // Free
+            1: 1000,    // Basic
+            2: 10000    // Pro
+        };
+
+        let newCredits = currentPlan.remaining_credits;
+        let additionalCredits = currentPlan.additional_credits;
+        let subscriptionActive = currentPlan.subscription_active || 0;
+        let renewsAt = currentPlan.renews_at;
+
+        // Handle different plan change scenarios
+        if (currentPlan.plan_type_id === 0 && planTypeId > 0) {
+            // Free to Paid: Keep 50 credits until activation
+            newCredits = currentPlan.remaining_credits;
+            subscriptionActive = 0; // Needs payment activation
+        } 
+        else if (currentPlan.plan_type_id > 0 && planTypeId === 0) {
+            // Paid to Free: Keep current credits until renewal date
+            newCredits = Math.max(currentPlan.remaining_credits, 50);
+            subscriptionActive = 1; // Free plans are always active
+        }
+        else if (currentPlan.plan_type_id > 0 && planTypeId > 0 && planTypeId !== currentPlan.plan_type_id) {
+            // Paid to Different Paid Plan
+            if (planTypeId > currentPlan.plan_type_id) {
+                // Upgrading: Give full new plan credits immediately
+                newCredits = planTypeCredits[planTypeId];
+            } else {
+                // Downgrading: Keep current credits even if above new plan limit
+                newCredits = currentPlan.remaining_credits;
+            }
+            // Keep subscription active until new one is created
+            subscriptionActive = currentPlan.subscription_active;
+        }
+
+        // Update the plan with all fields preserved
         await dbRun(
             `UPDATE plans 
-             SET user_id = ?, 
-                 chatbot_id = ?, 
-                 name = ?, 
+             SET user_id = ?,
+                 chatbot_id = ?,
                  plan_type_id = ?,
-                 subscription_active = CASE 
-                     WHEN ? = 0 THEN 1  -- Free plans are always "active"
-                     ELSE 0             -- Paid plans need subscription
-                 END
+                 name = ?,
+                 remaining_credits = ?,
+                 additional_credits = ?,
+                 subscription_active = ?,
+                 renews_at = ?
              WHERE plan_id = ?`,
-            [userId, chatbotId, planName, planTypeId, planTypeId, planId]
+            [
+                userId,
+                chatbotId,
+                planTypeId,
+                planName,
+                newCredits,
+                additionalCredits,
+                subscriptionActive,
+                renewsAt,
+                planId
+            ]
         );
 
         return await getPlan(planId);
@@ -108,7 +166,6 @@ async function updatePlan(planId, userId, chatbotId, planName, planTypeId) {
 async function setChatbotIdForPlan(planId, chatbotId) {
     await dbRun('UPDATE plans SET chatbot_id = ? WHERE plan_id = ?', [chatbotId, planId]);
 }   
-
 
 // subtract from the plan
 async function subtractFromPlan(planId, amount) {
