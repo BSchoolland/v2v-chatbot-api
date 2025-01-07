@@ -40,6 +40,23 @@ tools = [
     // },
 ]
 
+function getLevenshteinDistance(a, b) {
+    const dp = Array.from({ length: a.length + 1 }, () => Array(b.length + 1).fill(0));
+    for (let i = 0; i <= a.length; i++) dp[i][0] = i;
+    for (let j = 0; j <= b.length; j++) dp[0][j] = j;
+    for (let i = 1; i <= a.length; i++) {
+        for (let j = 1; j <= b.length; j++) {
+            const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+            dp[i][j] = Math.min(
+                dp[i - 1][j] + 1,
+                dp[i][j - 1] + 1,
+                dp[i - 1][j - 1] + cost
+            );
+        }
+    }
+    return dp[a.length][b.length];
+}
+
 // read the content of a page
 async function readPageContent(params, metadata) {
     // convert params to json
@@ -78,9 +95,21 @@ async function readPageContent(params, metadata) {
         let paths = [];
         console.log(metadata.websiteId)
         paths = await dbAll('SELECT url FROM page WHERE website_id = ?', [metadata.websiteId]);
-        console.log(paths)
+        console.log()
         const pathUrls = paths.map(path => path.url);
-        return `Please try again using one of the full paths listed below.  Here are all available paths: ${pathUrls.join(", ")}, were you looking for one of these?`;
+        // calculate most similar path
+
+        
+
+        const distances = pathUrls.map(url => ({
+            url,
+            dist: getLevenshteinDistance(url, params.path)
+        }));
+        distances.sort((a, b) => a.dist - b.dist);
+        const bestMatch = distances.length ? distances[0].url : '[none]';
+        const message = `You entered ${params.path} which is either not a full path or not in the list of paths. Please try again using one of the full paths listed below. Here are all available paths: ${pathUrls.join(", ")}, the system thinks you may be most interested in: ${bestMatch}`;
+        console.log(message);
+        return message;
     }
 }
 
