@@ -1,4 +1,4 @@
-const {db} = require('../database/database.js');
+const {db, dbAll} = require('../database/database.js');
 const { getPageByUrlAndWebsiteId } = require('../database/pages.js');
 const {getWebsiteById} = require('../database/websites.js');
 const wsManager = require('./wsManager');
@@ -74,7 +74,13 @@ async function readPageContent(params, metadata) {
             return page.content;
         }
         console.warn('No information found for path', path);
-        return `No information found for path ${path}.  Are you sure you entered it correctly?`;
+        // get all available paths
+        let paths = [];
+        console.log(metadata.websiteId)
+        paths = await dbAll('SELECT url FROM page WHERE website_id = ?', [metadata.websiteId]);
+        console.log(paths)
+        const pathUrls = paths.map(path => path.url);
+        return `Please try again using one of the full paths listed below.  Here are all available paths: ${pathUrls.join(", ")}, were you looking for one of these?`;
     }
 }
 
