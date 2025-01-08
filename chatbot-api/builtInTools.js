@@ -91,22 +91,31 @@ async function readPageContent(params, metadata) {
             return page.content;
         }
         console.warn('No information found for path', path);
-        // get all available paths
+
+        // Get all available paths
         let paths = [];
-        console.log(metadata.websiteId)
+        console.log(metadata.websiteId);
         paths = await dbAll('SELECT url FROM page WHERE website_id = ?', [metadata.websiteId]);
-        console.log()
+
+        // Extract URLs from the database result
         const pathUrls = paths.map(path => path.url);
-        // calculate most similar path
 
-        
+        // Calculate the most similar path based on substring
+        const paramsPath = params.path.slice(1).toLowerCase(); // Normalize for case-insensitive matching
 
-        const distances = pathUrls.map(url => ({
+        // Count occurrences of the input substring in each URL
+        const scores = pathUrls.map(url => ({
             url,
-            dist: getLevenshteinDistance(url, params.path)
+            count: (url.toLowerCase().match(new RegExp(paramsPath, 'g')) || []).length // Count occurrences
         }));
-        distances.sort((a, b) => a.dist - b.dist);
-        const bestMatch = distances.length ? distances[0].url : '[none]';
+
+        // Sort paths by count (descending) and resolve ties by original order
+        scores.sort((a, b) => b.count - a.count || pathUrls.indexOf(a.url) - pathUrls.indexOf(b.url));
+
+        // Get the best match, default to the first element if all scores are 0
+        const bestMatch = scores.every(score => score.count === 0) ? pathUrls[0] : scores[0].url;
+
+        // Construct the message
         const message = `You entered ${params.path} which is either not a full path or not in the list of paths. Please try again using one of the full paths listed below. Here are all available paths: ${pathUrls.join(", ")}, the system thinks you may be most interested in: ${bestMatch}`;
         console.log(message);
         return message;
