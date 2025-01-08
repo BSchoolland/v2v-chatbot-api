@@ -113,10 +113,17 @@ async function readPageContent(params, metadata) {
         scores.sort((a, b) => b.count - a.count || pathUrls.indexOf(a.url) - pathUrls.indexOf(b.url));
 
         // Get the best match, default to the first element if all scores are 0
-        const bestMatch = scores.every(score => score.count === 0) ? pathUrls[0] : scores[0].url;
+        let bestMatch = scores.every(score => score.count === 0) ? pathUrls[0] : scores[0].url;
+
+        // if one path ends with the input path, return that path
+        for (let i = 0; i < pathUrls.length; i++) {
+            if (pathUrls[i].endsWith(params.path)) {
+                bestMatch = pathUrls[i];
+            }
+        }
 
         // Construct the message
-        const message = `You entered ${params.path} which the system assumed to mean ${path}.  Please try again using a full path (e.g. www.example.com/page instead of /page). Here are all available paths: ${pathUrls.join(", ")}, the system also thinks you may be interested in: ${bestMatch}`;
+        const message = `You entered ${params.path}.  Please try again using a full path (e.g. www.example.com/page instead of just /page). The system also thinks you may be interested in: ${bestMatch}`;
         console.log(message);
         return message;
     }
