@@ -116,7 +116,7 @@ async function readPageContent(params, metadata) {
         const bestMatch = scores.every(score => score.count === 0) ? pathUrls[0] : scores[0].url;
 
         // Construct the message
-        const message = `You entered ${params.path} which is either not a full path or not in the list of paths. Please try again using one of the full paths listed below. Here are all available paths: ${pathUrls.join(", ")}, the system thinks you may be most interested in: ${bestMatch}`;
+        const message = `You entered ${params.path} which the system assumed to mean ${path}.  Please try again using a full path (e.g. www.example.com/page instead of /page). Here are all available paths: ${pathUrls.join(", ")}, the system also thinks you may be interested in: ${bestMatch}`;
         console.log(message);
         return message;
     }
