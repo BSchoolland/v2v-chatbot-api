@@ -14,7 +14,7 @@ tools = [
                 "properties": {
                     "path": {
                         "type": "string",
-                        "description": "The path to read from, for example '/' for the landing page of the website.",
+                        "description": "The full path of the page to read, e.g. https://www.example.com/page",
                     }
                 },
                 "required": ["path"],
