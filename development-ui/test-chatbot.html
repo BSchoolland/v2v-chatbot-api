@@ -11,12 +11,42 @@
 
     <p>Enter a message below to chat with the chatbot. If you're happy with the results, click the "Deploy Chatbot" button to move on to the final step. Otherwise, you can always go back and edit the chatbot's settings to make sure it works the way you want.</p>
     
-    <button onclick="window.location.href = '/chatbot-setup.html'">Edit Chatbot</button>
-    <button onclick="window.location.href = '/deploy-chatbot.html'">Deploy Chatbot</button>
+    <div class="button-group">
+        <button onclick="window.location.href = '/chatbot-setup.html'">Edit Chatbot</button>
+        <button onclick="window.location.href = '/deploy-chatbot.html'">Deploy Chatbot</button>
+    </div>
+
+    <div class="bulk-testing-section">
+        <h2>Bulk Testing</h2>
+        <p>Upload a .txt file with one question per line (maximum 100 questions) to test multiple questions at once.</p>
+        
+        <div class="file-upload">
+            <input type="file" id="questionsFile" accept=".txt" />
+            <button onclick="startBulkTest()" id="startTestBtn">Start Bulk Test</button>
+        </div>
+
+        <div id="testProgress" style="display: none;">
+            <div class="progress-bar">
+                <div id="progressFill" style="width: 0%"></div>
+            </div>
+            <p id="progressText">Testing question 0/0</p>
+        </div>
+
+        <div id="testResults" style="display: none;">
+            <h3>Test Results</h3>
+            <div class="download-buttons">
+                <button onclick="downloadResults('csv')" id="downloadCsvBtn">Download Results (CSV)</button>
+                <button onclick="downloadResults('txt')" id="downloadTxtBtn">Download Results (Text)</button>
+            </div>
+            <div id="resultsContainer"></div>
+        </div>
+    </div>
 
     <script>
         // Get planId from URL
         const planId = new URLSearchParams(window.location.search).get('planId');
+        let chatbotId = null;
+
         if (!planId) {
             console.error('No planId provided in URL');
         } else {
@@ -31,7 +61,7 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    const chatbotId = data.chatbot.chatbot_id;
+                    chatbotId = data.chatbot.chatbot_id;
                     // Add the component script with the chatbot ID
                     const script = document.createElement('script');
                     script.src = '/chatbot/api/frontend/component.js';
@@ -44,6 +74,184 @@
             .catch(error => {
                 console.error('Error:', error);
             });
+        }
+
+        // Bulk testing functionality
+        let testResults = [];
+
+        async function validateFile(file) {
+            const text = await file.text();
+            const lines = text.split('\n').filter(line => line.trim());
+            
+            if (lines.length > 100) {
+                throw new Error('File contains more than 100 questions');
+            }
+            
+            return lines;
+        }
+
+        async function startBulkTest() {
+            const fileInput = document.getElementById('questionsFile');
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                alert('Please select a file first');
+                return;
+            }
+            
+            if (!file.name.endsWith('.txt')) {
+                alert('Please upload a .txt file');
+                return;
+            }
+
+            try {
+                const questions = await validateFile(file);
+                const numQuestions = questions.length;
+                
+                // Show credit usage warning
+                const proceed = confirm(
+                    `This bulk test will use ${numQuestions} credits from your plan ` +
+                    `(1 credit per question). \n\nDo you want to proceed with testing ${numQuestions} questions?`
+                );
+                
+                if (!proceed) {
+                    return;
+                }
+
+                document.getElementById('testProgress').style.display = 'block';
+                document.getElementById('startTestBtn').disabled = true;
+                testResults = [];
+
+                for (let i = 0; i < questions.length; i++) {
+                    const question = questions[i].trim();
+                    if (!question) continue;
+
+                    // Update progress
+                    document.getElementById('progressText').textContent = `Testing question ${i + 1}/${questions.length}`;
+                    document.getElementById('progressFill').style.width = `${((i + 1) / questions.length) * 100}%`;
+
+                    try {
+                        const response = await fetch(`/chatbot/api/chat/${chatbotId}`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ message: question, chatId: -1 })
+                        });
+
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! status: ${response.status}`);
+                        }
+
+                        const data = await response.json();
+                        
+                        // Check if we ran out of credits
+                        if (data.error && data.error.includes('out of credits')) {
+                            alert('Plan out of credits. Testing stopped.');
+                            break;
+                        }
+
+                        // Extract referenced pages from the answer
+                        const referencedPages = extractReferencedPages(data.message);
+
+                        testResults.push({
+                            question: question,
+                            answer: data.message,
+                            references: referencedPages
+                        });
+
+                        // Update results display
+                        updateResultsDisplay();
+                    } catch (error) {
+                        console.error('Error testing question:', error);
+                        testResults.push({
+                            question: question,
+                            answer: 'Error: Failed to get response',
+                            references: []
+                        });
+                    }
+                }
+
+                document.getElementById('startTestBtn').disabled = false;
+                document.getElementById('testResults').style.display = 'block';
+            } catch (error) {
+                alert(error.message);
+                document.getElementById('startTestBtn').disabled = false;
+            }
+        }
+
+        function extractReferencedPages(message) {
+            // Look for URLs in the message
+            const urlRegex = /https?:\/\/[^\s<>"]+/g;
+            const urls = message.match(urlRegex) || [];
+            
+            // Look for page references in square brackets
+            const bracketRegex = /\[(.*?)\]/g;
+            const bracketMatches = [...message.matchAll(bracketRegex)].map(match => match[1]);
+            
+            // Combine and deduplicate references
+            const allReferences = [...new Set([...urls, ...bracketMatches])];
+            return allReferences;
+        }
+
+        function updateResultsDisplay() {
+            const container = document.getElementById('resultsContainer');
+            container.innerHTML = testResults.map((result, index) => `
+                <div class="test-result">
+                    <h4>Q${index + 1}: ${result.question}</h4>
+                    <p>${result.answer}</p>
+                    ${result.references.length > 0 ? `
+                        <div class="references">
+                            <h5>Referenced Pages:</h5>
+                            <ul>
+                                ${result.references.map(ref => `<li>${ref}</li>`).join('')}
+                            </ul>
+                        </div>
+                    ` : ''}
+                </div>
+            `).join('');
+        }
+
+        function downloadResults(format) {
+            if (format === 'csv') {
+                let csv = 'Question,Answer,References\n';
+                
+                testResults.forEach(result => {
+                    // Escape quotes and commas in the text
+                    const escapedQuestion = result.question.replace(/"/g, '""');
+                    const escapedAnswer = result.answer.replace(/"/g, '""');
+                    const escapedReferences = result.references.join('; ').replace(/"/g, '""');
+                    csv += `"${escapedQuestion}","${escapedAnswer}","${escapedReferences}"\n`;
+                });
+
+                downloadFile(csv, 'chatbot_test_results.csv', 'text/csv');
+            } else if (format === 'txt') {
+                let text = 'CHATBOT TEST RESULTS\n\n';
+                
+                testResults.forEach((result, index) => {
+                    text += `Question ${index + 1}: ${result.question}\n`;
+                    text += `Answer: ${result.answer}\n`;
+                    if (result.references.length > 0) {
+                        text += 'Referenced Pages:\n';
+                        result.references.forEach(ref => {
+                            text += `- ${ref}\n`;
+                        });
+                    }
+                    text += '\n';
+                });
+
+                downloadFile(text, 'chatbot_test_results.txt', 'text/plain');
+            }
+        }
+
+        function downloadFile(content, filename, type) {
+            const blob = new Blob([content], { type: type });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.setAttribute('hidden', '');
+            a.setAttribute('href', url);
+            a.setAttribute('download', filename);
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
         }
     </script>
 </body>

@@ -12,7 +12,7 @@ When the user uses /do-issue:
         - Check for any regressions or side effects
         - If bugs are found, fix them before proceeding
     5. Ask the user for confirmation before moving on to step 6
-    6. Commit changes using appropriate conventional commit type
+    6. Commit changes using appropriate conventional commit type ALWAYS CONFIRM FIRST
     7. Create a comprehensive PR back into the initial branch, linking to the issue
         - Use printf to format PR descriptions with proper newlines:
           Example: `printf "Title\n\nDescription with:\n- Bullet points\n- More points" | gh pr create --title "feat: something" --body-file -`
@@ -27,7 +27,11 @@ When the user uses /learn:
     3. If the user then asks for modification to the code, read any additional code that could be useful for this modification
 
 When the user uses /commit:
-    1. Commit the current changes to github, for example "feat: do something" "full description..."
+    1. ALWAYS ask for user confirmation before committing, showing them:
+        - The files that will be committed
+        - The commit message that will be used
+    2. Only proceed with the commit after explicit user confirmation
+    3. Use conventional commit format (e.g., "feat:", "fix:", etc.)
 
 When the user uses /pr:
     1. Find the diff between this branch and main

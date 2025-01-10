@@ -5,93 +5,243 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Visions to Visuals Chatbot - Dashboard</title>
     <link rel="stylesheet" href="styles.css">
+    <style>
+        .plan-item {
+            background: #f8f9fa;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .plan-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .plan-name {
+            font-size: 1.2em;
+            font-weight: bold;
+        }
+
+        .plan-type {
+            font-size: 0.9em;
+            color: #666;
+        }
+
+        .plan-credits {
+            font-size: 0.9em;
+            color: #28a745;
+            margin-top: 5px;
+        }
+
+        .plan-renewal {
+            font-size: 0.8em;
+            color: #666;
+            margin-top: 2px;
+        }
+
+        .subscription-status {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.9em;
+            font-weight: 500;
+        }
+
+        .status-active {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .status-inactive {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+
+        .status-free {
+            background-color: #e2e3e5;
+            color: #383d41;
+        }
+
+        .button-container {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .button-container button {
+            padding: 8px 16px;
+            border-radius: 4px;
+            border: none;
+            cursor: pointer;
+            background-color: #007bff;
+            color: white;
+        }
+
+        .button-container button:hover {
+            background-color: #0056b3;
+        }
+    </style>
 </head>
 <body>
     <h1>Dashboard Page</h1>
-    <!-- add new plan -->
     <button onclick="window.location.href = '/add-plan.html';">Add New Plan</button>
-    <!-- existing plans -->
-    <h2>Existing Plans</h2>
-    <ul id="plans">
+    <h2>Your Plans</h2>
+    <div id="plans">
         <!-- list of plans will be added here by javascript -->
-    </ul>
+    </div>
     <script>
+        // Helper function to get plan type name and subscription status
+        function getPlanDetails(planTypeId) {
+            switch(planTypeId) {
+                case 0:
+                    return {
+                        name: 'Free Plan',
+                        price: '$0/month',
+                        status: 'free'
+                    };
+                case 1:
+                    return {
+                        name: 'Basic Plan',
+                        price: '$10/month',
+                        status: 'paid'
+                    };
+                case 2:
+                    return {
+                        name: 'Pro Plan',
+                        price: '$50/month',
+                        status: 'paid'
+                    };
+                default:
+                    return {
+                        name: 'Unknown Plan',
+                        price: '',
+                        status: 'unknown'
+                    };
+            }
+        }
+
+        // Check URL parameters for subscription success message
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('subscription') === 'success') {
+            alert('Subscription activated successfully!');
+            // Remove the parameter from URL
+            window.history.replaceState({}, document.title, window.location.pathname);
+        }
+
         fetch(`/website/api/user-plans`, {
-                method: 'GET',
-                credentials: 'include',
-                headers: {
-                    'Content-Type': 'application/json'
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    const plans = data.plans;
-                    const plansList = document.getElementById('plans');
-                    plans.forEach(plan => {
-                        const planItem = document.createElement('li');
-                        planItem.textContent = plan.name + ' - ' + plan.plan_type_id;
-                        
-                        // Create container for buttons
-                        const buttonContainer = document.createElement('div');
-                        buttonContainer.style.marginTop = '10px';
-                        buttonContainer.style.display = 'flex';
-                        buttonContainer.style.flexDirection = 'row';
-                        buttonContainer.style.gap = '10px';
-                        
-                        // Create Plan Details button
-                        const planDetailsBtn = document.createElement('button');
-                        planDetailsBtn.textContent = 'Plan Details';
-                        planDetailsBtn.onclick = () => {
-                            window.location.href = `/user-plan.html?id=${plan.plan_id}`;
+            method: 'GET',
+            credentials: 'include',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const plans = data.plans;
+                const plansContainer = document.getElementById('plans');
+                
+                plans.forEach(plan => {
+                    const planDetails = getPlanDetails(plan.plan_type_id);
+                    
+                    const planItem = document.createElement('div');
+                    planItem.className = 'plan-item';
+                    
+                    // Create plan header with name and status
+                    const planHeader = document.createElement('div');
+                    planHeader.className = 'plan-header';
+                    
+                    const nameAndType = document.createElement('div');
+                    nameAndType.innerHTML = `
+                        <div class="plan-name">${plan.name}</div>
+                        <div class="plan-type">${planDetails.name} - ${planDetails.price}</div>
+                        <div class="plan-credits">Credits: ${plan.remaining_credits} remaining</div>
+                        <div class="plan-renewal">Renews: ${plan.renews_at ? new Date(plan.renews_at).toLocaleDateString() : 'N/A'}</div>
+                    `;
+                    
+                    const statusClass = planDetails.status === 'free' 
+                        ? 'status-free'
+                        : (plan.subscription_active ? 'status-active' : 'status-inactive');
+                    
+                    const statusText = planDetails.status === 'free'
+                        ? 'Free Plan'
+                        : (plan.subscription_active ? 'Active' : 'Inactive');
+                    
+                    const status = document.createElement('span');
+                    status.className = `subscription-status ${statusClass}`;
+                    status.textContent = statusText;
+                    
+                    planHeader.appendChild(nameAndType);
+                    planHeader.appendChild(status);
+                    planItem.appendChild(planHeader);
+                    
+                    // Create button container
+                    const buttonContainer = document.createElement('div');
+                    buttonContainer.className = 'button-container';
+                    
+                    // Plan Details button
+                    const planDetailsBtn = document.createElement('button');
+                    planDetailsBtn.textContent = 'Plan Details';
+                    planDetailsBtn.onclick = () => {
+                        window.location.href = `/user-plan.html?id=${plan.plan_id}`;
+                    };
+                    buttonContainer.appendChild(planDetailsBtn);
+                    
+                    // Add Activate Plan button for inactive paid plans
+                    if (planDetails.status === 'paid' && !plan.subscription_active) {
+                        const activateBtn = document.createElement('button');
+                        activateBtn.textContent = 'Activate Plan';
+                        activateBtn.onclick = () => {
+                            window.location.href = `/payment.html?id=${plan.plan_id}`;
                         };
+                        buttonContainer.appendChild(activateBtn);
+                    }
+                    
+                    // Show different buttons based on chatbot existence
+                    if (plan.chatbot_id) {
+                        const chatbotEditBtn = document.createElement('button');
+                        chatbotEditBtn.textContent = 'Edit Chatbot';
+                        chatbotEditBtn.onclick = () => {
+                            window.location.href = `/chatbot-edit.html?planId=${plan.plan_id}`;
+                        };
+                        buttonContainer.appendChild(chatbotEditBtn);
                         
-                        // Add Plan Details button to container
-                        buttonContainer.appendChild(planDetailsBtn);
-
-                        // Show different button based on whether chatbot exists
-                        if (plan.chatbot_id) {
-                            const chatbotEditBtn = document.createElement('button');
-                            chatbotEditBtn.textContent = 'Edit Chatbot';
-                            chatbotEditBtn.onclick = () => {
-                                window.location.href = `/chatbot-edit.html?planId=${plan.plan_id}`;
-                            };
-                            buttonContainer.appendChild(chatbotEditBtn);
-
-                            const testChatbotBtn = document.createElement('button');
-                            testChatbotBtn.textContent = 'Test Chatbot';
-                            testChatbotBtn.onclick = () => {
-                                window.location.href = `/test-chatbot.html?planId=${plan.plan_id}`;
-                            };
-                            buttonContainer.appendChild(testChatbotBtn);
-
-                            const viewConversationsBtn = document.createElement('button');
-                            viewConversationsBtn.textContent = 'View Conversations';
-                            viewConversationsBtn.onclick = () => {
-                                window.location.href = `/conversations.html?chatbotId=${plan.chatbot_id}`;
-                            };
-                            buttonContainer.appendChild(viewConversationsBtn);
-                        } else {
-                            const chatbotSetupBtn = document.createElement('button');
-                            chatbotSetupBtn.textContent = 'Setup Chatbot';
-                            chatbotSetupBtn.onclick = () => {
-                                window.location.href = `/chatbot-setup.html?planId=${plan.plan_id}`;
-                            };
-                            buttonContainer.appendChild(chatbotSetupBtn);
-                        }
+                        const testChatbotBtn = document.createElement('button');
+                        testChatbotBtn.textContent = 'Test Chatbot';
+                        testChatbotBtn.onclick = () => {
+                            window.location.href = `/test-chatbot.html?planId=${plan.plan_id}`;
+                        };
+                        buttonContainer.appendChild(testChatbotBtn);
                         
-                        // Add plan item and button container to the list
-                        planItem.appendChild(buttonContainer);
-                        plansList.appendChild(planItem);
-                    });
-                } else {
-                    alert('Error fetching plans');
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('An unknown error occurred');
-            });
+                        const viewConversationsBtn = document.createElement('button');
+                        viewConversationsBtn.textContent = 'View Conversations';
+                        viewConversationsBtn.onclick = () => {
+                            window.location.href = `/conversations.html?chatbotId=${plan.chatbot_id}`;
+                        };
+                        buttonContainer.appendChild(viewConversationsBtn);
+                    } else {
+                        const chatbotSetupBtn = document.createElement('button');
+                        chatbotSetupBtn.textContent = 'Setup Chatbot';
+                        chatbotSetupBtn.onclick = () => {
+                            window.location.href = `/chatbot-setup.html?planId=${plan.plan_id}`;
+                        };
+                        buttonContainer.appendChild(chatbotSetupBtn);
+                    }
+                    
+                    planItem.appendChild(buttonContainer);
+                    plansContainer.appendChild(planItem);
+                });
+            } else {
+                alert('Error fetching plans');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An unknown error occurred');
+        });
     </script>
 </body>
 </html>

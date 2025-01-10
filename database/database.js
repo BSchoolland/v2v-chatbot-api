@@ -158,6 +158,66 @@ const initializeDatabase = async () => {
           FOREIGN KEY (website_id) REFERENCES website(website_id)
         )
       `);
+
+      // Stripe-related tables
+      db.run(`
+        CREATE TABLE IF NOT EXISTS stripe_customers (
+          customer_id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id INTEGER NOT NULL UNIQUE,
+          stripe_customer_id TEXT NOT NULL UNIQUE,
+          created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (user_id) REFERENCES users(user_id)
+        )
+      `);
+
+      db.run(`
+        CREATE TABLE IF NOT EXISTS stripe_subscriptions (
+          subscription_id INTEGER PRIMARY KEY AUTOINCREMENT,
+          customer_id INTEGER NOT NULL,
+          stripe_subscription_id TEXT NOT NULL UNIQUE,
+          plan_id INTEGER NOT NULL,
+          status TEXT NOT NULL,
+          current_period_start TEXT NOT NULL,
+          current_period_end TEXT NOT NULL,
+          cancel_at_period_end BOOLEAN DEFAULT FALSE,
+          created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (customer_id) REFERENCES stripe_customers(customer_id),
+          FOREIGN KEY (plan_id) REFERENCES plans(plan_id)
+        )
+      `);
+
+      db.run(`
+        CREATE TABLE IF NOT EXISTS stripe_payment_methods (
+          payment_method_id INTEGER PRIMARY KEY AUTOINCREMENT,
+          customer_id INTEGER NOT NULL,
+          stripe_payment_method_id TEXT NOT NULL UNIQUE,
+          type TEXT NOT NULL,
+          last4 TEXT,
+          exp_month INTEGER,
+          exp_year INTEGER,
+          is_default BOOLEAN DEFAULT FALSE,
+          created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (customer_id) REFERENCES stripe_customers(customer_id)
+        )
+      `);
+
+      db.run(`
+        CREATE TABLE IF NOT EXISTS stripe_invoices (
+          invoice_id INTEGER PRIMARY KEY AUTOINCREMENT,
+          customer_id INTEGER NOT NULL,
+          stripe_invoice_id TEXT NOT NULL UNIQUE,
+          subscription_id INTEGER,
+          amount_due INTEGER NOT NULL,
+          amount_paid INTEGER NOT NULL,
+          status TEXT NOT NULL,
+          invoice_date TEXT NOT NULL,
+          due_date TEXT,
+          paid_date TEXT,
+          FOREIGN KEY (customer_id) REFERENCES stripe_customers(customer_id),
+          FOREIGN KEY (subscription_id) REFERENCES stripe_subscriptions(subscription_id)
+        )
+      `);
     });
     console.log('Database tables initialized.');
     await migrate(dbGet, dbRun, dbAll);

@@ -26,6 +26,19 @@ async function getUserByEmail(email) {
     }
 }
 
+// get a user by ID
+async function getUserById(userId) {
+    try {
+        const user = await dbGet(
+            `SELECT * FROM users WHERE user_id = ?`,
+            [userId]
+        );
+        return user;
+    } catch (err) {
+        throw err;
+    }
+}
+
 // check if a email already exists
 async function checkEmailExists(email) {
     try {
@@ -39,5 +52,6 @@ async function checkEmailExists(email) {
 module.exports = {
     registerUser,
     getUserByEmail,
+    getUserById,
     checkEmailExists
 };

@@ -194,3 +194,289 @@ button {
     outline: none;
     box-shadow: 0 0 5px rgba(0, 255, 255, 0.5);
 }
+
+/* Payment and subscription styles */
+.payment-container {
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 20px;
+    background-color: #1a2c44;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+    border: 1px solid #00ffff;
+}
+
+.payment-form {
+    background: #233554;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    border: 1px solid #00ffff;
+}
+
+#card-element {
+    padding: 12px;
+    border: 2px solid #00ffff;
+    border-radius: 4px;
+    background: #0f1929;
+    margin-bottom: 20px;
+    color: #ffffff;
+}
+
+#card-errors {
+    color: #ff6b6b;
+    margin-top: 8px;
+    font-size: 14px;
+}
+
+.payment-summary {
+    margin-bottom: 20px;
+    padding: 15px;
+    background: #233554;
+    border-radius: 4px;
+    border: 1px solid #00ffff;
+}
+
+.payment-summary h3 {
+    margin-top: 0;
+    color: #00ffff;
+}
+
+.payment-button {
+    background: #00ffff;
+    color: #0f1929;
+    padding: 12px 24px;
+    border: none;
+    border-radius: 4px;
+    font-size: 16px;
+    cursor: pointer;
+    width: 100%;
+    transition: all 0.3s ease;
+}
+
+.payment-button:hover {
+    background: #00cccc;
+    transform: translateY(-2px);
+    box-shadow: 0 2px 8px rgba(0, 255, 255, 0.2);
+}
+
+.payment-button:disabled {
+    background: #2c3f5a;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+.spinner {
+    display: none;
+    width: 20px;
+    height: 20px;
+    border: 3px solid #0f1929;
+    border-top: 3px solid #00ffff;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Plan item styles */
+.plan-item {
+    background: #1a2c44;
+    padding: 15px;
+    margin-bottom: 15px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    border: 1px solid #00ffff;
+    transition: all 0.3s ease;
+}
+
+.plan-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 255, 255, 0.2);
+}
+
+.plan-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.plan-name {
+    font-size: 1.2em;
+    font-weight: bold;
+    color: #00ffff;
+}
+
+.plan-type {
+    font-size: 0.9em;
+    color: #ffffff;
+}
+
+.subscription-status {
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.9em;
+    font-weight: 500;
+}
+
+.status-active {
+    background-color: #00ff9d;
+    color: #0f1929;
+}
+
+.status-inactive {
+    background-color: #ff6b6b;
+    color: #ffffff;
+}
+
+.status-free {
+    background-color: #00ffff;
+    color: #0f1929;
+}
+
+.button-container {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+    flex-wrap: wrap;
+}
+
+.button-container button {
+    flex: 1;
+    min-width: 120px;
+    text-align: center;
+}
+
+/* Bulk Testing Styles */
+.bulk-testing-section {
+    margin-top: 2rem;
+    padding: 1.5rem;
+    background-color: #1a2c44;
+    border-radius: 8px;
+    border: 1px solid #00ffff;
+}
+
+.bulk-testing-section h2 {
+    margin-top: 0;
+    color: #00ffff;
+}
+
+.file-upload {
+    display: flex;
+    gap: 1rem;
+    margin: 1rem 0;
+    align-items: center;
+}
+
+.progress-bar {
+    width: 100%;
+    height: 20px;
+    background-color: #0f1929;
+    border-radius: 10px;
+    overflow: hidden;
+    margin: 1rem 0;
+    border: 1px solid #00ffff;
+}
+
+#progressFill {
+    height: 100%;
+    background-color: #00ffff;
+    transition: width 0.3s ease;
+}
+
+#progressText {
+    text-align: center;
+    color: #ffffff;
+    margin: 0.5rem 0;
+}
+
+.test-result {
+    background-color: #233554;
+    padding: 1rem;
+    margin: 1rem 0;
+    border-radius: 4px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+    border: 1px solid #00ffff;
+}
+
+.test-result h4 {
+    margin: 0 0 0.5rem 0;
+    color: #00ffff;
+}
+
+.test-result p {
+    margin: 0;
+    color: #ffffff;
+    white-space: pre-wrap;
+}
+
+.references {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid rgba(0, 255, 255, 0.2);
+}
+
+.references h5 {
+    color: #00ffff;
+    margin: 0 0 0.5rem 0;
+    font-size: 0.9em;
+}
+
+.references ul {
+    margin: 0;
+    padding-left: 1.5rem;
+    list-style-type: none;
+}
+
+.references li {
+    color: #ffffff;
+    font-size: 0.9em;
+    margin-bottom: 0.25rem;
+    position: relative;
+}
+
+.references li::before {
+    content: "•";
+    color: #00ffff;
+    position: absolute;
+    left: -1rem;
+}
+
+.download-buttons {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+input[type="file"] {
+    padding: 0.5rem;
+    border: 1px solid #00ffff;
+    border-radius: 4px;
+    background-color: #0f1929;
+    color: #ffffff;
+}
+
+/* General button styles */
+button {
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 4px;
+    background-color: #007bff;
+    color: white;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+button:hover {
+    background-color: #0056b3;
+}
+
+button:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+}

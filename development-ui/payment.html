@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://js.stripe.com/v3/"></script>
+    <style>
+        .payment-container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .payment-form {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .test-info {
+            margin-top: 10px;
+            padding: 10px;
+            background: #e8f4ff;
+            border: 1px solid #b3d7ff;
+            border-radius: 4px;
+            font-size: 14px;
+            color: #004085;
+        }
+
+        #card-element {
+            padding: 12px;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            background: white;
+            margin-bottom: 20px;
+        }
+
+        #card-errors {
+            color: #dc3545;
+            margin-top: 8px;
+            font-size: 14px;
+        }
+
+        .payment-summary {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: white;
+            border-radius: 4px;
+            border: 1px solid #e0e0e0;
+        }
+
+        .payment-summary h3 {
+            margin-top: 0;
+            color: #333;
+        }
+
+        .payment-button {
+            background: #007bff;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+            width: 100%;
+        }
+
+        .payment-button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .spinner {
+            display: none;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #007bff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="payment-container">
+        <h1>Subscribe to Plan</h1>
+        
+        <div class="payment-summary">
+            <h3>Plan Summary</h3>
+            <div id="planDetails">
+                <!-- Plan details will be populated here -->
+            </div>
+        </div>
+
+        <form id="payment-form" class="payment-form">
+            <div class="form-row">
+                <label for="card-element">Credit or debit card</label>
+                <div id="card-element">
+                    <!-- Stripe Elements will create input here -->
+                </div>
+                <div id="card-errors" role="alert"></div>
+                <div class="test-info">
+                    For testing, use card number: 4242 4242 4242 4242<br>
+                    Any future expiration date<br>
+                    Any 3-digit CVC
+                </div>
+            </div>
+
+            <button type="submit" id="submit-button" class="payment-button">
+                <span id="button-text">Subscribe Now</span>
+                <div id="spinner" class="spinner"></div>
+            </button>
+        </form>
+    </div>
+
+    <script>
+        // Get plan ID from URL parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        const planId = urlParams.get('id');
+
+        if (!planId) {
+            alert('No plan ID provided');
+            window.location.href = '/dashboard.html';
+        }
+
+        let stripe;
+        let card;
+
+        // Initialize Stripe with key from backend
+        async function initializeStripe() {
+            try {
+                const response = await fetch('/website/api/payments/config');
+                const data = await response.json();
+                if (!data.success || !data.publishableKey) {
+                    throw new Error('Failed to get Stripe configuration');
+                }
+                stripe = Stripe(data.publishableKey);
+                const elements = stripe.elements();
+                
+                // Create card Element
+                card = elements.create('card');
+                card.mount('#card-element');
+
+                // Handle real-time validation errors
+                card.addEventListener('change', function(event) {
+                    const displayError = document.getElementById('card-errors');
+                    if (event.error) {
+                        displayError.textContent = event.error.message;
+                    } else {
+                        displayError.textContent = '';
+                    }
+                });
+            } catch (error) {
+                console.error('Error initializing Stripe:', error);
+                const errorElement = document.getElementById('card-errors');
+                errorElement.textContent = 'Failed to initialize payment system. Please try again later.';
+            }
+        }
+
+        // Initialize Stripe when page loads
+        initializeStripe();
+
+        // Fetch plan details
+        fetch(`/website/api/user-plan/${planId}`, {
+            method: 'GET',
+            credentials: 'include',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const plan = data.plan;
+                const planDetails = document.getElementById('planDetails');
+                let planType = '';
+                let price = '';
+                
+                if (plan.plan_type_id === 1) {
+                    planType = 'Basic Plan';
+                    price = '$10/month';
+                } else if (plan.plan_type_id === 2) {
+                    planType = 'Pro Plan';
+                    price = '$50/month';
+                }
+
+                planDetails.innerHTML = `
+                    <p><strong>Plan Name:</strong> ${plan.name}</p>
+                    <p><strong>Plan Type:</strong> ${planType}</p>
+                    <p><strong>Price:</strong> ${price}</p>
+                `;
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error loading plan details');
+        });
+
+        // Handle form submission
+        const form = document.getElementById('payment-form');
+        form.addEventListener('submit', async function(event) {
+            event.preventDefault();
+
+            if (!stripe || !card) {
+                const errorElement = document.getElementById('card-errors');
+                errorElement.textContent = 'Payment system is not initialized. Please refresh the page and try again.';
+                return;
+            }
+
+            const submitButton = document.getElementById('submit-button');
+            const spinner = document.getElementById('spinner');
+            const buttonText = document.getElementById('button-text');
+
+            // Disable the submit button and show spinner
+            submitButton.disabled = true;
+            spinner.style.display = 'block';
+            buttonText.style.display = 'none';
+
+            try {
+                // First get a setup intent from our backend
+                const setupResponse = await fetch('/website/api/payments/create-setup-intent', {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        planId: planId
+                    })
+                });
+                
+                const setupData = await setupResponse.json();
+                
+                if (!setupData.success || !setupData.clientSecret) {
+                    throw new Error(setupData.message || 'Failed to create setup intent');
+                }
+
+                // Use the client secret to confirm card setup
+                const { setupIntent, error } = await stripe.confirmCardSetup(
+                    setupData.clientSecret,
+                    {
+                        payment_method: {
+                            card: card,
+                            billing_details: {
+                                // You can add billing details here if needed
+                            }
+                        }
+                    }
+                );
+
+                if (error) {
+                    throw error;
+                }
+
+                // Create subscription with the payment method
+                const subscriptionResponse = await fetch('/website/api/payments/create-subscription', {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        planId: planId,
+                        paymentMethodId: setupIntent.payment_method
+                    })
+                });
+
+                const subscriptionResult = await subscriptionResponse.json();
+
+                if (!subscriptionResult.success) {
+                    throw new Error(subscriptionResult.message || 'Failed to create subscription');
+                }
+
+                // Redirect to dashboard with success message
+                window.location.href = '/dashboard.html?subscription=success';
+
+            } catch (error) {
+                console.error('Error:', error);
+                const errorElement = document.getElementById('card-errors');
+                errorElement.textContent = error.message || 'An error occurred while processing your payment. Please try again.';
+                submitButton.disabled = false;
+                spinner.style.display = 'none';
+                buttonText.style.display = 'block';
+            }
+        });
+
+        function getPlanDetails(planTypeId) {
+            switch(planTypeId) {
+                case 0:
+                    return {
+                        name: 'Free Plan',
+                        description: 'Perfect for personal projects and testing',
+                        features: [
+                            '50 monthly credits',
+                            'Basic chatbot customization',
+                            'Standard support',
+                            'Perfect for personal websites'
+                        ],
+                        price: '$0/month'
+                    };
+                case 1:
+                    return {
+                        name: 'Basic Plan',
+                        description: 'Enhanced features with moderate usage',
+                        features: [
+                            '1,000 monthly credits',
+                            'Advanced customization',
+                            'Priority support',
+                            'Ideal for small businesses'
+                        ],
+                        price: '$10/month'
+                    };
+                case 2:
+                    return {
+                        name: 'Pro Plan',
+                        description: 'Full features with high usage limits',
+                        features: [
+                            '10,000 monthly credits',
+                            'Full customization options',
+                            'Premium support',
+                            'Perfect for high-traffic sites'
+                        ],
+                        price: '$50/month'
+                    };
+                default:
+                    return {
+                        name: 'Unknown Plan',
+                        description: '',
+                        features: [],
+                        price: ''
+                    };
+            }
+        }
+    </script>
+</body>
+</html> 
