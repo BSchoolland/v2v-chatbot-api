@@ -1,11 +1,9 @@
 const { dbGet, dbRun } = require('../../database/database.js');
 
 // Rate limit window in milliseconds
-// (10 requests per minute for testing)
-// TODO: allow client to set
-// TODO: return how long until next request is allowed
-const WINDOW_MS = 60 * 1000;
-const MAX_REQUESTS = 10; 
+// (5 requests per hour)
+const WINDOW_MS = 60 * 60 * 1000; // 1 hour
+const MAX_REQUESTS = 5;
 
 async function generateVisitorId(req) {
     const ip = req.ip || req.connection.remoteAddress;
@@ -13,7 +11,35 @@ async function generateVisitorId(req) {
     return `${ip}_${userAgent}`;
 }
 
+// Check if the user owns the chatbot through plan ownership
+async function userOwnsChatbot(userId, chatbotId) {
+    if (!userId) return false;
+    
+    const query = `
+        SELECT p.user_id 
+        FROM plans p
+        JOIN chatbots c ON p.plan_id = c.plan_id
+        WHERE c.chatbot_id = ? AND p.user_id = ?
+    `;
+    
+    try {
+        const result = await dbGet(query, [chatbotId, userId]);
+        return !!result;
+    } catch (error) {
+        console.error('Error checking chatbot ownership:', error);
+        return false;
+    }
+}
+
 async function checkRateLimit(req) {
+    // If user is authenticated and owns the chatbot, bypass rate limiting
+    if (req.userId && req.params.chatbotId) {
+        const isOwner = await userOwnsChatbot(req.userId, req.params.chatbotId);
+        if (isOwner) {
+            return true; // Bypass rate limiting for chatbot owners
+        }
+    }
+
     const visitorId = await generateVisitorId(req);
     const now = Date.now();
     
