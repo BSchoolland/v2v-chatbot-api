@@ -415,6 +415,38 @@ button {
     white-space: pre-wrap;
 }
 
+.references {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid rgba(0, 255, 255, 0.2);
+}
+
+.references h5 {
+    color: #00ffff;
+    margin: 0 0 0.5rem 0;
+    font-size: 0.9em;
+}
+
+.references ul {
+    margin: 0;
+    padding-left: 1.5rem;
+    list-style-type: none;
+}
+
+.references li {
+    color: #ffffff;
+    font-size: 0.9em;
+    margin-bottom: 0.25rem;
+    position: relative;
+}
+
+.references li::before {
+    content: "•";
+    color: #00ffff;
+    position: absolute;
+    left: -1rem;
+}
+
 .download-buttons {
     display: flex;
     gap: 1rem;
