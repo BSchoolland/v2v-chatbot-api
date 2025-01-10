@@ -11,12 +11,39 @@
 
     <p>Enter a message below to chat with the chatbot. If you're happy with the results, click the "Deploy Chatbot" button to move on to the final step. Otherwise, you can always go back and edit the chatbot's settings to make sure it works the way you want.</p>
     
-    <button onclick="window.location.href = '/chatbot-setup.html'">Edit Chatbot</button>
-    <button onclick="window.location.href = '/deploy-chatbot.html'">Deploy Chatbot</button>
+    <div class="button-group">
+        <button onclick="window.location.href = '/chatbot-setup.html'">Edit Chatbot</button>
+        <button onclick="window.location.href = '/deploy-chatbot.html'">Deploy Chatbot</button>
+    </div>
+
+    <div class="bulk-testing-section">
+        <h2>Bulk Testing</h2>
+        <p>Upload a .txt file with one question per line (maximum 100 questions) to test multiple questions at once.</p>
+        
+        <div class="file-upload">
+            <input type="file" id="questionsFile" accept=".txt" />
+            <button onclick="startBulkTest()" id="startTestBtn">Start Bulk Test</button>
+        </div>
+
+        <div id="testProgress" style="display: none;">
+            <div class="progress-bar">
+                <div id="progressFill" style="width: 0%"></div>
+            </div>
+            <p id="progressText">Testing question 0/0</p>
+        </div>
+
+        <div id="testResults" style="display: none;">
+            <h3>Test Results</h3>
+            <button onclick="downloadResults()" id="downloadBtn">Download Results (CSV)</button>
+            <div id="resultsContainer"></div>
+        </div>
+    </div>
 
     <script>
         // Get planId from URL
         const planId = new URLSearchParams(window.location.search).get('planId');
+        let chatbotId = null;
+
         if (!planId) {
             console.error('No planId provided in URL');
         } else {
@@ -31,7 +58,7 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    const chatbotId = data.chatbot.chatbot_id;
+                    chatbotId = data.chatbot.chatbot_id;
                     // Add the component script with the chatbot ID
                     const script = document.createElement('script');
                     script.src = '/chatbot/api/frontend/component.js';
@@ -44,6 +71,115 @@
             .catch(error => {
                 console.error('Error:', error);
             });
+        }
+
+        // Bulk testing functionality
+        let testResults = [];
+
+        async function validateFile(file) {
+            const text = await file.text();
+            const lines = text.split('\n').filter(line => line.trim());
+            
+            if (lines.length > 100) {
+                throw new Error('File contains more than 100 questions');
+            }
+            
+            return lines;
+        }
+
+        async function startBulkTest() {
+            const fileInput = document.getElementById('questionsFile');
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                alert('Please select a file first');
+                return;
+            }
+            
+            if (!file.name.endsWith('.txt')) {
+                alert('Please upload a .txt file');
+                return;
+            }
+
+            try {
+                const questions = await validateFile(file);
+                document.getElementById('testProgress').style.display = 'block';
+                document.getElementById('startTestBtn').disabled = true;
+                testResults = [];
+
+                for (let i = 0; i < questions.length; i++) {
+                    const question = questions[i].trim();
+                    if (!question) continue;
+
+                    // Update progress
+                    document.getElementById('progressText').textContent = `Testing question ${i + 1}/${questions.length}`;
+                    document.getElementById('progressFill').style.width = `${((i + 1) / questions.length) * 100}%`;
+
+                    try {
+                        const response = await fetch(`/chatbot/api/chat/${chatbotId}`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ message: question, chatId: -1 })
+                        });
+
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! status: ${response.status}`);
+                        }
+
+                        const data = await response.json();
+                        testResults.push({
+                            question: question,
+                            answer: data.message
+                        });
+
+                        // Update results display
+                        updateResultsDisplay();
+                    } catch (error) {
+                        console.error('Error testing question:', error);
+                        testResults.push({
+                            question: question,
+                            answer: 'Error: Failed to get response'
+                        });
+                    }
+                }
+
+                document.getElementById('startTestBtn').disabled = false;
+                document.getElementById('testResults').style.display = 'block';
+            } catch (error) {
+                alert(error.message);
+                document.getElementById('startTestBtn').disabled = false;
+            }
+        }
+
+        function updateResultsDisplay() {
+            const container = document.getElementById('resultsContainer');
+            container.innerHTML = testResults.map((result, index) => `
+                <div class="test-result">
+                    <h4>Q${index + 1}: ${result.question}</h4>
+                    <p>${result.answer}</p>
+                </div>
+            `).join('');
+        }
+
+        function downloadResults() {
+            let csv = 'Question,Answer\n';
+            
+            testResults.forEach(result => {
+                // Escape quotes and commas in the text
+                const escapedQuestion = result.question.replace(/"/g, '""');
+                const escapedAnswer = result.answer.replace(/"/g, '""');
+                csv += `"${escapedQuestion}","${escapedAnswer}"\n`;
+            });
+
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.setAttribute('hidden', '');
+            a.setAttribute('href', url);
+            a.setAttribute('download', 'chatbot_test_results.csv');
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
         }
     </script>
 </body>
