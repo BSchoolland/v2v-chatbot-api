@@ -3,6 +3,8 @@
 const express = require('express');
 const expressWs = require('express-ws');
 const router = express.Router();
+const jwt = require('jsonwebtoken');
+require('dotenv').config();
 
 // Enable WebSocket for this router
 expressWs(router);
@@ -28,6 +30,19 @@ router.post('/chat/:chatbotId', async (req, res) => {
     //     res.status(403).json({ error: 'Unauthorized origin' });
     //     return;
     // }
+
+    // Extract user ID from session token if it exists
+    const sessionToken = req.cookies?.session;
+    if (sessionToken) {
+        try {
+            const decoded = jwt.verify(sessionToken, process.env.JWT_SECRET);
+            req.userId = decoded.userId;
+        } catch (err) {
+            console.error('Invalid session token:', err);
+            // Don't fail the request, just continue without user ID
+        }
+    }
+
     if (!await checkRateLimit(req)) {
         res.status(429).json({ error: 'Rate limit exceeded. Please try again later.' });
         return;
