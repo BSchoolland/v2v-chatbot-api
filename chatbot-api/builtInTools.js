@@ -1,4 +1,4 @@
-const {db} = require('../database/database.js');
+const {db, dbAll} = require('../database/database.js');
 const { getPageByUrlAndWebsiteId } = require('../database/pages.js');
 const {getWebsiteById} = require('../database/websites.js');
 const wsManager = require('./wsManager');
@@ -14,7 +14,7 @@ tools = [
                 "properties": {
                     "path": {
                         "type": "string",
-                        "description": "The path to read from, for example '/' for the landing page of the website.",
+                        "description": "The full path of the page to read, e.g. https://www.example.com/page",
                     }
                 },
                 "required": ["path"],
@@ -39,6 +39,23 @@ tools = [
     //     },
     // },
 ]
+
+function getLevenshteinDistance(a, b) {
+    const dp = Array.from({ length: a.length + 1 }, () => Array(b.length + 1).fill(0));
+    for (let i = 0; i <= a.length; i++) dp[i][0] = i;
+    for (let j = 0; j <= b.length; j++) dp[0][j] = j;
+    for (let i = 1; i <= a.length; i++) {
+        for (let j = 1; j <= b.length; j++) {
+            const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+            dp[i][j] = Math.min(
+                dp[i - 1][j] + 1,
+                dp[i][j - 1] + 1,
+                dp[i - 1][j - 1] + cost
+            );
+        }
+    }
+    return dp[a.length][b.length];
+}
 
 // read the content of a page
 async function readPageContent(params, metadata) {
@@ -74,7 +91,41 @@ async function readPageContent(params, metadata) {
             return page.content;
         }
         console.warn('No information found for path', path);
-        return `No information found for path ${path}.  Are you sure you entered it correctly?`;
+
+        // Get all available paths
+        let paths = [];
+        console.log(metadata.websiteId);
+        paths = await dbAll('SELECT url FROM page WHERE website_id = ?', [metadata.websiteId]);
+
+        // Extract URLs from the database result
+        const pathUrls = paths.map(path => path.url);
+
+        // Calculate the most similar path based on substring
+        const paramsPath = params.path.slice(1).toLowerCase(); // Normalize for case-insensitive matching
+
+        // Count occurrences of the input substring in each URL
+        const scores = pathUrls.map(url => ({
+            url,
+            count: (url.toLowerCase().match(new RegExp(paramsPath, 'g')) || []).length // Count occurrences
+        }));
+
+        // Sort paths by count (descending) and resolve ties by original order
+        scores.sort((a, b) => b.count - a.count || pathUrls.indexOf(a.url) - pathUrls.indexOf(b.url));
+
+        // Get the best match, default to the first element if all scores are 0
+        let bestMatch = scores.every(score => score.count === 0) ? pathUrls[0] : scores[0].url;
+
+        // if one path ends with the input path, return that path
+        for (let i = 0; i < pathUrls.length; i++) {
+            if (pathUrls[i].endsWith(params.path)) {
+                bestMatch = pathUrls[i];
+            }
+        }
+
+        // Construct the message
+        const message = `You entered ${params.path}.  Please try again using a full path (e.g. www.example.com/page instead of just /page). The system also thinks you may be interested in: ${bestMatch}`;
+        console.log(message);
+        return message;
     }
 }
 
