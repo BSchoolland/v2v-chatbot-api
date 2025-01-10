@@ -34,7 +34,10 @@
 
         <div id="testResults" style="display: none;">
             <h3>Test Results</h3>
-            <button onclick="downloadResults()" id="downloadBtn">Download Results (CSV)</button>
+            <div class="download-buttons">
+                <button onclick="downloadResults('csv')" id="downloadCsvBtn">Download Results (CSV)</button>
+                <button onclick="downloadResults('txt')" id="downloadTxtBtn">Download Results (Text)</button>
+            </div>
             <div id="resultsContainer"></div>
         </div>
     </div>
@@ -103,6 +106,18 @@
 
             try {
                 const questions = await validateFile(file);
+                const numQuestions = questions.length;
+                
+                // Show credit usage warning
+                const proceed = confirm(
+                    `This bulk test will use ${numQuestions} credits from your plan ` +
+                    `(1 credit per question). \n\nDo you want to proceed with testing ${numQuestions} questions?`
+                );
+                
+                if (!proceed) {
+                    return;
+                }
+
                 document.getElementById('testProgress').style.display = 'block';
                 document.getElementById('startTestBtn').disabled = true;
                 testResults = [];
@@ -127,6 +142,13 @@
                         }
 
                         const data = await response.json();
+                        
+                        // Check if we ran out of credits
+                        if (data.error && data.error.includes('out of credits')) {
+                            alert('Plan out of credits. Testing stopped.');
+                            break;
+                        }
+
                         testResults.push({
                             question: question,
                             answer: data.message
@@ -161,22 +183,37 @@
             `).join('');
         }
 
-        function downloadResults() {
-            let csv = 'Question,Answer\n';
-            
-            testResults.forEach(result => {
-                // Escape quotes and commas in the text
-                const escapedQuestion = result.question.replace(/"/g, '""');
-                const escapedAnswer = result.answer.replace(/"/g, '""');
-                csv += `"${escapedQuestion}","${escapedAnswer}"\n`;
-            });
+        function downloadResults(format) {
+            if (format === 'csv') {
+                let csv = 'Question,Answer\n';
+                
+                testResults.forEach(result => {
+                    // Escape quotes and commas in the text
+                    const escapedQuestion = result.question.replace(/"/g, '""');
+                    const escapedAnswer = result.answer.replace(/"/g, '""');
+                    csv += `"${escapedQuestion}","${escapedAnswer}"\n`;
+                });
 
-            const blob = new Blob([csv], { type: 'text/csv' });
+                downloadFile(csv, 'chatbot_test_results.csv', 'text/csv');
+            } else if (format === 'txt') {
+                let text = 'CHATBOT TEST RESULTS\n\n';
+                
+                testResults.forEach((result, index) => {
+                    text += `Question ${index + 1}: ${result.question}\n`;
+                    text += `Answer: ${result.answer}\n\n`;
+                });
+
+                downloadFile(text, 'chatbot_test_results.txt', 'text/plain');
+            }
+        }
+
+        function downloadFile(content, filename, type) {
+            const blob = new Blob([content], { type: type });
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.setAttribute('hidden', '');
             a.setAttribute('href', url);
-            a.setAttribute('download', 'chatbot_test_results.csv');
+            a.setAttribute('download', filename);
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
