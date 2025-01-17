@@ -4,7 +4,7 @@ const getCleanHtmlContent = require('./htmlProcessing.js');
 const summarizeContent = require('./summarizeContent.js');
 
 class ActiveJob {
-    constructor(baseUrl, chatbotId, maxDepth = 5, maxPages = 50) { // TODO: think more about the maxPages parameter. Should it be higher? Should it also apply to external links?
+    constructor(baseUrl, chatbotId, maxDepth = 5, maxPages = 500) { // TODO: think more about the maxPages parameter. Should it be higher? Should it also apply to external links?
         this.baseUrl = baseUrl;
         this.chatbotId = chatbotId;
         this.completedPages = [];
@@ -18,7 +18,7 @@ class ActiveJob {
         this.visitedUrls.add(baseUrl);
         this.endTime = null;
         this.done = false;
-        this.processing = 0;
+        this.processingUrls = new Set();
         // flags for initialization
         this.websiteId = null;
         this.isReady = false;
@@ -82,17 +82,17 @@ class ActiveJob {
     needsWork() {
         // Return true if there are pages in the queue or external links to process
         // and we haven't hit our max pages limit
-        return (!this.done && 
-                (this.queue.length > 0 || (!this.externalQueued && this.externalLinks.size > 0)) && 
-                this.completedPages.length < this.maxPages);
+        return (!this.done && (this.queue.length > 0 || (!this.externalQueued && this.externalLinks.size > 0)));
     }
 
     getNextPage() {
-        if (this.queue.length === 0 || this.completedPages.length >= this.maxPages) {
+        if (this.queue.length === 0) {
+            console.error("page was requested but no pages in queue");
             return null;
         }
-        this.processing++;
-        return this.queue.shift();
+        const nextPage = this.queue.shift();
+        this.processingUrls.add(nextPage.url);
+        return nextPage;
     }
     async addCompletedPage(url, allLinks, content) {
         try {
@@ -156,9 +156,9 @@ class ActiveJob {
             });
         }
     }
-    async markPageComplete() {
-        this.processing--;
-        if (this.processing === 0 && this.queue.length === 0) {
+    async markPageComplete(url) {
+        this.processingUrls.delete(url);
+        if (this.processingUrls.size === 0 && this.queue.length === 0) {
             if (!this.externalQueued) {
                 console.log('Adding external links to the queue');
                 // add all the external links to the queue
@@ -274,13 +274,17 @@ class ActiveJob {
         const nextPage = this.getNextPage();
         if (!nextPage) {
             pageObj.assigned = false;
-            return;
+            return 'no page';
         }
 
         const page = pageObj.page;
         try {
-            // Navigate to the URL
+            // Navigate to the URL and get the final URL after any redirects
             await page.goto(nextPage.url, { waitUntil: 'networkidle0', timeout: 30000 });
+            const finalUrl = page.url(); // Get the final URL after any redirects
+            
+            // Check if the page redirected to an external URL
+            const isExternal = !finalUrl.startsWith(this.baseUrl);
 
             // Get page content
             const content = await page.content();
@@ -295,17 +299,21 @@ class ActiveJob {
 
             // Add unique links to the queue
             const uniqueLinks = [...new Set(links)];
-            this.addLinks(uniqueLinks, nextPage.depth);
+            // Only add links to queue if the page is still internal after redirects
+            if (!isExternal) {
+                this.addLinks(uniqueLinks, nextPage.depth);
+            }
 
-            // Add the completed page
-            await this.addCompletedPage(nextPage.url, uniqueLinks, content);
-            await this.markPageComplete();
+            // Add the completed page with the final URL and external status
+            await this.addCompletedPage(finalUrl, uniqueLinks, content);
+            await this.markPageComplete(nextPage.url);
         } catch (error) {
             console.error(`Error processing page ${nextPage.url}:`, error);
             // Still mark the page as complete to avoid getting stuck
-            await this.markPageComplete();
+            await this.markPageComplete(nextPage.url);
         } finally {
             pageObj.assigned = false;
+            return 'page processed';
         }
     }
 }

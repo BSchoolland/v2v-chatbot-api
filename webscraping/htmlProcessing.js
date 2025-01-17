@@ -3,12 +3,15 @@ const { JSDOM } = require('jsdom');
 
 // Define the function
 async function getCleanHtmlContent(content, keepAttributes = ['href', 'alt', 'id']) {
+    // Strip style tags before JSDOM parsing to prevent CSS parsing errors
+    content = content.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '');
+    
     // href allows for navigation, alt allows for accessibility, id allows for identification
     const dom = new JSDOM(content);
     const { document, Node } = dom.window; // Define Node for easier reference
 
-    // Remove scripts, styles, and comments
-    document.querySelectorAll('script, style').forEach(el => el.remove());
+    // Remove scripts and comments
+    document.querySelectorAll('script').forEach(el => el.remove());
     document.querySelectorAll('comment').forEach(comment => comment.remove());
 
     function cleanNode(node) {
