@@ -117,6 +117,8 @@ class ScraperManager {
                             tasks.push(job.processPage(page));
                             page.assigned = true;
                             foundWork = true;
+                        } else {
+                            console.log(`Job ${jobIndex} does not need work because it has ${job.queue.length} pages in the queue and ${job.completedPages.length} pages completed`);
                         }
                         jobIndex = (jobIndex + 1) % this.activeJobs.length;
                         attempts++;

@@ -279,8 +279,12 @@ class ActiveJob {
 
         const page = pageObj.page;
         try {
-            // Navigate to the URL
+            // Navigate to the URL and get the final URL after any redirects
             await page.goto(nextPage.url, { waitUntil: 'networkidle0', timeout: 30000 });
+            const finalUrl = page.url(); // Get the final URL after any redirects
+            
+            // Check if the page redirected to an external URL
+            const isExternal = !finalUrl.startsWith(this.baseUrl);
 
             // Get page content
             const content = await page.content();
@@ -295,10 +299,13 @@ class ActiveJob {
 
             // Add unique links to the queue
             const uniqueLinks = [...new Set(links)];
-            this.addLinks(uniqueLinks, nextPage.depth);
+            // Only add links to queue if the page is still internal after redirects
+            if (!isExternal) {
+                this.addLinks(uniqueLinks, nextPage.depth);
+            }
 
-            // Add the completed page
-            await this.addCompletedPage(nextPage.url, uniqueLinks, content);
+            // Add the completed page with the final URL and external status
+            await this.addCompletedPage(finalUrl, uniqueLinks, content);
             await this.markPageComplete();
         } catch (error) {
             console.error(`Error processing page ${nextPage.url}:`, error);
