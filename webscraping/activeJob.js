@@ -4,7 +4,7 @@ const getCleanHtmlContent = require('./htmlProcessing.js');
 const summarizeContent = require('./summarizeContent.js');
 
 class ActiveJob {
-    constructor(baseUrl, chatbotId, maxDepth = 5, maxPages = 50) { // TODO: think more about the maxPages parameter. Should it be higher? Should it also apply to external links?
+    constructor(baseUrl, chatbotId, maxDepth = 5, maxPages = 500) { // TODO: think more about the maxPages parameter. Should it be higher? Should it also apply to external links?
         this.baseUrl = baseUrl;
         this.chatbotId = chatbotId;
         this.completedPages = [];
