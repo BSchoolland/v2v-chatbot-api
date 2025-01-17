@@ -117,12 +117,16 @@ class ScraperManager {
                             tasks.push(job.processPage(page));
                             page.assigned = true;
                             foundWork = true;
+                        } else {
+                            console.log('no work found for job', jobIndex);
+                            console.log('job queue length', job.queue.length);
+                            console.log('job is processing', job.processingUrls.size);
                         }
                         jobIndex = (jobIndex + 1) % this.activeJobs.length;
                         attempts++;
                     }
                 }
-
+                console.log('tasks', tasks);
                 if (tasks.length === 0) {
                     this.waited += 100;
                     // FIXME: this is a hack to prevent the scraper from hanging indefinitely,
@@ -143,9 +147,8 @@ class ScraperManager {
                     continue;
                 }
                 this.waited = 0;
-        
                 await Promise.race([
-                    Promise.race(tasks),
+                    Promise.all(tasks),
                     new Promise((resolve, reject) => {
                         setTimeout(() => {
                             this.pages.forEach(p => p.assigned = false);
