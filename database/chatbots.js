@@ -75,6 +75,12 @@ async function editChatbotQuestions(chatbotId, questions) {
     return chatbot;
 }
 
+// edit a chatbot's contact info
+async function editChatbotContactInfo(chatbotId, contactInfo) {
+    const chatbot = await dbRun('UPDATE chatbots SET contact_info = ? WHERE chatbot_id = ?', [contactInfo, chatbotId]);
+    return chatbot;
+}
+
 // TODO: make this more efficient by storing the full system prompt, rather than having to rebuild it every time
 async function getSystemPrompt(chatbotId) {
     let chatbot = await getChatbotById(chatbotId);
@@ -173,6 +179,7 @@ module.exports = {
     editChatbotSystemPrompt,
     editChatbotInitialMessage,
     editChatbotQuestions,
+    editChatbotContactInfo,
     assignWebsiteIdToChatbot,
     getSystemPrompt,
     getInitialMessage,
