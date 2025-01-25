@@ -18,9 +18,15 @@ const { storeConversation } = require('../database/conversations');
 const path = require('path');
 const { dbGet } = require('../database/database');
 
+// Initialize chat session
+router.get('/init-chat', (req, res) => {
+    const chatId = getSessionId();
+    res.json({ chatId });
+});
+
 // WebSocket route
 router.ws('/ws', (ws, req) => {
-    console.log('WebSocket connection request received');
+    // The wsManager will handle the connection details
 });
 
 router.post('/chat/:chatbotId', async (req, res) => {
@@ -40,12 +46,12 @@ router.post('/chat/:chatbotId', async (req, res) => {
             req.userId = decoded.userId;
         } catch (err) {
             console.error('Invalid session token:', err);
-            // Don't fail the request, just continue without user ID
+            // Don't fail the request, just continue without user ID.  This is a user using a client's chatbot
         }
     }
 
     if (!await checkRateLimit(req)) {
-        res.status(429).json({ error: 'Rate limit exceeded. Please try again later.' });
+        res.status(429).json({ error: 'Sorry, you\'ve run out of messages for today.  Please try again later.' });
         return;
     }
 
@@ -102,7 +108,6 @@ router.get('/frontend/user.png', (req, res) => {
 });
 
 router.get('/frontend/send.png', (req, res) => {
-    console.log('Sending send.png');
     res.sendFile(path.join(__dirname, '../chatbot-frontend/send.png'));
 });
 

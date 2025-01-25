@@ -1,7 +1,6 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const { initializeDatabase } = require('./database/database.js');
-const { migrate } = require('./database/migrate.js');
 const { dbRun, dbGet, dbAll } = require('./database/database.js');
 const { ScraperManager } = require('./webscraping/scraperManager.js');
 const { scheduleCreditRenewal } = require('./services/scheduler.js');
@@ -26,8 +25,6 @@ const wsInstance = expressWs(app, server, {
 
 // Initialize WebSocket manager with the express-ws instance
 wsManager.initialize(wsInstance.getWss());
-
-const port = 3000;
 
 // allow all cors origins as this is a public api
 const cors = require('cors');
@@ -63,15 +60,15 @@ const scraperManager = new ScraperManager();
 
 async function startServer() {
     try {
-        // Run database migrations
-        await migrate(dbGet, dbRun, dbAll);
+        // Initialize database and run migrations
+        await initializeDatabase(dbGet, dbRun, dbAll);
         
         // Initialize credit renewal scheduler
         scheduleCreditRenewal();
         
-        // Start the server
+        // Start the server using the http server instance
         const port = process.env.PORT || 3000;
-        app.listen(port, () => {
+        server.listen(port, () => {
             console.log(`Server is running on port ${port}`);
         });
     } catch (error) {

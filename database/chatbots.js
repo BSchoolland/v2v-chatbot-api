@@ -2,6 +2,8 @@ const { dbRun, dbGet, generateUniqueId } = require('./database.js');
 const { getWebsiteById } = require('./websites.js');
 const { getPagesByWebsite } = require('./pages.js');
 const { version } = require('./migrate.js');
+const { isModelAvailableForPlanType, getDefaultModel } = require('./models.js');
+const { getPlan } = require('./plans.js');
 
 // schema:
 // chatbot_id TEXT PRIMARY KEY,
@@ -19,6 +21,22 @@ const { version } = require('./migrate.js');
 
 // create a chatbot
 async function createChatbot(plan_id, name, model_id, system_prompt, website_id, initial_message = '', questions = '') {
+    // Get the plan to check the plan type
+    const plan = await getPlan(plan_id);
+    if (!plan) {
+        throw new Error('Plan not found');
+    }
+
+    // If no model_id is provided or if the model is not available for this plan type,
+    // use the default model
+    if (!model_id || !(await isModelAvailableForPlanType(model_id, plan.plan_type_id))) {
+        const defaultModel = await getDefaultModel();
+        if (!defaultModel) {
+            throw new Error('Default model not found');
+        }
+        model_id = defaultModel.model_id;
+    }
+
     const chatbot_id = await generateUniqueId('chatbots', 'chatbot_id');
     const chatbot = await dbRun(
         'INSERT INTO chatbots (chatbot_id, plan_id, name, model_id, system_prompt, website_id, initial_message, questions, version) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)', 
@@ -75,9 +93,38 @@ async function editChatbotQuestions(chatbotId, questions) {
     return chatbot;
 }
 
+// edit a chatbot's model
+async function editChatbotModel(chatbotId, modelId) {
+    // Get the chatbot to find its plan
+    const chatbot = await getChatbotById(chatbotId);
+    if (!chatbot) {
+        throw new Error('Chatbot not found');
+    }
+
+    // Get the plan to check the plan type
+    const plan = await getPlan(chatbot.plan_id);
+    if (!plan) {
+        throw new Error('Plan not found');
+    }
+
+    // Validate that the model is available for this plan type
+    if (!(await isModelAvailableForPlanType(modelId, plan.plan_type_id))) {
+        throw new Error('Model not available for this plan type');
+    }
+
+    const result = await dbRun('UPDATE chatbots SET model_id = ? WHERE chatbot_id = ?', [modelId, chatbotId]);
+    return result;
+}
+
 // edit a chatbot's contact info
 async function editChatbotContactInfo(chatbotId, contactInfo) {
     const chatbot = await dbRun('UPDATE chatbots SET contact_info = ? WHERE chatbot_id = ?', [contactInfo, chatbotId]);
+    return chatbot;
+}
+
+// edit a chatbot's rate limit
+async function editChatbotRateLimit(chatbotId, rateLimit) {
+    const chatbot = await dbRun('UPDATE chatbots SET rate_limit = ? WHERE chatbot_id = ?', [rateLimit, chatbotId]);
     return chatbot;
 }
 
@@ -180,10 +227,12 @@ module.exports = {
     editChatbotInitialMessage,
     editChatbotQuestions,
     editChatbotContactInfo,
+    editChatbotRateLimit,
     assignWebsiteIdToChatbot,
     getSystemPrompt,
     getInitialMessage,
     getChatbotById,
     saveInitialConfig,
     resetConfig,
+    editChatbotModel,
 };

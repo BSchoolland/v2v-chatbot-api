@@ -1,9 +1,8 @@
 const { dbGet, dbRun } = require('../../database/database.js');
 
 // Rate limit window in milliseconds
-// (5 requests per hour)
-const WINDOW_MS = 60 * 60 * 1000; // 1 hour
-const MAX_REQUESTS = 5;
+const WINDOW_MS = 24 * 60 * 60 * 1000; // 24 hours (1 day)
+const DEFAULT_RATE_LIMIT = 1000; // Default rate limit if not specified in database (messages per day)
 
 async function generateVisitorId(req) {
     const ip = req.ip || req.connection.remoteAddress;
@@ -31,6 +30,16 @@ async function userOwnsChatbot(userId, chatbotId) {
     }
 }
 
+async function getChatbotRateLimit(chatbotId) {
+    try {
+        const chatbot = await dbGet('SELECT rate_limit FROM chatbots WHERE chatbot_id = ?', [chatbotId]);
+        return chatbot?.rate_limit || DEFAULT_RATE_LIMIT;
+    } catch (error) {
+        console.error('Error fetching chatbot rate limit:', error);
+        return DEFAULT_RATE_LIMIT;
+    }
+}
+
 async function checkRateLimit(req) {
     // If user is authenticated and owns the chatbot, bypass rate limiting
     if (req.userId && req.params.chatbotId) {
@@ -42,6 +51,9 @@ async function checkRateLimit(req) {
 
     const visitorId = await generateVisitorId(req);
     const now = Date.now();
+    
+    // Get the chatbot's rate limit
+    const maxRequests = await getChatbotRateLimit(req.params.chatbotId);
     
     // First clean up old records
     await dbRun(`
@@ -56,7 +68,7 @@ async function checkRateLimit(req) {
         WHERE visitor_id = ? AND timestamp > ?
     `, [visitorId, now - WINDOW_MS]);
     
-    if (count.count >= MAX_REQUESTS) {
+    if (count.count >= maxRequests) {
         return false; // Rate limit exceeded
     }
     
