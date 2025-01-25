@@ -1,7 +1,6 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const { initializeDatabase } = require('./database/database.js');
-const { migrate } = require('./database/migrate.js');
 const { dbRun, dbGet, dbAll } = require('./database/database.js');
 const { ScraperManager } = require('./webscraping/scraperManager.js');
 const { scheduleCreditRenewal } = require('./services/scheduler.js');
@@ -61,8 +60,8 @@ const scraperManager = new ScraperManager();
 
 async function startServer() {
     try {
-        // Run database migrations
-        await migrate(dbGet, dbRun, dbAll);
+        // Initialize database and run migrations
+        await initializeDatabase(dbGet, dbRun, dbAll);
         
         // Initialize credit renewal scheduler
         scheduleCreditRenewal();

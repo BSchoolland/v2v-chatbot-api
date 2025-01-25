@@ -56,6 +56,35 @@
         .reset-button:hover {
             background-color: #ff7000;
         }
+        .model-option {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            margin: 5px 0;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .model-option:hover {
+            background-color: #f8f9fa;
+        }
+        .model-option input[type="radio"] {
+            margin-right: 10px;
+        }
+        .model-option .model-info {
+            flex-grow: 1;
+        }
+        .model-option .model-name {
+            font-weight: bold;
+        }
+        .model-option .model-description {
+            font-size: 0.9em;
+            color: #666;
+        }
+        .model-option .model-cost {
+            font-size: 0.9em;
+            color: #28a745;
+        }
     </style>
 </head>
 <body>
@@ -67,6 +96,13 @@
         <div class="form-group">
             <label for="chatbotName">Chatbot Name:</label>
             <input type="text" id="chatbotName" name="chatbotName" required>
+        </div>
+        <div class="form-group">
+            <label>Model Selection:</label>
+            <div id="modelOptions">
+                <!-- Models will be added here dynamically -->
+            </div>
+            <small>Choose the AI model that will power your chatbot. Different models have different capabilities and costs.</small>
         </div>
         <div class="form-group">
             <label for="systemPrompt">System Prompt:</label>
@@ -199,6 +235,9 @@
                 if (questions.length === 0) {
                     addQuestion();
                 }
+
+                // Load available models
+                loadAvailableModels(chatbot.model_id);
             } else {
                 alert('Error fetching chatbot details');
                 window.location.href = '/dashboard.html';
@@ -296,26 +335,104 @@
             }
         }
 
-        // Modify the existing loadChatbotData function to show/hide reset button
-        async function loadChatbotData() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const chatbotId = urlParams.get('id');
-            
+        // Add function to load available models
+        async function loadAvailableModels(currentModelId) {
             try {
-                const response = await fetch(`/api/chatbot/${chatbotId}`);
-                const chatbot = await response.json();
+                const response = await fetch(`/website/api/chatbot-setup/available-models?planId=${planId}`, {
+                    method: 'GET',
+                    credentials: 'include'
+                });
                 
-                document.getElementById('chatbotName').value = chatbot.name || '';
-                document.getElementById('systemPrompt').value = chatbot.system_prompt || '';
-                document.getElementById('initialMessage').value = chatbot.initial_message || '';
+                if (!response.ok) {
+                    throw new Error('Failed to fetch available models');
+                }
                 
-                // Show reset button only if AI config has been completed
-                document.getElementById('resetButton').style.display = chatbot.ai_config_completed ? 'block' : 'none';
-                
-                // ... rest of the existing function ...
+                const data = await response.json();
+                if (!data.success) {
+                    throw new Error(data.message || 'Failed to fetch available models');
+                }
+
+                const modelOptionsContainer = document.getElementById('modelOptions');
+                modelOptionsContainer.innerHTML = ''; // Clear existing options
+
+                data.models.forEach(model => {
+                    const modelDiv = document.createElement('div');
+                    modelDiv.className = 'model-option';
+                    
+                    const radio = document.createElement('input');
+                    radio.type = 'radio';
+                    radio.name = 'model';
+                    radio.value = model.model_id;
+                    radio.id = `model-${model.model_id}`;
+                    radio.checked = model.model_id === currentModelId;
+                    radio.onchange = () => updateModel(model.model_id);
+
+                    const label = document.createElement('label');
+                    label.htmlFor = `model-${model.model_id}`;
+                    label.className = 'model-info';
+                    
+                    const nameDiv = document.createElement('div');
+                    nameDiv.className = 'model-name';
+                    nameDiv.textContent = model.name;
+                    
+                    const descDiv = document.createElement('div');
+                    descDiv.className = 'model-description';
+                    descDiv.textContent = model.description;
+                    
+                    const costDiv = document.createElement('div');
+                    costDiv.className = 'model-cost';
+                    costDiv.textContent = `${model.message_cost} credit${model.message_cost > 1 ? 's' : ''} per message`;
+
+                    label.appendChild(nameDiv);
+                    label.appendChild(descDiv);
+                    label.appendChild(costDiv);
+
+                    modelDiv.appendChild(radio);
+                    modelDiv.appendChild(label);
+                    modelOptionsContainer.appendChild(modelDiv);
+                });
             } catch (error) {
-                console.error('Error loading chatbot data:', error);
-                alert('Failed to load chatbot data');
+                console.error('Error loading models:', error);
+                alert('Failed to load available models: ' + error.message);
+            }
+        }
+
+        // Add function to update model
+        async function updateModel(modelId) {
+            try {
+                const response = await fetch('/website/api/chatbot-setup/update-model', {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        planId: planId,
+                        modelId: modelId
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to update model');
+                }
+
+                const data = await response.json();
+                if (!data.success) {
+                    throw new Error(data.message || 'Failed to update model');
+                }
+
+                // No need to reload the page, the radio button will show the selection
+            } catch (error) {
+                console.error('Error updating model:', error);
+                alert('Failed to update model: ' + error.message);
+                // Reload available models to reset the selection
+                const chatbotResponse = await fetch(`/website/api/chatbot-setup/get-chatbot?planId=${planId}`, {
+                    credentials: 'include'
+                });
+                const chatbotData = await chatbotResponse.json();
+                if (chatbotData.success) {
+                    loadAvailableModels(chatbotData.chatbot.model_id);
+                }
             }
         }
     </script>

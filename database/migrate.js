@@ -19,6 +19,7 @@ async function chatbotMigration(dbGet, dbRun, dbAll) {
         { name: 'initial_config_message', type: 'TEXT' },
         { name: 'initial_config_questions', type: 'TEXT' },
         { name: 'ai_config_completed', type: 'INTEGER DEFAULT 0' },
+        { name: 'model_id', type: 'INTEGER' },
         { name: 'contact_info', type: 'TEXT' },
         { name: 'rate_limit', type: 'INTEGER DEFAULT 25' }  // Default to 25 messages per day
     ];
@@ -41,6 +42,18 @@ async function chatbotMigration(dbGet, dbRun, dbAll) {
             await dbRun('UPDATE chatbots SET version = ?, initial_message = ?, questions = ?, contact_info = ? WHERE chatbot_id = ?', 
                 [version, defaultInitialMessage, defaultQuestions, defaultContactInfo, chatbot.chatbot_id]);
         }
+    }
+
+    // Handle chatbots without a model_id
+    console.log('Checking for chatbots without a model_id...');
+    const chatbotsWithoutModel = await dbAll('SELECT chatbot_id FROM chatbots WHERE model_id IS NULL');
+    if (chatbotsWithoutModel.length > 0) {
+        console.log(`Found ${chatbotsWithoutModel.length} chatbots without a model_id, assigning default model...`);
+        await dbRun(`
+            UPDATE chatbots 
+            SET model_id = (SELECT model_id FROM models WHERE name = 'default')
+            WHERE model_id IS NULL
+        `);
     }
 }
 
@@ -118,7 +131,82 @@ async function planTypeMigration(dbGet, dbRun, dbAll) {
     }
 }
 
+async function modelMigration(dbGet, dbRun, dbAll) {
+    console.log('Migrating models if necessary...');
+
+    // Add the new models if they don't exist
+    const models = [
+        {
+            name: 'default',
+            description: 'Default model - periodically updated by developers',
+            max_context: 8192,
+            api_string: 'gpt-4o-mini',
+            service: 'openai',
+            message_cost: 1
+        },
+        {
+            name: 'gpt-4o-mini',
+            description: 'OpenAI GPT-4o-mini model',
+            max_context: 8192,
+            api_string: 'gpt-4o-mini',
+            service: 'openai',
+            message_cost: 1
+        },
+        {
+            name: 'gpt-4o',
+            description: 'OpenAI GPT-4o model',
+            max_context: 8192,
+            api_string: 'gpt-4o',
+            service: 'openai',
+            message_cost: 2
+        }
+    ];
+
+    for (const model of models) {
+        const exists = await dbGet('SELECT 1 FROM models WHERE name = ?', [model.name]);
+        if (!exists) {
+            console.log(`Adding model: ${model.name}`);
+            await dbRun(
+                `INSERT INTO models (name, description, max_context, api_string, service, message_cost) 
+                 VALUES (?, ?, ?, ?, ?, ?)`,
+                [model.name, model.description, model.max_context, model.api_string, model.service, model.message_cost]
+            );
+        }
+    }
+
+    // Set up plan type model relationships
+    // Get model IDs
+    const defaultModel = await dbGet('SELECT model_id FROM models WHERE name = ?', ['default']);
+    const gpt4oMini = await dbGet('SELECT model_id FROM models WHERE name = ?', ['gpt-4o-mini']);
+    const gpt4o = await dbGet('SELECT model_id FROM models WHERE name = ?', ['gpt-4o']);
+
+    // Set up relationships - Free plan gets default only, Basic gets default and gpt4o-mini, Pro gets all
+    const planModelRelations = [
+        { plan_type_id: 0, model_id: defaultModel.model_id },  // Free plan - default only
+        { plan_type_id: 1, model_id: defaultModel.model_id },  // Basic plan - default
+        { plan_type_id: 1, model_id: gpt4oMini.model_id },    // Basic plan - gpt4o-mini
+        { plan_type_id: 2, model_id: defaultModel.model_id },  // Pro plan - default
+        { plan_type_id: 2, model_id: gpt4oMini.model_id },    // Pro plan - gpt4o-mini
+        { plan_type_id: 2, model_id: gpt4o.model_id }         // Pro plan - gpt4o
+    ];
+
+    for (const relation of planModelRelations) {
+        const exists = await dbGet(
+            'SELECT 1 FROM plan_type_model WHERE plan_type_id = ? AND model_id = ?',
+            [relation.plan_type_id, relation.model_id]
+        );
+        if (!exists) {
+            console.log(`Adding plan type model relation: plan_type_id=${relation.plan_type_id}, model_id=${relation.model_id}`);
+            await dbRun(
+                'INSERT INTO plan_type_model (plan_type_id, model_id) VALUES (?, ?)',
+                [relation.plan_type_id, relation.model_id]
+            );
+        }
+    }
+}
+
 async function migrate(dbGet, dbRun, dbAll) {
+    await modelMigration(dbGet, dbRun, dbAll);
     await chatbotMigration(dbGet, dbRun, dbAll);
     await conversationMigration(dbGet, dbRun, dbAll);
     await planTypeMigration(dbGet, dbRun, dbAll);

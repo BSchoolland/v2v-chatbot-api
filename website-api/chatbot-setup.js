@@ -6,9 +6,10 @@ const {ScraperManager} = require('../webscraping/scraperManager');
 
 const { authMiddleware } = require('./middleware');
 
-const { createChatbot, getChatbotFromPlanId, editChatbotName, editChatbotSystemPrompt, editChatbotInitialMessage, editChatbotQuestions, editChatbotContactInfo, editChatbotRateLimit, assignWebsiteIdToChatbot, resetConfig } = require('../database/chatbots');
+const { createChatbot, getChatbotFromPlanId, editChatbotName, editChatbotSystemPrompt, editChatbotInitialMessage, editChatbotQuestions, editChatbotContactInfo, editChatbotRateLimit, assignWebsiteIdToChatbot, resetConfig, editChatbotModel } = require('../database/chatbots');
 
 const { getPlan, setChatbotIdForPlan } = require('../database/plans');
+const { getAvailableModelsForPlanType } = require('../database/models');
 
 const { automateConfiguration } = require('./automated-config');
 
@@ -22,28 +23,32 @@ async function userOwnsPlan(userId, planId) {
 
 // create a chatbot
 router.post('/create-chatbot', authMiddleware, async (req, res) => {
-    const userId = req.userId;
-    const planId = req.body.planId;
-    // make sure the user owns the plan
-    const ownsThisPlan = await userOwnsPlan(userId, planId);
-    if (!ownsThisPlan) {
-        return res.status(403).json({ success: false, message: 'Unauthorized' });
+    try {
+        const userId = req.userId;
+        const planId = req.body.planId;
+        // make sure the user owns the plan
+        const ownsThisPlan = await userOwnsPlan(userId, planId);
+        if (!ownsThisPlan) {
+            return res.status(403).json({ success: false, message: 'Unauthorized' });
+        }
+        const chatbotName = req.body.name;
+        // make sure there is not already a chatbot with this planId
+        const existingChatbot = await getChatbotFromPlanId(planId);
+        if (existingChatbot) {
+            return res.status(200).json({ success: true, chatbotId: existingChatbot.chatbot_id });
+        }
+        // Start with minimal default values
+        const systemPrompt = "";
+        const websiteId = -1;
+        const initialMessage = "";
+        const questions = "[]";  // Empty array as JSON string
+        const chatbotId = await createChatbot(planId, chatbotName, null, systemPrompt, websiteId, initialMessage, questions);
+        await setChatbotIdForPlan(planId, chatbotId);
+        res.status(200).json({ success: true, chatbotId: chatbotId });
+    } catch (error) {
+        console.error('Error creating chatbot:', error);
+        res.status(500).json({ success: false, message: 'Internal server error' });
     }
-    const chatbotName = req.body.name;
-    // make sure there is not already a chatbot with this planId
-    const existingChatbot = await getChatbotFromPlanId(planId);
-    if (existingChatbot) {
-        return res.status(200).json({ success: true, chatbotId: existingChatbot.chatbot_id });
-    }
-    // Start with minimal default values
-    const modelId = 1;
-    const systemPrompt = "";
-    const websiteId = -1;
-    const initialMessage = "";
-    const questions = "[]";  // Empty array as JSON string
-    const chatbotId = await createChatbot(planId, chatbotName, modelId, systemPrompt, websiteId, initialMessage, questions);
-    await setChatbotIdForPlan(planId, chatbotId);
-    res.status(200).json({ success: true, chatbotId: chatbotId });
 });
 
 router.get('/scrape-site-progress', authMiddleware, async (req, res) => {
@@ -202,6 +207,68 @@ router.post('/chatbot/:chatbotId/reset', async (req, res) => {
     } catch (error) {
         console.error('Error resetting chatbot configuration:', error);
         res.status(400).json({ error: error.message });
+    }
+});
+
+// Get available models for a plan type
+router.get('/available-models', authMiddleware, async (req, res) => {
+    try {
+        const userId = req.userId;
+        const planId = req.query.planId;
+        
+        // make sure the user owns the plan
+        const ownsThisPlan = await userOwnsPlan(userId, planId);
+        if (!ownsThisPlan) {
+            return res.status(403).json({ success: false, message: 'Unauthorized' });
+        }
+
+        // Get the plan to find its type
+        const plan = await getPlan(planId);
+        if (!plan) {
+            return res.status(404).json({ success: false, message: 'Plan not found' });
+        }
+
+        // Get available models for this plan type
+        const models = await getAvailableModelsForPlanType(plan.plan_type_id);
+        res.status(200).json({ success: true, models });
+    } catch (error) {
+        console.error('Error getting available models:', error);
+        res.status(500).json({ success: false, message: 'Internal server error' });
+    }
+});
+
+// Update chatbot model
+router.post('/update-model', authMiddleware, async (req, res) => {
+    try {
+        const userId = req.userId;
+        const { planId, modelId } = req.body;
+
+        if (!planId || !modelId) {
+            return res.status(400).json({ success: false, message: 'Missing required fields' });
+        }
+
+        // make sure the user owns the plan
+        const ownsThisPlan = await userOwnsPlan(userId, planId);
+        if (!ownsThisPlan) {
+            return res.status(403).json({ success: false, message: 'Unauthorized' });
+        }
+
+        // Get the chatbot
+        const chatbot = await getChatbotFromPlanId(planId);
+        if (!chatbot) {
+            return res.status(404).json({ success: false, message: 'Chatbot not found' });
+        }
+
+        // Update the model
+        await editChatbotModel(chatbot.chatbot_id, modelId);
+        res.status(200).json({ success: true });
+    } catch (error) {
+        console.error('Error updating chatbot model:', error);
+        if (error.message === 'Model not available for this plan type') {
+            res.status(400).json({ success: false, message: error.message });
+        } else {
+            res.status(500).json({ success: false, message: 'Internal server error' });
+        }
     }
 });
 
