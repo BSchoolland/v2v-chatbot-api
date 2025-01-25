@@ -18,9 +18,15 @@ const { storeConversation } = require('../database/conversations');
 const path = require('path');
 const { dbGet } = require('../database/database');
 
+// Initialize chat session
+router.get('/init-chat', (req, res) => {
+    const chatId = getSessionId();
+    res.json({ chatId });
+});
+
 // WebSocket route
 router.ws('/ws', (ws, req) => {
-    console.log('WebSocket connection request received');
+    // The wsManager will handle the connection details
 });
 
 router.post('/chat/:chatbotId', async (req, res) => {
@@ -102,7 +108,6 @@ router.get('/frontend/user.png', (req, res) => {
 });
 
 router.get('/frontend/send.png', (req, res) => {
-    console.log('Sending send.png');
     res.sendFile(path.join(__dirname, '../chatbot-frontend/send.png'));
 });
 

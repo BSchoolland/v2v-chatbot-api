@@ -130,7 +130,11 @@ async function getChatbotResponse(sessionId, chatbotId) {
         for (const tool_call of tool_calls) {
             try {
                 // Use the tool and get the result
-                const toolResult = await useTool(tool_call.function.name, tool_call.function.arguments, {chatbotId: chatbotId, websiteId: await getWebsiteId(chatbotId)});
+                const toolResult = await useTool(tool_call.function.name, tool_call.function.arguments, {
+                    chatbotId: chatbotId, 
+                    websiteId: await getWebsiteId(chatbotId),
+                    chatId: sessionId
+                });
                 
                 // Add the tool response to the session
                 appendMessageToSession(
