@@ -46,12 +46,12 @@ router.post('/chat/:chatbotId', async (req, res) => {
             req.userId = decoded.userId;
         } catch (err) {
             console.error('Invalid session token:', err);
-            // Don't fail the request, just continue without user ID
+            // Don't fail the request, just continue without user ID.  This is a user using a client's chatbot
         }
     }
 
     if (!await checkRateLimit(req)) {
-        res.status(429).json({ error: 'Rate limit exceeded. Please try again later.' });
+        res.status(429).json({ error: 'Sorry, you\'ve run out of messages for today.  Please try again later.' });
         return;
     }
 
