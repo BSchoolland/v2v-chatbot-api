@@ -13,9 +13,16 @@
             display: block;
             margin-bottom: 5px;
         }
-        .form-group input, .form-group textarea {
+        .form-group input, .form-group textarea, .form-group select {
             width: 100%;
             padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        .form-group select {
+            background-color: white;
+            cursor: pointer;
         }
         .questions-container {
             margin-top: 10px;
@@ -108,6 +115,23 @@
             <small>This is the first message users will see when they start chatting with your bot.  If left blank, there will not be an initial message.</small>
         </div>
         <div class="form-group">
+            <label for="contactInfo">Contact Information:</label>
+            <input type="text" id="contactInfo" name="contactInfo">
+            <small>Optional. Add an email (mailto:email@example.com), URL (https://example.com/contact) If provided, a "Talk to a human" button will appear in the chatbot. Leave blank to hide the button.</small>
+        </div>
+        <div class="form-group">
+            <label for="rateLimit">Rate Limit (messages per day):</label>
+            <select id="rateLimit" name="rateLimit" required>
+                <option value="5">5 messages per day</option>
+                <option value="15">15 messages per day</option>
+                <option value="25" selected>25 messages per day</option>
+                <option value="50">50 messages per day</option>
+                <option value="100">100 messages per day</option>
+                <option value="1000">Unlimited</option>
+            </select>
+            <small>Set how many messages a user can send per day. This can help save your credits and prevent abuse.</small>
+        </div>
+        <div class="form-group">
             <label>Suggested Questions:</label>
             <div id="questionsContainer" class="questions-container">
                 <!-- Questions will be added here dynamically -->
@@ -191,6 +215,17 @@
                 document.getElementById('chatbotName').value = chatbot.name;
                 document.getElementById('systemPrompt').value = chatbot.system_prompt;
                 document.getElementById('initialMessage').value = chatbot.initial_message || '';
+                document.getElementById('contactInfo').value = chatbot.contact_info || '';
+                
+                // Set rate limit dropdown
+                const rateLimitSelect = document.getElementById('rateLimit');
+                const rateLimit = chatbot.rate_limit || 25;
+                // Find the closest valid option
+                const validLimits = [5, 15, 25, 50, 100, 1000];
+                const closestLimit = validLimits.reduce((prev, curr) => 
+                    Math.abs(curr - rateLimit) < Math.abs(prev - rateLimit) ? curr : prev
+                );
+                rateLimitSelect.value = closestLimit;
                 
                 // Add existing questions
                 const questions = chatbot.questions ? JSON.parse(chatbot.questions) : [];
@@ -218,6 +253,8 @@
             const chatbotName = document.getElementById('chatbotName').value;
             const systemPrompt = document.getElementById('systemPrompt').value;
             const initialMessage = document.getElementById('initialMessage').value;
+            const contactInfo = document.getElementById('contactInfo').value;
+            const rateLimit = document.getElementById('rateLimit').value;
             
             // Collect all questions
             const questionInputs = document.getElementsByClassName('question-input');
@@ -236,7 +273,9 @@
                     name: chatbotName,
                     systemPrompt: systemPrompt,
                     initialMessage: initialMessage,
-                    questions: JSON.stringify(questions)
+                    questions: JSON.stringify(questions),
+                    contactInfo: contactInfo.trim(),
+                    rateLimit: rateLimit
                 })
             })
             .then(response => response.json())

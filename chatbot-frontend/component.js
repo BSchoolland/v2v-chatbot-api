@@ -107,7 +107,15 @@
                 isError = true;
             }
             appendMessage(chatbox, botMessageHtml, `${baseUrl}/chatbot/api/frontend/chatbot-logo.png`, false, isError);
-            chatId = data.chatId;
+            
+            // If chatId changed, reconnect WebSocket with new chatId
+            if (chatId !== data.chatId) {
+                chatId = data.chatId;
+                if (ws) {
+                    ws.close();
+                }
+                connectWebSocket();
+            }
         } catch (error) {
             console.error('Error sending message:', error);
             chatbox.removeChild(loadingContainer);
@@ -115,28 +123,37 @@
         }
     };
 
-    const initializeChatInterface = (shadow, baseUrl) => {
+    const initializeChatInterface = async (shadow, baseUrl) => {
         const chatbox = shadow.querySelector('.chatbox');
         let ws = null;
+
+        // Get initial chat ID
+        try {
+            const response = await fetch(`${baseUrl}/chatbot/api/init-chat`);
+            const data = await response.json();
+            chatId = data.chatId;
+        } catch (error) {
+            console.error('Error initializing chat:', error);
+        }
 
         /**
          * Establishes and manages WebSocket connection for real-time updates
          * Handles connection events, tool usage notifications, and automatic reconnection
          */
         const connectWebSocket = () => {
-            ws = new WebSocket(`${baseUrl.replace('http', 'ws')}/chatbot/api/ws`);
+            const wsUrl = new URL(`${baseUrl.replace('http', 'ws')}/chatbot/api/ws`);
+            wsUrl.searchParams.set('chatId', chatId);
+            ws = new WebSocket(wsUrl.toString());
             
             ws.onopen = () => {
-                console.log('Connected to WebSocket server');
             };
             
             ws.onmessage = (event) => {
                 const data = JSON.parse(event.data);
                 
-                if (data.type === 'tool_usage') {
+                if (data.type === 'tool_usage' && data.chatId === chatId) {
                     appendToolUsageIndicator(chatbox, data.toolName, data.reference);
                 } else if (data.type === 'connection_status') {
-                    console.log('WebSocket status:', data.status);
                 }
             };
 
@@ -145,7 +162,6 @@
             };
 
             ws.onclose = () => {
-                console.log('WebSocket connection closed');
                 // Attempt to reconnect after a delay
                 setTimeout(connectWebSocket, 3000);
             };
@@ -156,9 +172,6 @@
 
         /**
          * Creates a visual indicator for tool usage events
-         * @param {string} toolName - The name of the tool being used
-         * @param {string} reference - The reference being accessed by the tool
-         * @returns {HTMLElement} The created indicator element
          */
         const createToolUsageIndicator = (toolName, reference) => {
             const indicator = document.createElement('div');
@@ -169,9 +182,6 @@
 
         /**
          * Appends a tool usage indicator to the chatbox and scrolls to it
-         * @param {HTMLElement} chatbox - The chatbox element to append to
-         * @param {string} toolName - The name of the tool being used
-         * @param {string} reference - The reference being accessed by the tool
          */
         const appendToolUsageIndicator = (chatbox, toolName, reference) => {
             const indicator = createToolUsageIndicator(toolName, reference);
@@ -262,6 +272,39 @@
         closeButton.addEventListener('click', () => toggleChatVisibility(false));
         overlay.addEventListener('click', () => toggleChatVisibility(false));
 
+        // Add contact button handler
+        const contactButton = shadow.querySelector('.v2v-chatbot-contact');
+
+        // Check if contact info exists and show button if it does
+        const checkContactInfo = async () => {
+            try {
+                const response = await fetch(`${baseUrl}/chatbot/api/contact-info/${chatbotId}`);
+                const data = await response.json();
+                
+                if (data.contact_info && data.contact_info.trim() !== '') {
+                    contactButton.style.display = 'block';
+                    contactButton.href = data.contact_info;
+                    
+                    // Only add target="_blank" for http(s) links
+                    if (data.contact_info.startsWith('http')) {
+                        contactButton.setAttribute('target', '_blank');
+                        contactButton.textContent = 'Talk to a human';
+                    } else if (data.contact_info.startsWith('mailto:')) {
+                        contactButton.removeAttribute('target');
+                        const email = data.contact_info.replace('mailto:', '');
+                        contactButton.textContent = "Contact us at: " + email;
+                    } else {
+                        contactButton.removeAttribute('target');
+                        contactButton.textContent = data.contact_info;
+                    }
+                }
+            } catch (error) {
+                console.error('Error fetching contact info:', error);
+            }
+        };
+
+        checkContactInfo();
+
         submitButton.addEventListener('click', (e) => sendMessage(e, shadow));
 
         shadow.querySelector('.submit-button img').src = `${baseUrl}/chatbot/api/frontend/send.png`;
@@ -312,7 +355,7 @@
                 wrapper.innerHTML = await htmlResponse.text();
                 shadow.appendChild(wrapper);
 
-                initializeChatInterface(shadow, baseUrl);
+                await initializeChatInterface(shadow, baseUrl);
             } catch (error) {
                 console.error('Error loading styles or HTML:', error);
             }

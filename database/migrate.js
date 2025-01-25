@@ -19,7 +19,9 @@ async function chatbotMigration(dbGet, dbRun, dbAll) {
         { name: 'initial_config_message', type: 'TEXT' },
         { name: 'initial_config_questions', type: 'TEXT' },
         { name: 'ai_config_completed', type: 'INTEGER DEFAULT 0' },
-        { name: 'model_id', type: 'INTEGER' }
+        { name: 'model_id', type: 'INTEGER' },
+        { name: 'contact_info', type: 'TEXT' },
+        { name: 'rate_limit', type: 'INTEGER DEFAULT 25' }  // Default to 25 messages per day
     ];
 
     for (const column of columnsToAdd) {
@@ -36,8 +38,9 @@ async function chatbotMigration(dbGet, dbRun, dbAll) {
             console.log(`Migrating chatbot ${chatbot.chatbot_id}...`);
             const defaultInitialMessage = ''; // for other migrations, default may not just be an empty string
             const defaultQuestions = '';
-            await dbRun('UPDATE chatbots SET version = ?, initial_message = ?, questions = ? WHERE chatbot_id = ?', 
-                [version, defaultInitialMessage, defaultQuestions, chatbot.chatbot_id]);
+            const defaultContactInfo = ''; // default contact info is blank
+            await dbRun('UPDATE chatbots SET version = ?, initial_message = ?, questions = ?, contact_info = ? WHERE chatbot_id = ?', 
+                [version, defaultInitialMessage, defaultQuestions, defaultContactInfo, chatbot.chatbot_id]);
         }
     }
 

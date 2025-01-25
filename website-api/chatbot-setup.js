@@ -6,7 +6,7 @@ const {ScraperManager} = require('../webscraping/scraperManager');
 
 const { authMiddleware } = require('./middleware');
 
-const { createChatbot, getChatbotFromPlanId, editChatbotName, editChatbotSystemPrompt, editChatbotInitialMessage, editChatbotQuestions, assignWebsiteIdToChatbot, resetConfig, editChatbotModel } = require('../database/chatbots');
+const { createChatbot, getChatbotFromPlanId, editChatbotName, editChatbotSystemPrompt, editChatbotInitialMessage, editChatbotQuestions, editChatbotContactInfo, editChatbotRateLimit, assignWebsiteIdToChatbot, resetConfig, editChatbotModel } = require('../database/chatbots');
 
 const { getPlan, setChatbotIdForPlan } = require('../database/plans');
 const { getAvailableModelsForPlanType } = require('../database/models');
@@ -165,11 +165,15 @@ router.post('/update-chatbot', authMiddleware, async (req, res) => {
     if (!chatbot) {
         return res.status(404).json({ success: false, message: 'Chatbot not found' });
     }
-    const { name, systemPrompt, initialMessage, questions } = req.body;
+    const { name, systemPrompt, initialMessage, questions, contactInfo, rateLimit } = req.body;
     await editChatbotName(chatbot.chatbot_id, name);
     await editChatbotSystemPrompt(chatbot.chatbot_id, systemPrompt);
     await editChatbotInitialMessage(chatbot.chatbot_id, initialMessage);
     await editChatbotQuestions(chatbot.chatbot_id, questions);
+    await editChatbotContactInfo(chatbot.chatbot_id, contactInfo);
+    if (rateLimit) {
+        await editChatbotRateLimit(chatbot.chatbot_id, parseInt(rateLimit));
+    }
     res.status(200).json({ success: true });
 });
 
