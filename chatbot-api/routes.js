@@ -27,6 +27,7 @@ router.get('/init-chat', (req, res) => {
 // WebSocket route
 router.ws('/ws', (ws, req) => {
     console.log('WebSocket connection request received');
+    // The wsManager will handle the connection details
 });
 
 router.post('/chat/:chatbotId', async (req, res) => {

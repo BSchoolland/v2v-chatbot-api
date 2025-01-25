@@ -27,8 +27,6 @@ const wsInstance = expressWs(app, server, {
 // Initialize WebSocket manager with the express-ws instance
 wsManager.initialize(wsInstance.getWss());
 
-const port = 3000;
-
 // allow all cors origins as this is a public api
 const cors = require('cors');
 app.use(cors({
@@ -69,9 +67,9 @@ async function startServer() {
         // Initialize credit renewal scheduler
         scheduleCreditRenewal();
         
-        // Start the server
+        // Start the server using the http server instance
         const port = process.env.PORT || 3000;
-        app.listen(port, () => {
+        server.listen(port, () => {
             console.log(`Server is running on port ${port}`);
         });
     } catch (error) {
