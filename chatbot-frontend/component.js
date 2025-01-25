@@ -262,6 +262,39 @@
         closeButton.addEventListener('click', () => toggleChatVisibility(false));
         overlay.addEventListener('click', () => toggleChatVisibility(false));
 
+        // Add contact button handler
+        const contactButton = shadow.querySelector('.v2v-chatbot-contact');
+
+        // Check if contact info exists and show button if it does
+        const checkContactInfo = async () => {
+            try {
+                const response = await fetch(`${baseUrl}/chatbot/api/contact-info/${chatbotId}`);
+                const data = await response.json();
+                
+                if (data.contact_info && data.contact_info.trim() !== '') {
+                    contactButton.style.display = 'block';
+                    contactButton.href = data.contact_info;
+                    
+                    // Only add target="_blank" for http(s) links
+                    if (data.contact_info.startsWith('http')) {
+                        contactButton.setAttribute('target', '_blank');
+                        contactButton.textContent = 'Talk to a human';
+                    } else if (data.contact_info.startsWith('mailto:')) {
+                        contactButton.removeAttribute('target');
+                        const email = data.contact_info.replace('mailto:', '');
+                        contactButton.textContent = "Contact us at: " + email;
+                    } else {
+                        contactButton.removeAttribute('target');
+                        contactButton.textContent = data.contact_info;
+                    }
+                }
+            } catch (error) {
+                console.error('Error fetching contact info:', error);
+            }
+        };
+
+        checkContactInfo();
+
         submitButton.addEventListener('click', (e) => sendMessage(e, shadow));
 
         shadow.querySelector('.submit-button img').src = `${baseUrl}/chatbot/api/frontend/send.png`;
