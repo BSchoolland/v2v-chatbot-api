@@ -156,11 +156,18 @@ async function getTools(chatbotId) {
 }
 
 // Function to broadcast tool usage to all connected clients
-function broadcastToolUsage(toolName, reference) {
-    wsManager.broadcastToolUsage(toolName, reference);
+function broadcastToolUsage(toolName, reference, metadata) {
+    console.log('Broadcasting tool usage:', { toolName, reference, metadata });
+    if (metadata && metadata.chatId) {
+        console.log('Sending tool usage to client:', metadata.chatId);
+        wsManager.sendToolUsage(metadata.chatId, toolName, reference);
+    } else {
+        console.warn('No chatId in metadata, cannot send tool usage notification:', metadata);
+    }
 }
 
 async function useTool(toolName, params, metadata = {}) {
+    console.log('Using tool:', { toolName, params, metadata });
     let reference = '';
     let result;
     
@@ -178,14 +185,15 @@ async function useTool(toolName, params, metadata = {}) {
                         path = website.domain + path;
                     }
                     reference = `page "${path}"`;
-                    broadcastToolUsage(toolName, reference);
+                    console.log('Broadcasting page read:', { path, metadata });
+                    broadcastToolUsage(toolName, reference, metadata);
                 }
                 break;
             case 'siteWideSearch':
                 result = await siteWideSearch(params, metadata);
                 const parsedParams = JSON.parse(params);
                 reference = `search "${parsedParams.term}"`;
-                broadcastToolUsage(toolName, reference);
+                broadcastToolUsage(toolName, reference, metadata);
                 break;
             default:
                 throw new Error(`Unknown tool: ${toolName}`);
