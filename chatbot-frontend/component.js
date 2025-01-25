@@ -111,7 +111,6 @@
             // If chatId changed, reconnect WebSocket with new chatId
             if (chatId !== data.chatId) {
                 chatId = data.chatId;
-                console.log('ChatId updated, reconnecting WebSocket with new chatId:', chatId);
                 if (ws) {
                     ws.close();
                 }
@@ -133,7 +132,6 @@
             const response = await fetch(`${baseUrl}/chatbot/api/init-chat`);
             const data = await response.json();
             chatId = data.chatId;
-            console.log('Initialized chat with ID:', chatId);
         } catch (error) {
             console.error('Error initializing chat:', error);
         }
@@ -148,18 +146,14 @@
             ws = new WebSocket(wsUrl.toString());
             
             ws.onopen = () => {
-                console.log('Connected to WebSocket server');
             };
             
             ws.onmessage = (event) => {
                 const data = JSON.parse(event.data);
-                console.log('WebSocket received message:', data);
                 
                 if (data.type === 'tool_usage' && data.chatId === chatId) {
-                    console.log('Displaying tool usage indicator for:', data.toolName, data.reference);
                     appendToolUsageIndicator(chatbox, data.toolName, data.reference);
                 } else if (data.type === 'connection_status') {
-                    console.log('WebSocket status:', data.status);
                 }
             };
 
@@ -168,7 +162,6 @@
             };
 
             ws.onclose = () => {
-                console.log('WebSocket connection closed');
                 // Attempt to reconnect after a delay
                 setTimeout(connectWebSocket, 3000);
             };
@@ -181,7 +174,6 @@
          * Creates a visual indicator for tool usage events
          */
         const createToolUsageIndicator = (toolName, reference) => {
-            console.log('Creating tool usage indicator:', toolName, reference);
             const indicator = document.createElement('div');
             indicator.className = 'tool-usage-indicator';
             indicator.innerHTML = `Chatbot referenced <code>${reference}</code>`;
@@ -192,11 +184,9 @@
          * Appends a tool usage indicator to the chatbox and scrolls to it
          */
         const appendToolUsageIndicator = (chatbox, toolName, reference) => {
-            console.log('Appending tool usage indicator to chatbox');
             const indicator = createToolUsageIndicator(toolName, reference);
             chatbox.appendChild(indicator);
             chatbox.scrollTop = chatbox.scrollHeight;
-            console.log('Tool usage indicator appended and scrolled into view');
         };
 
         const addInitialMessage = async () => {

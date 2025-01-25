@@ -79,7 +79,6 @@ async function readPageContent(params, metadata) {
     if (path[path.length - 1] === "/") {
         path = path.slice(0, -1);
     }
-    console.log('Chatbot referenced:', path);
     const page = await getPageByUrlAndWebsiteId(metadata.websiteId, path);
     if (page) {
         return page.content;
@@ -94,7 +93,6 @@ async function readPageContent(params, metadata) {
 
         // Get all available paths
         let paths = [];
-        console.log(metadata.websiteId);
         paths = await dbAll('SELECT url FROM page WHERE website_id = ?', [metadata.websiteId]);
 
         // Extract URLs from the database result
@@ -124,7 +122,6 @@ async function readPageContent(params, metadata) {
 
         // Construct the message
         const message = `You entered ${params.path}.  Please try again using a full path (e.g. www.example.com/page instead of just /page). The system also thinks you may be interested in: ${bestMatch}`;
-        console.log(message);
         return message;
     }
 }
@@ -157,9 +154,7 @@ async function getTools(chatbotId) {
 
 // Function to broadcast tool usage to all connected clients
 function broadcastToolUsage(toolName, reference, metadata) {
-    console.log('Broadcasting tool usage:', { toolName, reference, metadata });
     if (metadata && metadata.chatId) {
-        console.log('Sending tool usage to client:', metadata.chatId);
         wsManager.sendToolUsage(metadata.chatId, toolName, reference);
     } else {
         console.warn('No chatId in metadata, cannot send tool usage notification:', metadata);
@@ -167,7 +162,6 @@ function broadcastToolUsage(toolName, reference, metadata) {
 }
 
 async function useTool(toolName, params, metadata = {}) {
-    console.log('Using tool:', { toolName, params, metadata });
     let reference = '';
     let result;
     
@@ -185,7 +179,6 @@ async function useTool(toolName, params, metadata = {}) {
                         path = website.domain + path;
                     }
                     reference = `page "${path}"`;
-                    console.log('Broadcasting page read:', { path, metadata });
                     broadcastToolUsage(toolName, reference, metadata);
                 }
                 break;

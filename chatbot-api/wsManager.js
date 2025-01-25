@@ -23,15 +23,12 @@ class WebSocketManager {
         }
 
         this.wss = wss;
-        console.log('WebSocket server initialized');
         
         this.wss.on('connection', (ws, req) => {
-            console.log('New WebSocket connection request received');
             
             // Extract chatId from query parameters
             const url = new URL(req.url, 'ws://localhost');
             const chatId = url.searchParams.get('chatId');
-            console.log('Connection request for chatId:', chatId);
             
             if (!chatId) {
                 console.warn('WebSocket connection attempt without chatId');
@@ -41,13 +38,9 @@ class WebSocketManager {
 
             // Store the connection with its chatId
             this.clientsByChatId.set(chatId, ws);
-            console.log('Client connected and stored with chatId:', chatId);
-            console.log('Total connected clients:', this.clientsByChatId.size);
             
             ws.on('close', () => {
-                console.log(`Client disconnected for chat ${chatId}`);
                 this.clientsByChatId.delete(chatId);
-                console.log('Remaining connected clients:', this.clientsByChatId.size);
             });
 
             ws.on('error', (error) => {
@@ -60,7 +53,6 @@ class WebSocketManager {
                 status: 'connected',
                 chatId: chatId
             };
-            console.log('Sending connection confirmation:', confirmationMessage);
             ws.send(JSON.stringify(confirmationMessage));
         });
     }
@@ -77,7 +69,6 @@ class WebSocketManager {
             return;
         }
 
-        console.log(`Attempting to send tool usage for chat ${chatId}:`, { toolName, reference });
         const client = this.clientsByChatId.get(chatId);
         
         if (!client) {
@@ -92,7 +83,6 @@ class WebSocketManager {
                 reference,
                 chatId
             };
-            console.log('Sending tool usage message:', message);
             client.send(JSON.stringify(message));
         } else {
             console.warn(`Client for chatId ${chatId} is not in OPEN state (state: ${client.readyState})`);
