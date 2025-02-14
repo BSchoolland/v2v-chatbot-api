@@ -2,6 +2,10 @@ const { dbRun, dbGet, dbAll } = require('./database.js');
 
 // Add a new page to the database or update if exists
 async function addPage(websiteId, url, summary, content, internal = true, internalLinks = '', externalLinks = '') {
+    // if the url doesn't end with a /, add it
+    if (!url.endsWith('/')) {
+        url = url + '/';
+    }
     try {
         const existingPage = await dbGet(
             `SELECT page_id FROM page WHERE website_id = ? AND url = ?`,
