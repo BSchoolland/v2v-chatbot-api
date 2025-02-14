@@ -71,6 +71,26 @@ async function startServer() {
         server.listen(port, () => {
             console.log(`Server is running on port ${port}`);
         });
+
+        // Handle graceful shutdown
+        process.on('SIGTERM', async () => {
+            console.log('SIGTERM signal received. Cleaning up...');
+            await scraperManager.cleanup();
+            server.close(() => {
+                console.log('Server closed');
+                process.exit(0);
+            });
+        });
+
+        process.on('SIGINT', async () => {
+            console.log('SIGINT signal received. Cleaning up...');
+            await scraperManager.cleanup();
+            server.close(() => {
+                console.log('Server closed');
+                process.exit(0);
+            });
+        });
+
     } catch (error) {
         console.error('Failed to start server:', error);
         process.exit(1);
