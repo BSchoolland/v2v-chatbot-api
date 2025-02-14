@@ -1,6 +1,8 @@
 {
   "scripts": {
-    "test": "jest"
+    "test": "jest",
+    "dev": "nodemon server.js",
+    "start": "node server.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
@@ -12,7 +14,6 @@
     "jsdom": "^25.0.1",
     "jsonwebtoken": "^9.0.2",
     "multer": "^1.4.5-lts.1",
-    "natural": "^8.0.1",
     "node-fetch": "^2.7.0",
     "puppeteer": "^23.9.0",
     "showdown": "^2.1.0",

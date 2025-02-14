@@ -205,6 +205,18 @@ async function modelMigration(dbGet, dbRun, dbAll) {
     }
 }
 
+async function pageMigration(dbGet, dbRun, dbAll) {
+    console.log('Migrating pages if necessary...');
+
+    // make sure every page ends with a /
+    const pages = await dbAll('SELECT * FROM pages', []);
+    for (const page of pages) {
+        if (!page.url.endsWith('/')) {
+            await dbRun('UPDATE pages SET url = ? WHERE page_id = ?', [page.url + '/', page.page_id]);
+        }
+    }
+}
+
 async function migrate(dbGet, dbRun, dbAll) {
     await modelMigration(dbGet, dbRun, dbAll);
     await chatbotMigration(dbGet, dbRun, dbAll);
