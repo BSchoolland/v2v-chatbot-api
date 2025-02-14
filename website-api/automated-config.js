@@ -155,7 +155,11 @@ The configuration should be specific to this website's content and purpose. Use 
 ## Example of how a conversation should go:
 
 User: Question
-Chatbot: readPageContent("/")
+Chatbot: siteWideSearch("term to search for based on question")
+Tool: Possible relevant pages
+Chatbot: readPageContent("/most helpful looking page")
+Tool: Information about page
+Chatbot: readPageContent("/another page that appears relevant")
 Tool: Information about page
 Chatbot: Answer to question
 

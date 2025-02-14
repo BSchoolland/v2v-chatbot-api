@@ -1,6 +1,8 @@
 {
   "scripts": {
-    "test": "jest"
+    "test": "jest",
+    "dev": "nodemon server.js",
+    "start": "node server.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

@@ -1,4 +1,4 @@
-const { addPage } = require('../database/pages.js');
+const { addPage, getPageByUrlAndWebsiteId } = require('../database/pages.js');
 const { addWebsite, getWebsiteByUrl } = require('../database/websites.js');
 const getCleanHtmlContent = require('./htmlProcessing.js');
 const summarizeContent = require('./summarizeContent.js');
@@ -186,22 +186,39 @@ class ActiveJob {
         try {
             // get internal links
             let internalLinks = uniqueLinks.filter(link => link.startsWith(this.baseUrl));
+            // Remove anything after # in the link
+            internalLinks = internalLinks.map(link => link.split('#')[0]);
+            // Remove anything after ? in the link
+            internalLinks = internalLinks.map(link => link.split('?')[0]);
+            // filter out any links that are already in the visitedUrls set
+            internalLinks = internalLinks.filter(link => !this.visitedUrls.has(link));
             // Filter out pages with file extensions like .pdf, .jpg, etc.
             internalLinks = internalLinks.filter(link => !link.match(/\.(pdf|jpg|jpeg|png|gif|doc|docx|xls|xlsx|ppt|pptx|webp|zip)$/i));
-            // Filter out already visited links adding to queue
+            // Add internal links to the set
             const newInternalLinks = internalLinks.filter(link => !this.visitedUrls.has(link));
 
             // get external links
             let externalLinks = uniqueLinks.filter(link => !link.startsWith(this.baseUrl));
             // Filter out pages with file extensions like .pdf, .jpg, etc.
             externalLinks = externalLinks.filter(link => !link.match(/\.(pdf|jpg|jpeg|png|gif|doc|docx|xls|xlsx|ppt|pptx|webp|zip)$/i));
+            // Remove anything after # in the link
+            externalLinks = externalLinks.map(link => link.split('#')[0]);
+            // Remove anything after ? in the link
+            externalLinks = externalLinks.map(link => link.split('?')[0]);
+            // filter out any links that are already in the visitedUrls set
+            externalLinks = externalLinks.filter(link => !this.visitedUrls.has(link));
             // Add external links to the set
             externalLinks.forEach(link => this.externalLinks.add(link));
 
             // Add new links to the queue and mark them as visited
             for (let link of newInternalLinks) {
-                this.visitedUrls.add(link); // Mark as visited immediately
-                this.queue.push({ url: link, depth: depth + 1 });
+                // check if the link is already in the visitedUrls set
+                if (!this.visitedUrls.has(link)) {
+                    this.visitedUrls.add(link); // Mark as visited immediately
+                    this.queue.push({ url: link, depth: depth + 1 });
+                } else {
+                    console.log(`Link ${link} already visited`);
+                }
             }
         } catch (error) {
             console.error(`Error!: ${error.message}`);
@@ -281,8 +298,11 @@ class ActiveJob {
         try {
             // Navigate to the URL and get the final URL after any redirects
             await page.goto(nextPage.url, { waitUntil: 'networkidle0', timeout: 30000 });
-            const finalUrl = page.url(); // Get the final URL after any redirects
-            
+            let finalUrl = page.url(); // Get the final URL after any redirects
+            // Remove anything after # in the link
+            finalUrl = finalUrl.split('#')[0];
+            // Remove anything after ? in the link
+            finalUrl = finalUrl.split('?')[0];
             // Check if the page redirected to an external URL
             const isExternal = !finalUrl.startsWith(this.baseUrl);
 
@@ -330,7 +350,6 @@ function summarizeInternalPages(pages) {
             page.summary = [];
             continue;
         }
-        let pageUrl = page.url;
         let content = page.content;
         let summary = summarizeContent(content);
         // loop through the summary and add each string to the array
