@@ -6,7 +6,7 @@ class ScraperManager {
     constructor() {
         this.browser = null;
         this.pages = [];
-        this.currentPageCount = 15;
+        this.currentPageCount = 3;
         this.verbose = true;
         this.activeJobs = [];
         this.allJobs = [];
