@@ -25,6 +25,7 @@ class ActiveJob {
         this.isInitializing = false;
         this.externalQueued = false;
         this.init();
+        this.cleanup = this.cleanup.bind(this);
     }
 
     async init() {
@@ -169,6 +170,7 @@ class ActiveJob {
             } else {
                 await this.completeJob();
                 this.done = true;
+                this.cleanup();  // Clean up after job is complete
             }
         }
     }
@@ -297,7 +299,22 @@ class ActiveJob {
         const page = pageObj.page;
         try {
             // Navigate to the URL and get the final URL after any redirects
-            await page.goto(nextPage.url, { waitUntil: 'networkidle0', timeout: 30000 });
+            try {
+                await page.goto(nextPage.url, { waitUntil: 'networkidle0', timeout: 30000 });
+            } catch (error) {
+                // If networkidle0 times out, try with just domcontentloaded
+                try {
+                    console.log('Trying with domcontentloaded');
+                    await page.goto(nextPage.url, { 
+                        waitUntil: 'domcontentloaded', 
+                        timeout: 30000 
+                    });
+                } catch (error) {
+                    console.error(`Error navigating to ${nextPage.url}: ${error.message}`);
+                    await this.markPageComplete(nextPage.url);
+                    return 'page processed';
+                }
+            }
             let finalUrl = page.url(); // Get the final URL after any redirects
             // Remove anything after # in the link
             finalUrl = finalUrl.split('#')[0];
@@ -335,6 +352,24 @@ class ActiveJob {
             pageObj.assigned = false;
             return 'page processed';
         }
+    }
+
+    cleanup() {
+        // Clear all data structures
+        this.queue = [];
+        this.visitedUrls.clear();
+        this.processingUrls.clear();
+        this.externalLinks.clear();
+        this.completedPages = [];
+        
+        // Reset flags
+        this.isReady = false;
+        this.isInitializing = false;
+        this.externalQueued = false;
+        
+        // Clear any circular references
+        this.websiteId = null;
+        this.endTime = new Date();
     }
 }
 

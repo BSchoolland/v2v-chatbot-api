@@ -117,7 +117,10 @@ router.get('/scrape-site-progress', authMiddleware, async (req, res) => {
 
     // Handle client disconnect
     req.on('close', () => {
-
+        clearInterval(statusInterval);
+        if (job && !job.isJobComplete()) {
+            job.cleanup();
+        }
     });
 });
 

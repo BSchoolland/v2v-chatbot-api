@@ -1,13 +1,15 @@
 const puppeteer = require('puppeteer');
 const { JSDOM } = require('jsdom');
 const { ActiveJob } = require('./activeJob.js');
+const dotenv = require('dotenv');
+dotenv.config();
 
 class ScraperManager {
     constructor() {
         this.browser = null;
         this.pages = [];
-        this.currentPageCount = 3;
-        this.verbose = true;
+        this.currentPageCount = process.env.PAGE_COUNT || 3;
+        this.verbose = process.env.VERBOSE || false;
         this.activeJobs = [];
         this.allJobs = [];
 
@@ -38,31 +40,36 @@ class ScraperManager {
             this.browser = await puppeteer.launch(
                 {
                     headless: true,
-                    args: ['--no-sandbox', '--disable-setuid-sandbox'],
-                    ignoreHTTPSErrors: true, // Ignore HTTPS errors (rare but some clients may have issues with SSL and we don't want to stop the process)
+                    args: [
+                        '--no-sandbox',
+                        '--disable-setuid-sandbox',
+                        '--disable-dev-shm-usage', // Disable /dev/shm usage
+                        '--disable-accelerated-2d-canvas', // Disable GPU acceleration
+                        '--disable-gpu', // Disable GPU hardware acceleration
+                        '--js-flags="--max-old-space-size=512"' // Limit V8 heap size
+                    ],
+                    ignoreHTTPSErrors: true,
                 }
             );
         } 
 
         for (let i = 0; i < this.currentPageCount; i++) {
-            this.pages.push({ page: await this.browser.newPage(), assigned: false });
-        }
-        try {
-            // Enable request interception to block unnecessary resources
-            for (let i = 0; i < this.currentPageCount; i++) {
-            let page = this.pages[i].page;
+            const page = await this.browser.newPage();
+            // Set up CDP session for network controls
+            const client = await page.createCDPSession();
+            await client.send('Network.enable');
+            await client.send('Network.setBypassServiceWorker', {bypass: true});
+            
+            // Set request interception
             await page.setRequestInterception(true);
             page.on('request', (req) => {
-                if (['image', 'stylesheet', 'font'].includes(req.resourceType())) {
-                    req.abort(); // Abort loading these resource types
+                if (['image', 'stylesheet', 'font', 'media'].includes(req.resourceType())) {
+                    req.abort();
                 } else {
-                    req.continue(); // Allow other requests
+                    req.continue();
                 }
             });
-            }
-        }
-        catch (error) {
-            console.error('Error setting up request interception:', error.message);
+            this.pages.push({ page, assigned: false });
         }
         this.isReady = true;
         this.isInitializing = false;
@@ -101,6 +108,8 @@ class ScraperManager {
                         job.isJobComplete();
                     }
                     this.isRunning = false;
+                    // Clean up resources when all jobs are complete
+                    await this.cleanup();
                     break;
                 }
                 const tasks = [];
@@ -152,8 +161,8 @@ class ScraperManager {
                     new Promise((resolve, reject) => {
                         setTimeout(() => {
                             this.pages.forEach(p => p.assigned = false);
-                            reject(new Error('Tasks timed out after 60 seconds'));
-                        }, 60000);
+                            reject(new Error('Tasks timed out after 90 seconds'));
+                        }, 90000);
                     })
                 ]);
             }
@@ -162,6 +171,8 @@ class ScraperManager {
             this.isRunning = false;
             // Free up any assigned pages
             this.pages.forEach(p => p.assigned = false);
+            // Clean up resources on error
+            await this.cleanup();
             throw error;
         }        
     }
@@ -174,31 +185,56 @@ class ScraperManager {
 
         console.log('Cleaning scraper resources...');
 
-        // close all pages
-        for (let page of this.pages) {
+        // Force close the browser process first - nuclear option
+        if (this.browser) {
             try {
-                await page.page.close();
+                const browserProcess = this.browser.process();
+                if (browserProcess) {
+                    // Force kill the browser process
+                    browserProcess.kill('SIGKILL');
+                }
             } catch (error) {
-                console.error('Error closing page:', error.message);
+                console.error('Error force killing browser:', error.message);
             }
-        }
-
-        // close the browser
-        try {
-            await this.browser.close();
             this.browser = null;
-        } catch (error) {
-            console.error('Error closing browser:', error.message);
         }
 
-        // clear the pages array
+        // Clear all references
         this.pages = [];
         this.activeJobs = [];
+        this.allJobs.forEach(job => job.cleanup());
         this.allJobs = [];
-        // reset flags
+        
+        // Reset flags
         this.isReady = false;
         this.isInitializing = false;
         this.isCleaning = false;
+
+        // Nuclear memory cleanup
+        try {
+            // Force V8 garbage collection
+            if (global.gc) {
+                global.gc();
+            }
+            
+            // Clear module cache to prevent memory leaks from requiring modules
+            Object.keys(require.cache).forEach(function(key) {
+                delete require.cache[key];
+            });
+
+            // Request system to release memory back to OS
+            try {
+                // Some systems support this
+                process.memoryUsage();
+                if (process.hasOwnProperty('release')) {
+                    process.release();
+                }
+            } catch (e) {
+                console.warn('System memory release not supported');
+            }
+        } catch (error) {
+            console.error('Error during memory cleanup:', error.message);
+        }
     }
     
     async processPage(page, job, pageInfo) {
