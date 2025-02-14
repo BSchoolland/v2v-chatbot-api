@@ -13,6 +13,10 @@ services:
     command: ["node", "--experimental-modules", "server.js"]
     cap_add:
       - SYS_ADMIN
+    mem_limit: 3g
+    mem_reservation: 1g
+    cpus: 0.8
+    restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3000"]
       interval: 30s
@@ -20,6 +24,13 @@ services:
       retries: 3
       start_period: 40s
     deploy:
+      resources:
+        limits:
+          memory: 3G
+          cpus: '0.8'
+        reservations:
+          memory: 1G
+          cpus: '0.4'
       update_config:
         order: start-first
         failure_action: rollback
@@ -27,3 +38,8 @@ services:
       rollback_config:
         parallelism: 0
         order: stop-first
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
