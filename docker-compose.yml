@@ -15,7 +15,7 @@ services:
       - SYS_ADMIN
     mem_limit: 3g
     mem_reservation: 1g
-    cpus: 4
+    cpus: 0.8
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3000"]
@@ -27,7 +27,7 @@ services:
       resources:
         limits:
           memory: 3G
-          cpus: '4'
+          cpus: '0.8'
         reservations:
           memory: 1G
           cpus: '0.4'
