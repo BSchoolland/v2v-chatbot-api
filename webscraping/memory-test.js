@@ -1,4 +1,4 @@
-const { ScraperManager } = require('./scraperManager.js');
+const { scraperManager } = require('./scraperManager.js');
 const os = require('os');
 
 function getCPUUsage() {
@@ -78,8 +78,7 @@ async function runJob(scraper, url, id, depth, maxPages) {
 async function runMemoryTest() {
     console.log('Starting memory leak test...');
     trackMemory('Initial State');
-    const scraper = new ScraperManager();
-    await scraper.init();
+    await scraperManager.init();
 
     const initialMemory = process.memoryUsage();
     console.log('\nInitial memory state:', formatMemoryUsage(initialMemory));
