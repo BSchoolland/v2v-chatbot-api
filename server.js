@@ -4,6 +4,7 @@ const { initializeDatabase } = require('./database/database.js');
 const { dbRun, dbGet, dbAll } = require('./database/database.js');
 const { scraperManager } = require('./webscraping/scraperManager.js');
 const { scheduleCreditRenewal } = require('./services/scheduler.js');
+const { scheduleCronJobs } = require('./webscraping/cron.js');
 const expressWs = require('express-ws');
 const http = require('http');
 const wsManager = require('./chatbot-api/wsManager');
@@ -63,6 +64,9 @@ async function startServer() {
         
         // Initialize credit renewal scheduler
         scheduleCreditRenewal();
+
+        // Schedule cron jobs
+        scheduleCronJobs();
         
         // Start the server using the http server instance
         const port = process.env.PORT || 3000;

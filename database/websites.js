@@ -1,4 +1,4 @@
-const { dbRun, dbGet } = require('./database.js');
+const { dbRun, dbGet, dbAll } = require('./database.js');
 
 // Add a new website to the database
 async function addWebsite(url, chatbotId) {
@@ -39,9 +39,35 @@ async function getWebsiteByUrl(url) {
     }
 }
 
+async function setLastCrawled(websiteId, lastCrawled) {
+    try {
+        await dbRun(
+            `UPDATE website SET last_crawled = ? WHERE website_id = ?`,
+            [lastCrawled, websiteId]
+        );
+    } catch (err) {
+        throw err;
+    }
+}
+async function getWebsitesByLastScrapedBefore(time) {
+    try {
+        const websites = await dbAll(
+            `SELECT * FROM website 
+             WHERE last_crawled < ? OR last_crawled IS NULL OR last_crawled = '' 
+             ORDER BY last_crawled ASC`,
+            [time]
+        );
+        return websites;
+    } catch (err) {
+        throw err;
+    }
+}
+
 
 module.exports = {
     addWebsite,
     getWebsiteById,
-    getWebsiteByUrl
+    getWebsiteByUrl,
+    getWebsitesByLastScrapedBefore,
+    setLastCrawled
 };

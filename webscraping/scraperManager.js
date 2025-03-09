@@ -3,6 +3,7 @@ const { JSDOM } = require('jsdom');
 const { ActiveJob } = require('./activeJob.js');
 const dotenv = require('dotenv');
 dotenv.config();
+const { setLastCrawled } = require('../database/websites.js');
 
 class ScraperManager {
     constructor() {
@@ -78,32 +79,39 @@ class ScraperManager {
     }
 
     async addJob(baseUrl, chatbotId, maxDepth = 5, maxPages = 50) {
-        if (!this.isReady) {
-            await this.init();
-        }
-        // if it's been more than 10 minutes since the last cleanup delay the job until the scraperManager has a chance to clean up (if the scraper is not active, ignore this)
-        if (Date.now() - this.lastCleanup > 600000 && this.isRunning) {
-            console.warn('No cleanup since', (Date.now() - this.lastCleanup) / 60000, 'minutes ago, delaying job');
-            // loop with 10s intervals until cleanup is triggered by another job completing
-            // if this takes more than 10 minutes, force a cleanup
-            let waited = 0;
-            while (Date.now() - this.lastCleanup > 600000) {
-                await new Promise(resolve => setTimeout(resolve, 10000));
-                waited += 10000;
+        try {
+            if (!this.isReady) {
+                await this.init();
             }
-            if (waited > 600000) {
-                console.warn('Assumed scraper is stuck, forcibly cleaning up (which will cancel any existing jobs)');
-                await this.cleanup();
-                // force the last cleanup to be now, ending the loop
-                this.lastCleanup = Date.now();
+            // if it's been more than 10 minutes since the last cleanup delay the job until the scraperManager has a chance to clean up (if the scraper is not active, ignore this)
+            if (Date.now() - this.lastCleanup > 600000 && this.isRunning) {
+                console.warn('No cleanup since', (Date.now() - this.lastCleanup) / 60000, 'minutes ago, delaying job');
+                // loop with 10s intervals until cleanup is triggered by another job completing
+                // if this takes more than 10 minutes, force a cleanup
+                let waited = 0;
+                while (Date.now() - this.lastCleanup > 600000) {
+                    await new Promise(resolve => setTimeout(resolve, 10000));
+                    waited += 10000;
+                }
+                if (waited > 600000) {
+                    console.warn('Assumed scraper is stuck, forcibly cleaning up (which will cancel any existing jobs)');
+                    await this.cleanup();
+                    // force the last cleanup to be now, ending the loop
+                    this.lastCleanup = Date.now();
+                }
             }
+            let job = new ActiveJob(baseUrl, chatbotId, maxDepth, maxPages);
+            const websiteId = await job.getWebsiteId();
+            this.activeJobs.push(job);
+            this.allJobs.push(job);
+            this.runJobs();
+            // update the last crawled time
+            await setLastCrawled(websiteId, new Date().toISOString());
+            return {job, websiteId};
+        } catch (error) {
+            console.error('Error adding job:', error);
+            throw error;
         }
-        let job = new ActiveJob(baseUrl, chatbotId, maxDepth, maxPages);
-        const websiteId = await job.getWebsiteId();
-        this.activeJobs.push(job);
-        this.allJobs.push(job);
-        this.runJobs();
-        return {job, websiteId};
     }   
 
     async runJobs() {
