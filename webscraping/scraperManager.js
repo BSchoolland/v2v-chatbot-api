@@ -19,7 +19,7 @@ class ScraperManager {
         this.isRunning = false;
         this.isInitializing = false;
         this.isCleaning = false;
-        this.lastCleanup = 0; // the last time the cleanup was triggered is never
+        this.lastCleanup = Date.now();
     }
 
     async init() {
@@ -83,6 +83,10 @@ class ScraperManager {
             if (!this.isReady) {
                 await this.init();
             }
+            // it we're not running, we can count the last clean up as now since the scraper is already clean
+            if (!this.isRunning) {
+                this.lastCleanup = Date.now();
+            }
             // if it's been more than 10 minutes since the last cleanup delay the job until the scraperManager has a chance to clean up (if the scraper is not active, ignore this)
             if (Date.now() - this.lastCleanup > 600000 && this.isRunning) {
                 console.warn('No cleanup since', (Date.now() - this.lastCleanup) / 60000, 'minutes ago, delaying job');
@@ -100,6 +104,7 @@ class ScraperManager {
                     this.lastCleanup = Date.now();
                 }
             }
+            
             let job = new ActiveJob(baseUrl, chatbotId, maxDepth, maxPages);
             const websiteId = await job.getWebsiteId();
             this.activeJobs.push(job);

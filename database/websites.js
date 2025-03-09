@@ -53,12 +53,13 @@ async function getWebsitesByLastScrapedBefore(time) {
     try {
         const websites = await dbAll(
             `SELECT * FROM website 
-             WHERE last_crawled < ? OR last_crawled IS NULL OR last_crawled = '' 
+             WHERE datetime(last_crawled) < datetime(?) OR last_crawled IS NULL OR last_crawled = ''
              ORDER BY last_crawled ASC`,
-            [time]
+            [time.toISOString()]
         );
         return websites;
     } catch (err) {
+        console.error('Error in getWebsitesByLastScrapedBefore:', err);
         throw err;
     }
 }

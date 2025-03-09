@@ -327,13 +327,18 @@ class ActiveJob {
             const content = await page.content();
 
             // Extract all links
-            const links = await page.evaluate(() => {
-                const anchors = document.querySelectorAll('a');
-                return Array.from(anchors)
-                    .map(a => a.href)
-                    .filter(href => href && href.startsWith('http'));
-            });
-
+            let links
+            try {
+                links = await page.evaluate(() => {
+                    const anchors = document.querySelectorAll('a');
+                    return Array.from(anchors)
+                        .map(a => a.href)
+                        .filter(href => href && href.startsWith('http'));
+                });
+            } catch (error) {
+                console.error(`Error extracting links from ${nextPage.url}: ${error.message}`);
+                links = [];
+            }
             // Add unique links to the queue
             const uniqueLinks = [...new Set(links)];
             // Only add links to queue if the page is still internal after redirects
