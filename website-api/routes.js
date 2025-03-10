@@ -7,12 +7,14 @@ const plansRoutes = require('./plans.js');
 const chatbotSetupRoutes = require('./chatbot-setup.js');
 const paymentRoutes = require('./payments.js');
 const devToolsRoutes = require('./dev-tools.js');
+const fileRoutes = require('./files.js');
 
 router.use('', userRoutes);
 router.use('', dashboardRoutes);
 router.use('', plansRoutes);
 router.use('/chatbot-setup', chatbotSetupRoutes);
 router.use('/payments', paymentRoutes);
+router.use('/files', fileRoutes);
 
 // Development tools routes - only available in development mode
 if (process.env.ENV === 'development') {
