@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 require('dotenv').config();
 
-const {ScraperManager} = require('../webscraping/scraperManager');
+const {scraperManager} = require('../webscraping/scraperManager');
 
 const { authMiddleware } = require('./middleware');
 
@@ -10,10 +10,9 @@ const { createChatbot, getChatbotFromPlanId, editChatbotName, editChatbotSystemP
 
 const { getPlan, setChatbotIdForPlan } = require('../database/plans');
 const { getAvailableModelsForPlanType } = require('../database/models');
+const { getWebsiteByUrl } = require('../database/websites');
 
 const { automateConfiguration } = require('./automated-config');
-
-const scraper = new ScraperManager();
 
 // user owns plan
 async function userOwnsPlan(userId, planId) {
@@ -60,6 +59,7 @@ router.get('/scrape-site-progress', authMiddleware, async (req, res) => {
         return res.status(403).json({ success: false, message: 'Unauthorized' });
     }
     let url = req.query.url;
+    
     if (!url) {
         return res.status(400).send('URL is required');
     }
@@ -86,7 +86,20 @@ router.get('/scrape-site-progress', authMiddleware, async (req, res) => {
     }
     const chatbotId = chatbot.chatbot_id;
 
-    const {job, websiteId} = await scraper.addJob(url, chatbotId);
+    // check if the url already exists in the database as a registered website
+    const existingWebsite = await getWebsiteByUrl(url);
+    // check if the website belongs to this chatbot
+    if (existingWebsite) {
+        if (existingWebsite.chatbot_id !== chatbotId) {
+            console.log('website already exists in the database, and is registered to another chatbot');
+            return res.status(403).json({ success: false, message: `The website ${url} is already registered to another chatbot. Please contact support if you believe this is an error.` });
+        } else {
+            console.log('You\'ve already registered this website to this chatbot before, move to the next step!');
+            return res.status(200).json({ success: true, websiteId: existingWebsite.website_id });
+        }
+    }
+
+    const {job, websiteId} = await scraperManager.addJob(url, chatbotId);
     // assign the website id to the chatbot
     await assignWebsiteIdToChatbot(chatbotId, websiteId);
     // Send initial status

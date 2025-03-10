@@ -33,9 +33,13 @@ async function getUserPlans(userId) {
 
 // add a plan for a user
 async function addPlan(userId, chatbotId, planTypeId, planName) {
+    // Get the current date to set as the billing anchor day
+    const now = new Date();
+    const billingAnchorDay = now.getDate();
+    
     // renews_at is the date the plan will renew, one month from now
     const renewsAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
-    const plan = await dbRun('INSERT INTO plans (user_id, chatbot_id, plan_type_id, rate_limiting_policy, name, renews_at) VALUES (?, ?, ?, ?, ?, ?)', [userId, chatbotId, planTypeId, "default", planName, renewsAt]);
+    const plan = await dbRun('INSERT INTO plans (user_id, chatbot_id, plan_type_id, rate_limiting_policy, name, renews_at, billing_anchor_day) VALUES (?, ?, ?, ?, ?, ?, ?)', [userId, chatbotId, planTypeId, "default", planName, renewsAt, billingAnchorDay]);
     
     // Get the plan ID from the last insert
     const newPlan = await dbGet('SELECT * FROM plans WHERE rowid = last_insert_rowid()');
@@ -105,6 +109,12 @@ async function updatePlan(planId, userId, chatbotId, planName, planTypeId) {
         let additionalCredits = currentPlan.additional_credits;
         let subscriptionActive = currentPlan.subscription_active || 0;
         let renewsAt = currentPlan.renews_at;
+        let billingAnchorDay = currentPlan.billing_anchor_day;
+
+        // If billing anchor day is not set, set it to the current renewal date's day
+        if (!billingAnchorDay && renewsAt) {
+            billingAnchorDay = new Date(renewsAt).getDate();
+        }
 
         // Handle different plan change scenarios
         if (currentPlan.plan_type_id === 0 && planTypeId > 0) {
@@ -140,7 +150,8 @@ async function updatePlan(planId, userId, chatbotId, planName, planTypeId) {
                  remaining_credits = ?,
                  additional_credits = ?,
                  subscription_active = ?,
-                 renews_at = ?
+                 renews_at = ?,
+                 billing_anchor_day = ?
              WHERE plan_id = ?`,
             [
                 userId,
@@ -151,6 +162,7 @@ async function updatePlan(planId, userId, chatbotId, planName, planTypeId) {
                 additionalCredits,
                 subscriptionActive,
                 renewsAt,
+                billingAnchorDay,
                 planId
             ]
         );

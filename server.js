@@ -2,8 +2,8 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const { initializeDatabase } = require('./database/database.js');
 const { dbRun, dbGet, dbAll } = require('./database/database.js');
-const { ScraperManager } = require('./webscraping/scraperManager.js');
-const { scheduleCreditRenewal } = require('./services/scheduler.js');
+const { scraperManager } = require('./webscraping/scraperManager.js');
+const { scheduleCronJobs } = require('./webscraping/cron.js');
 const expressWs = require('express-ws');
 const http = require('http');
 const wsManager = require('./chatbot-api/wsManager');
@@ -56,20 +56,18 @@ app.use('/api/conversations', conversationsRoutes);
 // set development-ui as the public folder
 app.use(express.static('development-ui'));
 
-const scraperManager = new ScraperManager();
-
 async function startServer() {
     try {
         // Initialize database and run migrations
         await initializeDatabase(dbGet, dbRun, dbAll);
-        
-        // Initialize credit renewal scheduler
-        scheduleCreditRenewal();
+
+        // Schedule cron jobs (credit renewal and website re-crawling)
+        scheduleCronJobs();
         
         // Start the server using the http server instance
         const port = process.env.PORT || 3000;
         server.listen(port, () => {
-            console.log(`Server is running on port ${port}`);
+            console.log(`Server is running on http://localhost:${port}`);
         });
 
         // Handle graceful shutdown

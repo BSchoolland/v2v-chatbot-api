@@ -3,6 +3,7 @@ const { JSDOM } = require('jsdom');
 const { ActiveJob } = require('./activeJob.js');
 const dotenv = require('dotenv');
 dotenv.config();
+const { setLastCrawled } = require('../database/websites.js');
 
 class ScraperManager {
     constructor() {
@@ -18,6 +19,7 @@ class ScraperManager {
         this.isRunning = false;
         this.isInitializing = false;
         this.isCleaning = false;
+        this.lastCleanup = Date.now();
     }
 
     async init() {
@@ -77,15 +79,47 @@ class ScraperManager {
     }
 
     async addJob(baseUrl, chatbotId, maxDepth = 5, maxPages = 50) {
-        if (!this.isReady) {
-            await this.init();
+        try {
+            if (!this.isReady) {
+                await this.init();
+            }
+            // it we're not running, we can count the last clean up as now since the scraper is already clean
+            if (!this.isRunning) {
+                this.lastCleanup = Date.now();
+            }
+            // if it's been more than 10 minutes since the last cleanup delay the job until the scraperManager has a chance to clean up (if the scraper is not active, ignore this)
+            if (Date.now() - this.lastCleanup > 600000 && this.isRunning) {
+                console.warn('No cleanup since', (Date.now() - this.lastCleanup) / 60000, 'minutes ago, delaying job');
+                // loop with 10s intervals until cleanup is triggered by another job completing
+                // if this takes more than 15 minutes, force a cleanup
+                let waited = 0;
+                while (Date.now() - this.lastCleanup > 600000) {
+                    await new Promise(resolve => setTimeout(resolve, 10000));
+                    waited += 10000;
+                    
+                    // Break out if we've waited more than 15 minutes
+                    if (waited > 900000) {
+                        console.warn('Assumed scraper is stuck, forcibly cleaning up (which will cancel any existing jobs)');
+                        await this.cleanup();
+                        // force the last cleanup to be now, ending the loop
+                        this.lastCleanup = Date.now();
+                        break;
+                    }
+                }
+            }
+            
+            let job = new ActiveJob(baseUrl, chatbotId, maxDepth, maxPages);
+            const websiteId = await job.getWebsiteId();
+            this.activeJobs.push(job);
+            this.allJobs.push(job);
+            this.runJobs();
+            // update the last crawled time
+            await setLastCrawled(websiteId, new Date().toISOString());
+            return {job, websiteId};
+        } catch (error) {
+            console.error('Error adding job:', error);
+            throw error;
         }
-        let job = new ActiveJob(baseUrl, chatbotId, maxDepth, maxPages);
-        const websiteId = await job.getWebsiteId();
-        this.activeJobs.push(job);
-        this.allJobs.push(job);
-        this.runJobs();
-        return {job, websiteId};
     }   
 
     async runJobs() {
@@ -109,6 +143,7 @@ class ScraperManager {
                     }
                     this.isRunning = false;
                     // Clean up resources when all jobs are complete
+                    console.log('cleaning up due to all jobs being complete');
                     await this.cleanup();
                     break;
                 }
@@ -172,6 +207,7 @@ class ScraperManager {
             // Free up any assigned pages
             this.pages.forEach(p => p.assigned = false);
             // Clean up resources on error
+            console.log('cleaning up due to critical error');
             await this.cleanup();
             throw error;
         }        
@@ -184,8 +220,8 @@ class ScraperManager {
         this.isRunning = false;
 
         console.log('Cleaning scraper resources...');
-
-        // Force close the browser process first - nuclear option
+        this.lastCleanup = Date.now();
+        // Force close the browser process first
         if (this.browser) {
             try {
                 const browserProcess = this.browser.process();
@@ -376,5 +412,9 @@ class ScraperManager {
     }
 }
 
+// export a singleton instance of the ScraperManager to prevent multiple instances
+const scraperManager = new ScraperManager();
+// initialize the scraper manager
+scraperManager.init();
 
-module.exports = { ScraperManager };
+module.exports = { scraperManager };
