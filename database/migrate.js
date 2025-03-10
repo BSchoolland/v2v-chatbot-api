@@ -217,7 +217,7 @@ async function pageMigration(dbGet, dbRun, dbAll) {
     }
 }
 
-async function billingAnchorMigration(dbGet, dbRun, dbAll) {
+async function planMigration(dbGet, dbRun, dbAll) {
     console.log('Migrating plans for billing anchor if necessary...');
 
     // Add billing_anchor_day column to plans table if it doesn't exist
@@ -240,7 +240,7 @@ async function migrate(dbGet, dbRun, dbAll) {
     await chatbotMigration(dbGet, dbRun, dbAll);
     await conversationMigration(dbGet, dbRun, dbAll);
     await planTypeMigration(dbGet, dbRun, dbAll);
-    await billingAnchorMigration(dbGet, dbRun, dbAll);
+    await planMigration(dbGet, dbRun, dbAll);
 }
 
 module.exports = {

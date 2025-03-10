@@ -328,6 +328,7 @@ class ActiveJob {
 
             // Extract all links
             let links
+            console.log(`Attempting to extract links from ${nextPage.url}`);
             try {
                 links = await page.evaluate(() => {
                     const anchors = document.querySelectorAll('a');

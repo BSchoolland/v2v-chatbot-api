@@ -59,6 +59,9 @@ async function resetToFreeCredits(planId) {
 
         // Get current plan to preserve billing anchor day
         const currentPlan = await dbGet('SELECT billing_anchor_day FROM plans WHERE plan_id = ?', [planId]);
+        if (!currentPlan) {
+            console.error(`Error: Could not find plan with ID ${planId} when trying to preserve billing anchor day. Using current date instead.`);
+        }
         const billingAnchorDay = currentPlan?.billing_anchor_day || getCurrentDate().getDate();
         
         // Set renewal date to one month from now, using the billing anchor day

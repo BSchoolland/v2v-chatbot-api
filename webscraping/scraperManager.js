@@ -91,17 +91,20 @@ class ScraperManager {
             if (Date.now() - this.lastCleanup > 600000 && this.isRunning) {
                 console.warn('No cleanup since', (Date.now() - this.lastCleanup) / 60000, 'minutes ago, delaying job');
                 // loop with 10s intervals until cleanup is triggered by another job completing
-                // if this takes more than 10 minutes, force a cleanup
+                // if this takes more than 15 minutes, force a cleanup
                 let waited = 0;
                 while (Date.now() - this.lastCleanup > 600000) {
                     await new Promise(resolve => setTimeout(resolve, 10000));
                     waited += 10000;
-                }
-                if (waited > 600000) {
-                    console.warn('Assumed scraper is stuck, forcibly cleaning up (which will cancel any existing jobs)');
-                    await this.cleanup();
-                    // force the last cleanup to be now, ending the loop
-                    this.lastCleanup = Date.now();
+                    
+                    // Break out if we've waited more than 15 minutes
+                    if (waited > 900000) {
+                        console.warn('Assumed scraper is stuck, forcibly cleaning up (which will cancel any existing jobs)');
+                        await this.cleanup();
+                        // force the last cleanup to be now, ending the loop
+                        this.lastCleanup = Date.now();
+                        break;
+                    }
                 }
             }
             
