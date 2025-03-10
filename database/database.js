@@ -223,8 +223,7 @@ const initializeDatabase = async () => {
       db.run(`
         CREATE TABLE IF NOT EXISTS files (
           file_id TEXT PRIMARY KEY,
-          chatbot_id TEXT NOT NULL,
-          website_id INTEGER,
+          website_id INTEGER NOT NULL,
           original_filename TEXT NOT NULL,
           stored_filename TEXT NOT NULL,
           file_type TEXT NOT NULL,
@@ -233,7 +232,6 @@ const initializeDatabase = async () => {
           upload_date TEXT NOT NULL,
           is_visible BOOLEAN DEFAULT 1,
           allow_referencing BOOLEAN DEFAULT 1,
-          FOREIGN KEY (chatbot_id) REFERENCES chatbots(chatbot_id),
           FOREIGN KEY (website_id) REFERENCES website(website_id)
         )
       `);

@@ -4,7 +4,7 @@ const multer = require('multer');
 const path = require('path');
 const mime = require('mime-types');
 const { authMiddleware } = require('./middleware');
-const { addFile, getFileById, getFilesByChatbotId, updateFileVisibility, updateFileReferencing, updateFileTextContent, deleteFile, uploadsDir } = require('../database/files');
+const { addFile, getFileById, getFilesByChatbotId, updateFileVisibility, updateFileReferencing, updateFileTextContent, deleteFile, uploadsDir, getFilesByWebsiteId } = require('../database/files');
 const { getChatbotFromPlanId } = require('../database/chatbots');
 const TextExtractor = require('./textExtractor');
 
@@ -73,7 +73,6 @@ const upload = multer({
 router.post('/upload/:planId', authMiddleware, upload.single('file'), async (req, res) => {
     try {
         const { planId } = req.params;
-        const { websiteId } = req.body;
         const file = req.file;
 
         if (!file) {
@@ -86,10 +85,13 @@ router.post('/upload/:planId', authMiddleware, upload.single('file'), async (req
             return res.status(404).json({ success: false, message: 'Chatbot not found' });
         }
 
+        if (!chatbot.website_id) {
+            return res.status(400).json({ success: false, message: 'Chatbot must be associated with a website' });
+        }
+
         // Add file to database first
         const fileId = await addFile(
-            chatbot.chatbot_id,
-            websiteId || null,
+            chatbot.website_id,
             file.originalname,
             file.filename,
             file.mimetype,
@@ -128,7 +130,11 @@ router.get('/list/:planId', authMiddleware, async (req, res) => {
             return res.status(404).json({ success: false, message: 'Chatbot not found' });
         }
 
-        const files = await getFilesByChatbotId(chatbot.chatbot_id);
+        if (!chatbot.website_id) {
+            return res.status(400).json({ success: false, message: 'Chatbot must be associated with a website' });
+        }
+
+        const files = await getFilesByWebsiteId(chatbot.website_id);
         res.status(200).json({ success: true, files });
     } catch (error) {
         console.error('Error getting files:', error);
