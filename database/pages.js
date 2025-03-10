@@ -86,11 +86,19 @@ async function getPageSummariesBySiteId(websiteId) {
     }
 }
 
+// Get external pages for a website
+async function getExternalPages(websiteId) {
+    return dbAll(
+        'SELECT * FROM page WHERE website_id = ? AND internal = 0 ORDER BY date_updated DESC',
+        [websiteId]
+    );
+}
 
 module.exports = {
     addPage,
     getPagesByWebsite,
     getPageByUrlAndWebsiteId,
     deletePage,
-    getPageSummariesBySiteId
+    getPageSummariesBySiteId,
+    getExternalPages,
 };

@@ -11,6 +11,7 @@ const { createChatbot, getChatbotFromPlanId, editChatbotName, editChatbotSystemP
 const { getPlan, setChatbotIdForPlan } = require('../database/plans');
 const { getAvailableModelsForPlanType } = require('../database/models');
 const { getWebsiteByUrl } = require('../database/websites');
+const { getExternalPages, deletePage, getPagesByWebsite } = require('../database/pages');
 
 const { automateConfiguration } = require('./automated-config');
 
@@ -285,6 +286,66 @@ router.post('/update-model', authMiddleware, async (req, res) => {
         } else {
             res.status(500).json({ success: false, message: 'Internal server error' });
         }
+    }
+});
+
+// Add single external page to chatbot's website
+router.post('/add-external-page', authMiddleware, async (req, res) => {
+    try {
+        const { planId, url } = req.body;
+        if (!planId || !url) {
+            return res.status(400).json({ success: false, message: 'Missing required parameters' });
+        }
+
+        // Get chatbot and website info
+        const chatbot = await getChatbotFromPlanId(planId);
+        if (!chatbot || !chatbot.website_id) {
+            return res.status(404).json({ success: false, message: 'Chatbot or website not found' });
+        }
+
+        // Initialize scraper for this single page
+        const { scraperManager } = require('../webscraping/scraperManager.js');
+        await scraperManager.scrapeSinglePage(chatbot.website_id, url);
+
+        res.json({ success: true, message: 'Page added successfully' });
+    } catch (error) {
+        console.error('Error adding external page:', error);
+        res.status(500).json({ success: false, message: 'Error adding external page' });
+    }
+});
+
+// Get all pages for a chatbot
+router.get('/all-pages', authMiddleware, async (req, res) => {
+    try {
+        const { planId } = req.query;
+        if (!planId) {
+            return res.status(400).json({ success: false, message: 'Missing plan ID' });
+        }
+
+        // Get chatbot and website info
+        const chatbot = await getChatbotFromPlanId(planId);
+        if (!chatbot || !chatbot.website_id) {
+            return res.status(404).json({ success: false, message: 'Chatbot or website not found' });
+        }
+
+        // Get all pages (both internal and external)
+        const pages = await getPagesByWebsite(chatbot.website_id);
+        res.json({ success: true, pages });
+    } catch (error) {
+        console.error('Error getting pages:', error);
+        res.status(500).json({ success: false, message: 'Error getting pages' });
+    }
+});
+
+// Delete an external page
+router.delete('/external-page/:pageId', authMiddleware, async (req, res) => {
+    try {
+        const { pageId } = req.params;
+        await deletePage(pageId);
+        res.json({ success: true, message: 'Page deleted successfully' });
+    } catch (error) {
+        console.error('Error deleting external page:', error);
+        res.status(500).json({ success: false, message: 'Error deleting external page' });
     }
 });
 

@@ -218,6 +218,23 @@ const initializeDatabase = async () => {
           FOREIGN KEY (subscription_id) REFERENCES stripe_subscriptions(subscription_id)
         )
       `);
+
+      // Files table for uploaded documents
+      db.run(`
+        CREATE TABLE IF NOT EXISTS files (
+          file_id TEXT PRIMARY KEY,
+          website_id INTEGER NOT NULL,
+          original_filename TEXT NOT NULL,
+          stored_filename TEXT NOT NULL,
+          file_type TEXT NOT NULL,
+          file_size INTEGER NOT NULL,
+          text_content TEXT,
+          upload_date TEXT NOT NULL,
+          is_visible BOOLEAN DEFAULT 1,
+          allow_referencing BOOLEAN DEFAULT 1,
+          FOREIGN KEY (website_id) REFERENCES website(website_id)
+        )
+      `);
     });
     console.log('Database tables initialized.');
     await migrate(dbGet, dbRun, dbAll);

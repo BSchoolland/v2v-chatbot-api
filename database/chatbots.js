@@ -1,6 +1,7 @@
 const { dbRun, dbGet, generateUniqueId } = require('./database.js');
 const { getWebsiteById } = require('./websites.js');
 const { getPagesByWebsite } = require('./pages.js');
+const { getFilesByChatbotId, getFilesByWebsiteId } = require('./files.js');
 const { version } = require('./migrate.js');
 const { isModelAvailableForPlanType, getDefaultModel } = require('./models.js');
 const { getPlan } = require('./plans.js');
@@ -151,7 +152,7 @@ async function getSystemPrompt(chatbotId) {
         }
         
         // Add external resources to the system message
-        systemPrompt += "\nExternal resources referenced on this site: \n"
+        systemPrompt += "\nExternal resources you can reference: \n"
         for (let i = 0; i < allPages.length; i++) {
             let page = allPages[i];
             if (page.internal) {
@@ -163,10 +164,20 @@ async function getSystemPrompt(chatbotId) {
             }
             systemPrompt += "\n";
         }
+
+        // Add information about uploaded files
+        const files = await getFilesByWebsiteId(website.website_id);
+        const visibleFiles = files.filter(file => file.is_visible && file.allow_referencing);
+        if (visibleFiles.length > 0) {
+            systemPrompt += "\nUploaded documents that you can read: (keep in mind the user may not have access to these documents, so before providing a link perform a search to see if the document exists on the site and not only in the uploaded documents)\n";
+            for (const file of visibleFiles) {
+                systemPrompt += `${file.original_filename} (${file.file_type})\n`;
+            }
+        }
         
         // Add the current date
         systemPrompt += "\nToday's date is: " + new Date().toDateString() + "\n";
-        // systemPrompt += "\nThe user is currently on the page: " + currentUrl + "\n";
+        console.log(systemPrompt);
     } catch (error) {
         console.error(error);
     }

@@ -3,7 +3,8 @@ const { JSDOM } = require('jsdom');
 const { ActiveJob } = require('./activeJob.js');
 const dotenv = require('dotenv');
 dotenv.config();
-const { setLastCrawled } = require('../database/websites.js');
+const { setLastCrawled, getWebsiteById } = require('../database/websites.js');
+const { addPage, getPageByUrlAndWebsiteId } = require('../database/pages.js');
 
 class ScraperManager {
     constructor() {
@@ -409,6 +410,70 @@ class ScraperManager {
         cleanedUrl = cleanedUrl.split('?')[0];
         // return the cleaned URL as a regular string
         return cleanedUrl;
+    }
+
+    async scrapeSinglePage(websiteId, url) {
+        console.log(`[ScraperManager] Scraping single page: ${url} for website ${websiteId}`);
+        
+        try {
+            // Check if page already exists
+            const existingPage = await getPageByUrlAndWebsiteId(websiteId, url);
+            if (existingPage) {
+                console.log(`[ScraperManager] Page already exists: ${url}`);
+                return;
+            }
+
+            // Get website info to check domain
+            const website = await getWebsiteById(websiteId);
+            if (!website) {
+                throw new Error(`Website not found for ID: ${websiteId}`);
+            }
+
+            // Clean URLs for comparison
+            const cleanUrl = this.cleanUrl(url);
+            const cleanDomain = this.cleanUrl(website.domain);
+            
+            // Check if URL belongs to website's domain
+            const isInternal = cleanUrl.startsWith(cleanDomain);
+            console.log(`[ScraperManager] URL ${url} is ${isInternal ? 'internal' : 'external'} to domain ${website.domain}`);
+
+            // Initialize browser if needed
+            if (!this.browser) {
+                await this.init();
+            }
+
+            // Create a new page
+            const page = await this.browser.newPage();
+            
+            try {
+                // Configure request interception
+                await page.setRequestInterception(true);
+                page.on('request', (req) => {
+                    if (['image', 'stylesheet', 'font', 'media'].includes(req.resourceType())) {
+                        req.abort();
+                    } else {
+                        req.continue();
+                    }
+                });
+
+                // Navigate to the URL
+                await page.goto(url, { waitUntil: 'networkidle0', timeout: 30000 });
+                
+                // Extract content and title
+                const content = await page.evaluate(() => document.body.innerText);
+                const title = await page.title();
+                
+                // Add to database with appropriate internal flag
+                await addPage(websiteId, url, title, content, isInternal);
+                
+                console.log(`[ScraperManager] Successfully scraped and added ${isInternal ? 'internal' : 'external'} page: ${url}`);
+            } finally {
+                await page.close();
+            }
+        } catch (error) {
+            console.error(`[ScraperManager] Error scraping page ${url}:`, error);
+            throw error;
+        }
     }
 }
 

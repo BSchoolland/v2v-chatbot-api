@@ -58,6 +58,7 @@ router.post('/chat/:chatbotId', async (req, res) => {
     const chatId = getSessionId(req.body.chatId);
     appendMessageToSession(chatId, req.body.message, 'user');
     const response = await getChatbotResponse(chatId, req.params.chatbotId);
+    console.log(response);
 
     // Store the conversation after getting the response
     try {
@@ -81,7 +82,6 @@ router.post('/chat/:chatbotId', async (req, res) => {
         console.error('Error storing conversation:', error);
         // Don't fail the request if storage fails
     }
-
     res.json(response);
 });
 
