@@ -5,4 +5,4 @@
 *.db
 .vscode
 .DS_Store
-coverage/
+coverage/data/uploads/

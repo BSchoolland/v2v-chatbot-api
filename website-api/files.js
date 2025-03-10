@@ -2,9 +2,11 @@ const express = require('express');
 const router = express.Router();
 const multer = require('multer');
 const path = require('path');
+const mime = require('mime-types');
 const { authMiddleware } = require('./middleware');
-const { addFile, getFileById, getFilesByChatbotId, updateFileVisibility, updateFileReferencing, deleteFile, uploadsDir } = require('../database/files');
+const { addFile, getFileById, getFilesByChatbotId, updateFileVisibility, updateFileReferencing, updateFileTextContent, deleteFile, uploadsDir } = require('../database/files');
 const { getChatbotFromPlanId } = require('../database/chatbots');
+const TextExtractor = require('./textExtractor');
 
 // Configure multer for file uploads
 const storage = multer.diskStorage({
@@ -14,28 +16,47 @@ const storage = multer.diskStorage({
     filename: (req, file, cb) => {
         // Generate a unique filename while preserving the original extension
         const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        cb(null, uniqueSuffix + path.extname(file.originalname));
+        const ext = path.extname(file.originalname);
+        cb(null, uniqueSuffix + ext);
     }
 });
 
 // File filter to only allow text-based files
 const fileFilter = (req, file, cb) => {
+    console.log('Received file:', {
+        originalname: file.originalname,
+        mimetype: file.mimetype
+    });
+
+    // Get proper MIME type based on file extension
+    const ext = path.extname(file.originalname).toLowerCase();
+    const detectedMimeType = mime.lookup(ext);
+
+    console.log('Detected MIME type:', detectedMimeType);
+
     // List of allowed MIME types
     const allowedMimeTypes = [
+        // Text files
         'text/plain',
         'text/markdown',
         'text/csv',
         'application/json',
+        // PDF files
         'application/pdf',
+        // Word documents
         'application/msword',
         'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        // Excel files
         'application/vnd.ms-excel',
         'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     ];
 
-    if (allowedMimeTypes.includes(file.mimetype)) {
+    if (detectedMimeType && allowedMimeTypes.includes(detectedMimeType)) {
+        // Override the incoming mimetype with the detected one
+        file.mimetype = detectedMimeType;
         cb(null, true);
     } else {
+        console.log('Rejected file type:', detectedMimeType || file.mimetype);
         cb(new Error('Invalid file type. Only text-based files are allowed.'), false);
     }
 };
@@ -65,7 +86,7 @@ router.post('/upload/:planId', authMiddleware, upload.single('file'), async (req
             return res.status(404).json({ success: false, message: 'Chatbot not found' });
         }
 
-        // Add file to database
+        // Add file to database first
         const fileId = await addFile(
             chatbot.chatbot_id,
             websiteId || null,
@@ -74,6 +95,16 @@ router.post('/upload/:planId', authMiddleware, upload.single('file'), async (req
             file.mimetype,
             file.size
         );
+
+        // Extract text content asynchronously
+        try {
+            const filePath = path.join(uploadsDir, file.filename);
+            const textContent = await TextExtractor.extractFromFile(filePath, file.mimetype);
+            await updateFileTextContent(fileId, textContent);
+        } catch (extractError) {
+            console.error('Error extracting text content:', extractError);
+            // Don't fail the upload if text extraction fails
+        }
 
         res.status(200).json({
             success: true,

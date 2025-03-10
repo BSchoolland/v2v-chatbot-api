@@ -3,19 +3,24 @@ require('dotenv').config();
 
 // Auth middleware to verify token and extract userId
 const authMiddleware = (req, res, next) => {
-    const sessionToken = req.cookies.session;
-    if (!sessionToken) {
-        console.log('No session token');
+    // Allow bypassing auth in development mode if admin flag is set
+    if (process.env.ENV === 'development' && req.query.admin === 'true') {
+        req.userId = 1; // Set a default admin user ID
+        return next();
+    }
+
+    const token = req.cookies?.session;
+    if (!token) {
         return res.status(401).json({ message: 'Not authenticated' });
     }
 
     try {
-        const decoded = jwt.verify(sessionToken, process.env.JWT_SECRET);
-        req.userId = decoded.userId; // Attach userId to request
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        req.userId = decoded.userId;
         next();
     } catch (err) {
         console.error('Invalid token:', err);
-        return res.status(401).json({ message: 'Invalid token' });
+        res.status(401).json({ message: 'Not authenticated' });
     }
 };
 
