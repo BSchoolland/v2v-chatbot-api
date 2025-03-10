@@ -152,7 +152,7 @@ async function getSystemPrompt(chatbotId) {
         }
         
         // Add external resources to the system message
-        systemPrompt += "\nExternal resources referenced on this site: \n"
+        systemPrompt += "\nExternal resources you can reference: \n"
         for (let i = 0; i < allPages.length; i++) {
             let page = allPages[i];
             if (page.internal) {

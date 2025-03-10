@@ -9,7 +9,7 @@ tools = [
         "type": "function",
         "function": {
             "name": "readPageContent",
-            "description": "Reads the text content of a URL path, use if the user asks for information that can be found on a page of the website.",
+            "description": "Reads the text content of a URL path (internal or external), use if the user asks for information that can be found on a page of the website.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -26,7 +26,7 @@ tools = [
         "type": "function",
         "function": {
             "name": "siteWideSearch",
-            "description": "Searches the entire website and uploaded documents for specific words (exact match), returning a list of pages and files that contain those exact words. If this fails, it could be due to a small issue with phrasing. In that case, try reading page content or file content.",
+            "description": "Searches the entire website, external resources, and uploaded documents for specific words (exact match), returning a list of pages and files that contain those exact words. If this fails, it could be due to a small issue with phrasing. In that case, try reading page content or file content.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -221,7 +221,7 @@ async function siteWideSearch(params, metadata) {
             }
         })
         .join("\n\n");
-
+    console.log("resultString", resultString);
     if (resultString === '') {
         return "No matches found";
     }

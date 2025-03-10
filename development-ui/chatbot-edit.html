@@ -219,6 +219,99 @@
             width: 0;
             transition: width 0.3s;
         }
+
+        /* Add styles after the file management styles */
+        .external-pages {
+            margin-top: 30px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        .external-page-form {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .external-page-form input {
+            flex-grow: 1;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        .external-pages-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .external-page-item {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            border: 1px solid #eee;
+            margin-bottom: 10px;
+            border-radius: 4px;
+        }
+
+        .external-page-info {
+            flex-grow: 1;
+        }
+
+        .external-page-url {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .external-page-url a {
+            color: #dc3545; /* Red for external pages */
+        }
+
+        .external-page-url a.internal {
+            color: #28a745; /* Green for internal pages */
+        }
+
+        .external-page-meta {
+            font-size: 0.8em;
+            color: #666;
+        }
+
+        .scraping-status {
+            font-size: 0.8em;
+            margin-left: 10px;
+        }
+
+        .scraping-status.success {
+            color: #28a745;
+        }
+
+        .scraping-status.error {
+            color: #dc3545;
+        }
+
+        .pages-sections {
+            margin-top: 20px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .internal-pages-section, .external-pages-section {
+            padding: 15px;
+            border: 1px solid #eee;
+            border-radius: 4px;
+        }
+
+        .internal-pages-section h3 {
+            color: #28a745;
+            margin-top: 0;
+        }
+
+        .external-pages-section h3 {
+            color: #dc3545;
+            margin-top: 0;
+        }
     </style>
 </head>
 <body>
@@ -286,6 +379,32 @@
             <ul class="files-list" id="filesList">
                 <!-- Files will be listed here -->
             </ul>
+        </div>
+        <div class="form-group external-pages">
+            <h2>Website Pages</h2>
+            <div class="external-page-form">
+                <input type="url" id="externalPageUrl" placeholder="Enter URL to add (e.g., https://example.com/page)">
+                <button onclick="addExternalPage()">Add Page</button>
+            </div>
+            <p style="font-size: 0.8em; color: #666;">Add web pages that your chatbot should be able to reference. These pages will be scraped and their content will be made available to the chatbot.</p>
+            
+            <div class="pages-sections">
+                <div class="internal-pages-section">
+                    <h3>Internal Pages</h3>
+                    <p style="font-size: 0.8em; color: #28a745;">Pages from your website that the chatbot can reference</p>
+                    <ul class="external-pages-list" id="internalPagesList">
+                        <!-- Internal pages will be listed here -->
+                    </ul>
+                </div>
+                
+                <div class="external-pages-section">
+                    <h3>External Pages</h3>
+                    <p style="font-size: 0.8em; color: #dc3545;">Pages from other websites that the chatbot can reference</p>
+                    <ul class="external-pages-list" id="externalPagesList">
+                        <!-- External pages will be listed here -->
+                    </ul>
+                </div>
+            </div>
         </div>
         <button type="button" class="reset-button" onclick="resetConfiguration()" id="resetButton">
             Reset to Initial Configuration
@@ -785,10 +904,118 @@
             }
         }
 
+        // Add these functions after the file management functions
+        async function addExternalPage() {
+            const urlInput = document.getElementById('externalPageUrl');
+            const url = urlInput.value.trim();
+            
+            if (!url) {
+                alert('Please enter a valid URL');
+                return;
+            }
+
+            try {
+                // Validate URL format
+                new URL(url);
+            } catch (error) {
+                alert('Please enter a valid URL including the protocol (e.g., https://example.com)');
+                return;
+            }
+
+            try {
+                const response = await fetch('/website/api/chatbot-setup/add-external-page', {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        planId: planId,
+                        url: url
+                    })
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    urlInput.value = ''; // Clear input
+                    loadExternalPages(); // Refresh the list
+                } else {
+                    alert(data.message || 'Failed to add page');
+                }
+            } catch (error) {
+                console.error('Error adding external page:', error);
+                alert('Error adding external page');
+            }
+        }
+
+        async function loadExternalPages() {
+            try {
+                const response = await fetch(`/website/api/chatbot-setup/all-pages?planId=${planId}`, {
+                    credentials: 'include'
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    const internalPagesList = document.getElementById('internalPagesList');
+                    const externalPagesList = document.getElementById('externalPagesList');
+                    internalPagesList.innerHTML = '';
+                    externalPagesList.innerHTML = '';
+
+                    data.pages.forEach(page => {
+                        const li = document.createElement('li');
+                        li.className = 'external-page-item';
+                        li.innerHTML = `
+                            <div class="external-page-info">
+                                <div class="external-page-url">
+                                    <a href="${page.url}" target="_blank" class="${page.internal ? 'internal' : ''}">${page.url}</a>
+                                </div>
+                                <div class="external-page-meta">
+                                    Added: ${new Date(page.date_updated).toLocaleString()}
+                                </div>
+                            </div>
+                            <button class="delete-file" onclick="deleteExternalPage('${page.page_id}')">Remove</button>
+                        `;
+                        
+                        if (page.internal) {
+                            internalPagesList.appendChild(li);
+                        } else {
+                            externalPagesList.appendChild(li);
+                        }
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading pages:', error);
+            }
+        }
+
+        async function deleteExternalPage(pageId) {
+            if (!confirm('Are you sure you want to remove this external page? The chatbot will no longer be able to reference its content.')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/website/api/chatbot-setup/external-page/${pageId}`, {
+                    method: 'DELETE',
+                    credentials: 'include'
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    loadExternalPages(); // Refresh the list
+                } else {
+                    alert('Failed to remove external page');
+                }
+            } catch (error) {
+                console.error('Error removing external page:', error);
+                alert('Error removing external page');
+            }
+        }
+
         // Initialize file upload when the page loads
         document.addEventListener('DOMContentLoaded', () => {
             initializeFileUpload();
             loadFiles();
+            loadExternalPages();
         });
     </script>
 </body>
