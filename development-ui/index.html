@@ -78,6 +78,23 @@
             color: #bdc3c7;
             border-bottom: 1px solid #bdc3c7;
         }
+        
+        .dev-tools-link {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            background-color: rgba(0, 0, 0, 0.5);
+            padding: 8px 15px;
+            border-radius: 4px;
+            color: #3498db;
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: background-color 0.3s ease;
+        }
+        
+        .dev-tools-link:hover {
+            background-color: rgba(0, 0, 0, 0.7);
+        }
     </style>
 </head>
 <body>
@@ -89,5 +106,25 @@
         <a href="https://visionstovisuals.com" target="_blank">Visions to Visuals</a>
         <a href="https://www.linkedin.com/company/visions-to-visuals/" target="_blank">LinkedIn</a>
         <a href="mailto:contact@visionstovisuals.com">Contact</a>
+    </div>
+    
+    <!-- Development Tools Link - Only visible in development mode -->
+    <script>
+        // Check if we're in development mode
+        fetch('/website/api/dev-tools/date-info')
+            .then(response => {
+                if (response.ok) {
+                    // If the dev tools endpoint is accessible, add the link
+                    const devToolsLink = document.createElement('a');
+                    devToolsLink.href = '/dev-tools.html';
+                    devToolsLink.className = 'dev-tools-link';
+                    devToolsLink.textContent = 'Development Tools';
+                    document.body.appendChild(devToolsLink);
+                }
+            })
+            .catch(() => {
+                // Do nothing if we're not in development mode or the endpoint is not accessible
+            });
+    </script>
 </body>
 </html>

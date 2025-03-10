@@ -3,7 +3,6 @@ const bodyParser = require('body-parser');
 const { initializeDatabase } = require('./database/database.js');
 const { dbRun, dbGet, dbAll } = require('./database/database.js');
 const { scraperManager } = require('./webscraping/scraperManager.js');
-const { scheduleCreditRenewal } = require('./services/scheduler.js');
 const { scheduleCronJobs } = require('./webscraping/cron.js');
 const expressWs = require('express-ws');
 const http = require('http');
@@ -61,11 +60,8 @@ async function startServer() {
     try {
         // Initialize database and run migrations
         await initializeDatabase(dbGet, dbRun, dbAll);
-        
-        // Initialize credit renewal scheduler
-        scheduleCreditRenewal();
 
-        // Schedule cron jobs
+        // Schedule cron jobs (credit renewal and website re-crawling)
         scheduleCronJobs();
         
         // Start the server using the http server instance

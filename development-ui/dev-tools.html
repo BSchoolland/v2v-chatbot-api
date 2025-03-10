@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Development Tools</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        h1, h2 {
+            color: #333;
+        }
+        .card {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            background-color: #f9f9f9;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input[type="number"] {
+            width: 100px;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        button.secondary {
+            background-color: #f44336;
+        }
+        button.secondary:hover {
+            background-color: #d32f2f;
+        }
+        button.tertiary {
+            background-color: #2196F3;
+        }
+        button.tertiary:hover {
+            background-color: #0b7dda;
+        }
+        pre {
+            background-color: #f5f5f5;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+        .status {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 4px;
+        }
+        .success {
+            background-color: #dff0d8;
+            color: #3c763d;
+        }
+        .error {
+            background-color: #f2dede;
+            color: #a94442;
+        }
+    </style>
+</head>
+<body>
+    <h1>Development Tools</h1>
+    <p>These tools are only available in development mode and help with testing time-dependent features.</p>
+
+    <div class="card">
+        <h2>Date Manipulation</h2>
+        <div class="form-group">
+            <label for="days">Days:</label>
+            <input type="number" id="days" value="0">
+        </div>
+        <div class="form-group">
+            <label for="hours">Hours:</label>
+            <input type="number" id="hours" value="0">
+        </div>
+        <div class="form-group">
+            <label for="minutes">Minutes:</label>
+            <input type="number" id="minutes" value="0">
+        </div>
+        <button id="setDateOffset">Set Date Offset</button>
+        <button id="resetDateOffset" class="secondary">Reset Date</button>
+        <button id="refreshDateInfo" class="tertiary">Refresh Info</button>
+
+        <div id="dateInfo" class="status">
+            <p>Loading date information...</p>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>Credit Renewal</h2>
+        <p>Manually trigger credit renewal check for all plans.</p>
+        <button id="triggerCreditRenewal">Trigger Credit Renewal</button>
+        <div id="creditRenewalStatus" class="status"></div>
+    </div>
+
+    <script>
+        // Function to display JSON data nicely
+        function displayJson(elementId, data) {
+            const element = document.getElementById(elementId);
+            element.innerHTML = `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+            
+            // Add appropriate class based on success status
+            if (data.success === false) {
+                element.classList.add('error');
+                element.classList.remove('success');
+            } else {
+                element.classList.add('success');
+                element.classList.remove('error');
+            }
+        }
+
+        // Function to fetch date information
+        async function fetchDateInfo() {
+            try {
+                const response = await fetch('/website/api/dev-tools/date-info');
+                const data = await response.json();
+                displayJson('dateInfo', data);
+            } catch (error) {
+                document.getElementById('dateInfo').innerHTML = `
+                    <div class="error">
+                        <p>Error fetching date information: ${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        // Set date offset
+        document.getElementById('setDateOffset').addEventListener('click', async () => {
+            const days = parseInt(document.getElementById('days').value) || 0;
+            const hours = parseInt(document.getElementById('hours').value) || 0;
+            const minutes = parseInt(document.getElementById('minutes').value) || 0;
+
+            try {
+                const response = await fetch('/website/api/dev-tools/set-date-offset', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ days, hours, minutes })
+                });
+                const data = await response.json();
+                displayJson('dateInfo', data);
+            } catch (error) {
+                document.getElementById('dateInfo').innerHTML = `
+                    <div class="error">
+                        <p>Error setting date offset: ${error.message}</p>
+                    </div>
+                `;
+            }
+        });
+
+        // Reset date offset
+        document.getElementById('resetDateOffset').addEventListener('click', async () => {
+            try {
+                const response = await fetch('/website/api/dev-tools/reset-date-offset', {
+                    method: 'POST'
+                });
+                const data = await response.json();
+                displayJson('dateInfo', data);
+            } catch (error) {
+                document.getElementById('dateInfo').innerHTML = `
+                    <div class="error">
+                        <p>Error resetting date offset: ${error.message}</p>
+                    </div>
+                `;
+            }
+        });
+
+        // Refresh date info
+        document.getElementById('refreshDateInfo').addEventListener('click', fetchDateInfo);
+
+        // Trigger credit renewal
+        document.getElementById('triggerCreditRenewal').addEventListener('click', async () => {
+            try {
+                const response = await fetch('/website/api/dev-tools/trigger-credit-renewal', {
+                    method: 'POST'
+                });
+                const data = await response.json();
+                displayJson('creditRenewalStatus', data);
+            } catch (error) {
+                document.getElementById('creditRenewalStatus').innerHTML = `
+                    <div class="error">
+                        <p>Error triggering credit renewal: ${error.message}</p>
+                    </div>
+                `;
+            }
+        });
+
+        // Initial fetch of date information
+        fetchDateInfo();
+    </script>
+</body>
+</html> 

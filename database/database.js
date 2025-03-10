@@ -133,7 +133,6 @@ const initializeDatabase = async () => {
           chatbot_id INTEGER NOT NULL,
           domain TEXT NOT NULL,
           last_crawled TEXT,
-          last_scraped_at TEXT,
           FOREIGN KEY (chatbot_id) REFERENCES chatbots(chatbot_id)
         )
       `);

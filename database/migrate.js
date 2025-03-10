@@ -217,11 +217,30 @@ async function pageMigration(dbGet, dbRun, dbAll) {
     }
 }
 
+async function billingAnchorMigration(dbGet, dbRun, dbAll) {
+    console.log('Migrating plans for billing anchor if necessary...');
+
+    // Add billing_anchor_day column to plans table if it doesn't exist
+    if (!(await columnExists('plans', 'billing_anchor_day', dbAll))) {
+        console.log('Adding billing_anchor_day column to plans table...');
+        await dbRun(`ALTER TABLE plans ADD COLUMN billing_anchor_day INTEGER`);
+        
+        // Set the billing_anchor_day for existing plans based on their renewal date
+        const plans = await dbAll('SELECT plan_id, renews_at FROM plans WHERE renews_at IS NOT NULL', []);
+        for (const plan of plans) {
+            const renewalDate = new Date(plan.renews_at);
+            const anchorDay = renewalDate.getDate();
+            await dbRun('UPDATE plans SET billing_anchor_day = ? WHERE plan_id = ?', [anchorDay, plan.plan_id]);
+        }
+    }
+}
+
 async function migrate(dbGet, dbRun, dbAll) {
     await modelMigration(dbGet, dbRun, dbAll);
     await chatbotMigration(dbGet, dbRun, dbAll);
     await conversationMigration(dbGet, dbRun, dbAll);
     await planTypeMigration(dbGet, dbRun, dbAll);
+    await billingAnchorMigration(dbGet, dbRun, dbAll);
 }
 
 module.exports = {
