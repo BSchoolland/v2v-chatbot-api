@@ -169,15 +169,15 @@ async function getSystemPrompt(chatbotId) {
         const files = await getFilesByWebsiteId(website.website_id);
         const visibleFiles = files.filter(file => file.is_visible && file.allow_referencing);
         if (visibleFiles.length > 0) {
-            systemPrompt += "\nUploaded documents that you can reference: \n";
+            systemPrompt += "\nUploaded documents that you can read: (keep in mind the user may not have access to these documents, so before providing a link perform a search to see if the document exists on the site and not only in the uploaded documents)\n";
             for (const file of visibleFiles) {
                 systemPrompt += `${file.original_filename} (${file.file_type})\n`;
             }
-            systemPrompt += "\nUse the searchFiles tool to search through these documents when relevant to the user's query.\n";
         }
         
         // Add the current date
         systemPrompt += "\nToday's date is: " + new Date().toDateString() + "\n";
+        console.log(systemPrompt);
     } catch (error) {
         console.error(error);
     }

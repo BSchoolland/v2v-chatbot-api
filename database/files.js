@@ -222,6 +222,29 @@ function formatCSVContent(content) {
     }
 }
 
+// Helper function to format text content
+function formatTextContent(content) {
+    if (!content) return '';
+
+    // Replace multiple spaces with a single space
+    let formatted = content.replace(/\s+/g, ' ');
+
+    // Fix common PDF extraction issues where words get joined
+    formatted = formatted.replace(/([a-z])([A-Z])/g, '$1 $2');
+
+    // Preserve meaningful line breaks (e.g., between paragraphs)
+    formatted = formatted.replace(/\.\s+/g, '.\n\n');  // Add line break after periods
+    formatted = formatted.replace(/[•●]\s*/g, '\n• '); // Format bullet points properly
+
+    // Clean up excessive newlines
+    formatted = formatted.replace(/\n{3,}/g, '\n\n');
+
+    // Trim any leading/trailing whitespace
+    formatted = formatted.trim();
+
+    return formatted;
+}
+
 // Read file content by filename
 async function readFileContent(websiteId, filename) {
     console.log(`[readFileContent] Attempting to read file: ${filename} from website: ${websiteId}`);
@@ -258,6 +281,9 @@ async function readFileContent(websiteId, filename) {
         content = content.substring(0, maxLength);
         truncated = true;
     }
+
+    // Format the content
+    content = formatTextContent(content);
 
     console.log(`[readFileContent] Successfully retrieved content for file: ${file.original_filename}`);
     
