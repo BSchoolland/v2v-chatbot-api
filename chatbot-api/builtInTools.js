@@ -1,7 +1,7 @@
 const {db, dbAll} = require('../database/database.js');
 const { getPageByUrlAndWebsiteId } = require('../database/pages.js');
 const {getWebsiteById} = require('../database/websites.js');
-const { searchFileContent, readFileContent, getFilesByChatbotId, getFilesByWebsiteId } = require('../database/files.js');
+const { searchFileContent, readFileContent, getFilesByWebsiteId } = require('../database/files.js');
 const wsManager = require('./wsManager');
 // a set of tools the chatbot can use to find information for the user
 tools = [
@@ -49,7 +49,7 @@ tools = [
                 "properties": {
                     "filename": {
                         "type": "string",
-                        "description": "The name of the file to read (e.g. 'sample.pdf').",
+                        "description": "The name of the file to read (e.g. 'example.pdf').",
                     },
                 },
                 "required": ["filename"],
@@ -215,9 +215,9 @@ async function siteWideSearch(params, metadata) {
     const resultString = allResults.slice(0, 15)
         .map(res => {
             if (res.type === 'page') {
-                return `Page ${res.url}: ${res.excerpt}`;
+                return `Page ${res.url}: ${res.excerpt} (Match Score: ${res.score})`;
             } else {
-                return `File "${res.filename}": ${res.excerpt}`;
+                return `File "${res.filename}": ${res.excerpt} (Match Score: ${res.score})`;
             }
         })
         .join("\n\n");
