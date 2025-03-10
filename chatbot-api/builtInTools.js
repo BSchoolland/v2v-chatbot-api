@@ -47,12 +47,12 @@ tools = [
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "fileId": {
+                    "filename": {
                         "type": "string",
-                        "description": "The ID of the file to read.",
+                        "description": "The name of the file to read (e.g. 'sample.pdf').",
                     },
                 },
-                "required": ["fileId"],
+                "required": ["filename"],
             },
         },
     },
@@ -290,8 +290,27 @@ async function useTool(toolName, params, metadata = {}) {
                 break;
             case 'readFileContent':
                 const fileParams = JSON.parse(params);
-                result = await readFileContent(fileParams.fileId);
-                reference = `file "${fileParams.fileId}"`;
+                console.log(`[readFileContent tool] Attempting to read file: ${fileParams.filename}`);
+                console.log(`[readFileContent tool] Context:`, {
+                    chatbotId: metadata.chatbotId,
+                    websiteId: metadata.websiteId,
+                    userId: metadata.userId
+                });
+                
+                try {
+                    const content = await readFileContent(metadata.websiteId, fileParams.filename);
+                    console.log(`[readFileContent tool] Result:`, {
+                        success: content !== "File not found" && 
+                                 content !== "This file is not available for reference" && 
+                                 content !== "No readable content available for this file",
+                        errorMessage: content.startsWith("[") ? null : content
+                    });
+                    result = content;
+                } catch (error) {
+                    console.error(`[readFileContent tool] Error:`, error);
+                    result = "An error occurred while reading the file";
+                }
+                reference = `file "${fileParams.filename}"`;
                 broadcastToolUsage(toolName, reference, metadata);
                 break;
             default:
