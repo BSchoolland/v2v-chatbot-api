@@ -4,7 +4,7 @@ const multer = require('multer');
 const path = require('path');
 const mime = require('mime-types');
 const { authMiddleware } = require('./middleware');
-const { addFile, getFileById, getFilesByChatbotId, updateFileVisibility, updateFileReferencing, updateFileTextContent, deleteFile, uploadsDir, getFilesByWebsiteId } = require('../database/files');
+const { addFile, updateFileVisibility, updateFileReferencing, updateFileTextContent, deleteFile, uploadsDir, getFilesByWebsiteId } = require('../database/files');
 const { getChatbotFromPlanId } = require('../database/chatbots');
 const TextExtractor = require('./textExtractor');
 
