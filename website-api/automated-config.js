@@ -156,7 +156,7 @@ The configuration should be specific to this website's content and purpose. Use 
 
 User: Question
 Chatbot: siteWideSearch("term to search for based on question")
-Tool: Possible relevant pages
+Tool: Possible relevant pages and files
 Chatbot: readPageContent("/most helpful looking page")
 Tool: Information about page
 Chatbot: readPageContent("/another page that appears relevant")
