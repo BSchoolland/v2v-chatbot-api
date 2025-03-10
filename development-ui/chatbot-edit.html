@@ -950,7 +950,7 @@
 
         async function loadExternalPages() {
             try {
-                const response = await fetch(`/website/api/chatbot-setup/all-pages?planId=${planId}`, {
+                const response = await fetch(`/website/api/chatbot-setup/external-pages?planId=${planId}`, {
                     credentials: 'include'
                 });
                 const data = await response.json();
@@ -984,7 +984,7 @@
                     });
                 }
             } catch (error) {
-                console.error('Error loading pages:', error);
+                console.error('Error loading external pages:', error);
             }
         }
 
