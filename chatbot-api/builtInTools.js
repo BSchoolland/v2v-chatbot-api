@@ -308,7 +308,7 @@ async function useTool(toolName, params, metadata = {}) {
                     result = content;
                 } catch (error) {
                     console.error(`[readFileContent tool] Error:`, error);
-                    result = "An error occurred while reading the file";
+                    result = "An error occurred while reading the file: " + error.message;
                 }
                 reference = `file "${fileParams.filename}"`;
                 broadcastToolUsage(toolName, reference, metadata);
