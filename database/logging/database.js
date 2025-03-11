@@ -66,6 +66,19 @@ const initializeLoggingDatabase = async () => {
                 chatbot_id TEXT NOT NULL
             )
         `);
+
+        // credit renewal logging:
+        // when a plan is renewed, how many credits are added
+        // how many credits were already in the plan
+        db.run(`
+            CREATE TABLE IF NOT EXISTS credit_renewals (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                timestamp TEXT NOT NULL,
+                credits_added INTEGER NOT NULL,
+                credits_before INTEGER NOT NULL,
+                plan_id TEXT NOT NULL
+            )
+        `);
         
 
     });
