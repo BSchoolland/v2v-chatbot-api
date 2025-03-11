@@ -1,6 +1,7 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const { initializeDatabase } = require('./database/database.js');
+const { initializeLoggingDatabase } = require('./database/logging/database.js');
 const { dbRun, dbGet, dbAll } = require('./database/database.js');
 const { scraperManager } = require('./webscraping/scraperManager.js');
 const { scheduleCronJobs } = require('./webscraping/cron.js');
@@ -60,7 +61,7 @@ async function startServer() {
     try {
         // Initialize database and run migrations
         await initializeDatabase(dbGet, dbRun, dbAll);
-
+        await initializeLoggingDatabase();
         // Schedule cron jobs (credit renewal and website re-crawling)
         scheduleCronJobs();
         

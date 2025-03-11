@@ -2,6 +2,7 @@ const {db, dbAll} = require('../database/database.js');
 const { getPageByUrlAndWebsiteId } = require('../database/pages.js');
 const {getWebsiteById} = require('../database/websites.js');
 const { searchFileContent, readFileContent, getFilesByWebsiteId } = require('../database/files.js');
+const { logToolCall } = require('../database/logging/toolCalls.js');
 const wsManager = require('./wsManager');
 // a set of tools the chatbot can use to find information for the user
 tools = [
@@ -80,9 +81,7 @@ async function readPageContent(params, metadata) {
     if (path[path.length - 1] !== "/") {
         path = path + "/";
     }
-    console.log("path", path, 'websiteId', metadata.websiteId);
     const page = await getPageByUrlAndWebsiteId(metadata.websiteId, path);
-    console.log("page", page);
     if (page) {
         return page.content;
     } else {
@@ -131,7 +130,6 @@ async function readPageContent(params, metadata) {
 
 async function siteWideSearch(params, metadata) {
     params = typeof params === 'string' ? JSON.parse(params) : params;
-    console.log("siteWideSearch", params);
 
     const searchString = params.term.toLowerCase();
     if (!searchString) {
@@ -221,7 +219,6 @@ async function siteWideSearch(params, metadata) {
             }
         })
         .join("\n\n");
-    console.log("resultString", resultString);
     if (resultString === '') {
         return "No matches found";
     }
@@ -272,6 +269,7 @@ async function useTool(toolName, params, metadata = {}) {
                 result = await readPageContent(params, metadata);
                 // Only broadcast if the page was found (result doesn't contain error message)
                 if (!result.includes("No information found for path")) {
+                    logToolCall(toolName, true, params, result, metadata);
                     const parsedParams = JSON.parse(params);
                     let path = parsedParams.path;
                     if (!path.startsWith("http")) {
@@ -280,35 +278,34 @@ async function useTool(toolName, params, metadata = {}) {
                     }
                     reference = `page "${path}"`;
                     broadcastToolUsage(toolName, reference, metadata);
+                } else {
+                    logToolCall(toolName, false, params, result, metadata);
                 }
                 break;
             case 'siteWideSearch':
-                result = await siteWideSearch(params, metadata);
-                const parsedParams = JSON.parse(params);
-                reference = `search "${parsedParams.term}"`;
-                broadcastToolUsage(toolName, reference, metadata);
+                try {
+                    result = await siteWideSearch(params, metadata);
+                    logToolCall(toolName, true, params, result, metadata);
+                    const parsedParams = JSON.parse(params);
+                    reference = `search "${parsedParams.term}"`;
+                    broadcastToolUsage(toolName, reference, metadata);
+                } catch (error) {
+                    logToolCall(toolName, false, params, result, metadata);
+                }
                 break;
             case 'readFileContent':
                 const fileParams = JSON.parse(params);
-                console.log(`[readFileContent tool] Attempting to read file: ${fileParams.filename}`);
-                console.log(`[readFileContent tool] Context:`, {
-                    chatbotId: metadata.chatbotId,
-                    websiteId: metadata.websiteId,
-                    userId: metadata.userId
-                });
+                
                 
                 try {
                     const content = await readFileContent(metadata.websiteId, fileParams.filename);
-                    console.log(`[readFileContent tool] Result:`, {
-                        success: content !== "File not found" && 
-                                 content !== "This file is not available for reference" && 
-                                 content !== "No readable content available for this file",
-                        errorMessage: content.startsWith("[") ? null : content
-                    });
+                    logToolCall(toolName, true, params, content, metadata);
+                    
                     result = content;
                 } catch (error) {
                     console.error(`[readFileContent tool] Error:`, error);
-                    result = "An error occurred while reading the file: " + error.message;
+                    logToolCall(toolName, false, params, error.message, metadata);
+                    result = "An error occurred while reading the file:\n " + error.message;
                 }
                 reference = `file "${fileParams.filename}"`;
                 broadcastToolUsage(toolName, reference, metadata);
@@ -319,6 +316,7 @@ async function useTool(toolName, params, metadata = {}) {
         return result;
     } catch (error) {
         console.error(`Error using tool ${toolName}:`, error);
+        logToolCall(toolName, false, params, "Error: " + error.message, metadata);
         throw error;
     }
 }
