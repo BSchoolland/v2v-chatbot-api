@@ -49,11 +49,24 @@ const initializeLoggingDatabase = async () => {
                 arguments TEXT NOT NULL,
                 result TEXT NOT NULL,
                 chatbot_id TEXT NOT NULL,
-                message_id TEXT
+                message_id TEXT 
+            )
+        `); // TODO: message_id is currently always null, we should add it
+
+        // Chatbot Message logging:
+        // Key comparisons:
+        // message length (max, average, min)
+        // message length by chatbot, which ones are most verbose
+        // message count
+        db.run(`
+            CREATE TABLE IF NOT EXISTS chatbot_messages (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                timestamp TEXT NOT NULL,
+                message TEXT NOT NULL,
+                chatbot_id TEXT NOT NULL
             )
         `);
-
-        // 
+        
 
     });
     console.log('Database tables initialized.');
