@@ -177,7 +177,6 @@ async function getSystemPrompt(chatbotId) {
         
         // Add the current date
         systemPrompt += "\nToday's date is: " + new Date().toDateString() + "\n";
-        console.log(systemPrompt);
     } catch (error) {
         console.error(error);
     }

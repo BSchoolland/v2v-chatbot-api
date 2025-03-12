@@ -15,7 +15,6 @@ function cleanupSessions() {
         const now = Date.now();
         for (const [chatId, timestamp] of Object.entries(sessionTimestamps)) {
             if (now - timestamp > sessionTimeout) {
-                console.log(`Cleaning up session: ${chatId}`);
                 delete sessions[chatId];
                 delete sessionTimestamps[chatId];
             }
