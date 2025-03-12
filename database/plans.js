@@ -186,7 +186,6 @@ async function subtractFromPlan(planId, amount) {
     if (plan.remaining_credits >= amount) {
         await dbRun('UPDATE plans SET remaining_credits = remaining_credits - ? WHERE plan_id = ?', [amount, planId]);
     } else {
-        console.log("Plan:", planId, "is out of monthly credits, using additional credits");
         // use the last of the remaining credits and then use the additional credits
         await dbRun('UPDATE plans SET remaining_credits = 0, additional_credits = additional_credits - ? WHERE plan_id = ?', [amount - plan.remaining_credits, planId]);
     }

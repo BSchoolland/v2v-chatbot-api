@@ -26,10 +26,8 @@ async function addFile(websiteId, originalFilename, storedFilename, fileType, fi
 
 // Get file by ID
 async function getFileById(fileId) {
-    console.log(`[getFileById] Querying database for file ID: ${fileId}`);
     try {
         const file = await dbGet('SELECT * FROM files WHERE file_id = ?', [fileId]);
-        console.log(`[getFileById] Query result:`, file ? 'File found' : 'No file found');
         return file;
     } catch (error) {
         console.error(`[getFileById] Database error:`, error);
@@ -39,7 +37,6 @@ async function getFileById(fileId) {
 
 // Get file by filename and website ID
 async function getFileByFilename(websiteId, filename) {
-    console.log(`[getFileByFilename] Querying database for file: ${filename} in website: ${websiteId}`);
     return dbGet(
         `SELECT * FROM files WHERE website_id = ? AND original_filename = ?`,
         [websiteId, filename]
@@ -247,28 +244,18 @@ function formatTextContent(content) {
 
 // Read file content by filename
 async function readFileContent(websiteId, filename) {
-    console.log(`[readFileContent] Attempting to read file: ${filename} from website: ${websiteId}`);
     const file = await getFileByFilename(websiteId, filename);
     
     if (!file) {
-        console.log(`[readFileContent] File not found: ${filename}`);
         return "File not found";
     }
-    
-    console.log(`[readFileContent] File found:`, {
-        name: file.original_filename,
-        isVisible: file.is_visible,
-        allowReferencing: file.allow_referencing,
-        hasContent: !!file.text_content
-    });
+
     
     if (!file.is_visible || !file.allow_referencing) {
-        console.log(`[readFileContent] File access denied - visibility: ${file.is_visible}, referencing: ${file.allow_referencing}`);
         return "This file is not available for reference";
     }
 
     if (!file.text_content) {
-        console.log(`[readFileContent] No text content available for file: ${file.original_filename}`);
         return "No readable content available for this file";
     }
 
@@ -284,8 +271,6 @@ async function readFileContent(websiteId, filename) {
 
     // Format the content
     content = formatTextContent(content);
-
-    console.log(`[readFileContent] Successfully retrieved content for file: ${file.original_filename}`);
     
     // Add truncation notice if needed
     if (truncated) {

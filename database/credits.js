@@ -3,7 +3,6 @@ const { getCurrentDate } = require('./dateUtils.js');
 const { logCreditRenewal } = require('./logging/credits.js');
 async function allocateMonthlyCredits(planId) {
     try {
-        console.log('Allocating monthly credits for plan', planId);
         // Get the plan and its type
         const plan = await dbGet(
             `SELECT p.*, pt.monthly_credits 
@@ -140,7 +139,6 @@ async function checkAndRenewCredits(planId) {
         }
 
         if (shouldRenew) {
-            console.log('Renewing credits for plan', planId);
             // Get the billing anchor day, default to the day the plan was created if not set
             const billingAnchorDay = plan.billing_anchor_day || new Date(plan.renews_at).getDate();
             
