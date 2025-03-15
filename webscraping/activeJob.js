@@ -95,7 +95,6 @@ class ActiveJob {
 
     getNextPage() {
         if (this.queue.length === 0) {
-            console.error("page was requested but no pages in queue");
             return null;
         }
         const nextPage = this.queue.shift();
@@ -168,7 +167,6 @@ class ActiveJob {
         this.processingUrls.delete(url);
         if (this.processingUrls.size === 0 && this.queue.length === 0) {
             if (!this.externalQueued) {
-                console.log('Adding external links to the queue');
                 // add all the external links to the queue
                 for (let link of this.externalLinks) {
                     this.queue.push({url: link, depth: 0, external: true});
@@ -225,9 +223,7 @@ class ActiveJob {
                 if (!this.visitedUrls.has(link)) {
                     this.visitedUrls.add(link); // Mark as visited immediately
                     this.queue.push({ url: link, depth: depth + 1 });
-                } else {
-                    console.log(`Link ${link} already visited`);
-                }
+                } 
             }
         } catch (error) {
             console.error(`Error!: ${error.message}`);
@@ -326,7 +322,6 @@ class ActiveJob {
             } catch (error) {
                 // If networkidle0 times out, try with just domcontentloaded
                 try {
-                    console.log('Trying with domcontentloaded');
                     await page.goto(nextPage.url, { 
                         waitUntil: 'domcontentloaded', 
                         timeout: 30000 
@@ -351,7 +346,6 @@ class ActiveJob {
 
             // Extract all links
             let links
-            console.log(`Attempting to extract links from ${nextPage.url}`);
             try {
                 links = await page.evaluate(() => {
                     const anchors = document.querySelectorAll('a');

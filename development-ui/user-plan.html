@@ -76,7 +76,6 @@
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                console.log(data);
                 const plan = data.plan;
                 document.getElementById('planName').value = plan.name;
                 currentPlanTypeId = plan.plan_type_id; // Store the current plan type

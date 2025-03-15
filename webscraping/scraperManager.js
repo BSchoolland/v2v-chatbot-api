@@ -6,6 +6,8 @@ dotenv.config();
 const { setLastCrawled, getWebsiteById } = require('../database/websites.js');
 const { addPage, getPageByUrlAndWebsiteId } = require('../database/pages.js');
 
+const { logger } = require('../utils/fileLogger.js');
+
 class ScraperManager {
     constructor() {
         this.browser = null;
@@ -76,11 +78,10 @@ class ScraperManager {
         }
         this.isReady = true;
         this.isInitializing = false;
-        console.log('Scraper initialized');
+        logger.info('Scraper initialized');
     }
 
     async addJob(baseUrl, chatbotId, maxDepth = 5, maxPages = 50, action = 'unknown') {
-        console.log('Adding job', baseUrl, chatbotId, maxDepth, maxPages, action);
         try {
             if (!this.isReady) {
                 await this.init();
@@ -146,7 +147,6 @@ class ScraperManager {
                     }
                     this.isRunning = false;
                     // Clean up resources when all jobs are complete
-                    console.log('cleaning up due to all jobs being complete');
                     await this.cleanup();
                     break;
                 }
@@ -206,19 +206,18 @@ class ScraperManager {
             // Free up any assigned pages
             this.pages.forEach(p => p.assigned = false);
             // Clean up resources on error
-            console.log('cleaning up due to critical error');
             await this.cleanup();
             throw error;
         }        
     }
 
     async cleanup() {
+        logger.info('Cleaning up scraper resources');
         // Set flag to prevent re-initialization during cleanup
         this.isReady = false;
         this.isCleaning = true;
         this.isRunning = false;
 
-        console.log('Cleaning scraper resources...');
         this.lastCleanup = Date.now();
         // Force close the browser process first
         if (this.browser) {
@@ -229,7 +228,7 @@ class ScraperManager {
                     browserProcess.kill('SIGKILL');
                 }
             } catch (error) {
-                console.error('Error force killing browser:', error.message);
+                logger.error('Error force killing browser:', error.message);
             }
             this.browser = null;
         }
@@ -265,10 +264,10 @@ class ScraperManager {
                     process.release();
                 }
             } catch (e) {
-                console.warn('System memory release not supported');
+                // do nothing
             }
         } catch (error) {
-            console.error('Error during memory cleanup:', error.message);
+            logger.error('Error during memory cleanup:', error.message);
         }
     }
     
@@ -279,7 +278,7 @@ class ScraperManager {
             try {
                 content = await this.getPageContent(url, page.page);
             } catch (error) {
-                console.warn(`Failed to get content for ${url}: ${error.message}`);
+                logger.warn(`Failed to get content for ${url}: ${error.message}`);
                 // Continue with empty content rather than failing the whole page
             }
 
@@ -288,30 +287,30 @@ class ScraperManager {
                 try {
                     links = await this.getUniqueLinks(content, job.baseUrl);
                 } catch (error) {
-                    console.warn(`Failed to extract links from ${url}: ${error.message}`);
+                    logger.warn(`Failed to extract links from ${url}: ${error.message}`);
                     // Continue with empty links rather than failing
                 }
                 try {
                     job.addLinks(links, pageInfo.depth);
                 } catch (error) {
-                    console.warn(`Failed to add links for ${url}: ${error.message}`);
+                    logger.warn(`Failed to add links for ${url}: ${error.message}`);
                 }
             }
 
             try {
                 await job.addCompletedPage(url, links, content);
             } catch (error) {
-                console.error(`Failed to add completed page ${url}: ${error.message}`);
+                logger.error(`Failed to add completed page ${url}: ${error.message}`);
             }
         } catch (error) {
-            console.error(`Error processing page ${pageInfo.url}: ${error.message}`);
+            logger.error(`Error processing page ${pageInfo.url}: ${error.message}`);
         } finally {
             // Always release the page and mark as complete
             page.assigned = false;
             try {
                 job.markPageComplete();
             } catch (error) {
-                console.error(`Error marking page complete: ${error.message}`);
+                logger.error(`Error marking page complete: ${error.message}`);
             }
         }
     }
@@ -321,7 +320,7 @@ class ScraperManager {
             try {
                 await this.init();
             } catch (error) {
-                console.error(`Failed to initialize scraper: ${error.message}`);
+                logger.error(`Failed to initialize scraper: ${error.message}`);
                 return '';
             }
         }
@@ -343,11 +342,11 @@ class ScraperManager {
             try {
                 return await page.content();
             } catch (contentError) {
-                console.warn(`Error getting page content: ${contentError.message}`);
+                logger.warn(`Error getting page content: ${contentError.message}`);
                 return '';
             }
         } catch (error) {
-            console.warn(`Failed to load page ${pageUrl}: ${error.message}`);
+            logger.warn(`Failed to load page ${pageUrl}: ${error.message}`);
             return '';
         }
     }
@@ -379,9 +378,9 @@ class ScraperManager {
                     const cleanUrl = this.cleanUrl(href, baseUrl);
                     uniqueLinks.add(cleanUrl);
                 } catch (error) {
-                    console.error(error);
+                    logger.error(error);
                     // Ignore invalid URLs
-                    console.warn(`Invalid URL: ${href}`);
+                    logger.warn(`Invalid URL: ${href}`);
                 }
             }
         });
@@ -411,13 +410,13 @@ class ScraperManager {
     }
 
     async scrapeSinglePage(websiteId, url) {
-        console.log(`[ScraperManager] Scraping single page: ${url} for website ${websiteId}`);
+        logger.info(`[ScraperManager] Scraping single page: ${url} for website ${websiteId}`);
         
         try {
             // Check if page already exists
             const existingPage = await getPageByUrlAndWebsiteId(websiteId, url);
             if (existingPage) {
-                console.log(`[ScraperManager] Page already exists: ${url}`);
+                logger.info(`[ScraperManager] Page already exists: ${url}`);
                 return;
             }
 
@@ -437,7 +436,7 @@ class ScraperManager {
             
             // Check if URL belongs to website's domain
             const isInternal = cleanUrl.startsWith(cleanDomain);
-            console.log(`[ScraperManager] URL ${url} is ${isInternal ? 'internal' : 'external'} to domain ${website.domain}`);
+            logger.info(`[ScraperManager] URL ${url} is ${isInternal ? 'internal' : 'external'} to domain ${website.domain}`);
 
             // Initialize browser if needed
             if (!this.browser) {
@@ -470,8 +469,6 @@ class ScraperManager {
                 
                 // Log successful completion
                 await tempJob.completeJob();
-                
-                console.log(`[ScraperManager] Successfully scraped and added ${isInternal ? 'internal' : 'external'} page: ${url}`);
             } catch (error) {
                 // Log failed completion
                 tempJob.failedPages = 1;
@@ -481,7 +478,7 @@ class ScraperManager {
                 await page.close();
             }
         } catch (error) {
-            console.error(`[ScraperManager] Error scraping page ${url}:`, error);
+            logger.error(`[ScraperManager] Error scraping page ${url}:`, error);
             throw error;
         }
     }

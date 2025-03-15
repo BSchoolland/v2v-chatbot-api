@@ -22,7 +22,6 @@ async function logScrapeJobStart(action = "", chatbotId = "") {
             [timestamp, "0", 0, 0, action, chatbotId, 0, JOB_STATUS.IN_PROGRESS]
         );
         
-        console.log(`Logged scrape job start: timestamp=${timestamp}, action=${action}, chatbotId=${chatbotId}, status=IN_PROGRESS`);
         
         return timestamp;
     } catch (error) {
@@ -57,7 +56,6 @@ async function logScrapeJobCompletion(startTimestamp, pagesScraped = 0, pagesFai
         // Set status based on success
         const status = success ? JOB_STATUS.COMPLETED : JOB_STATUS.FAILED;
         
-        console.log(`Logging scrape job completion: timestamp=${startTimestamp}, action=${action}, chatbotId=${chatbotId}, success=${successInt}, status=${status}, pages=${pagesScraped}, failed=${pagesFailed}`);
         
         // First, check if the record exists
         const existingJob = await dbGet(
@@ -74,7 +72,6 @@ async function logScrapeJobCompletion(startTimestamp, pagesScraped = 0, pagesFai
             );
         } else {
             // Update the existing record
-            console.log(`Found existing scrape job with ID ${existingJob.id}. Updating...`);
             await dbRun(
                 'UPDATE scrape_jobs SET duration = ?, pages_scraped = ?, pages_failed = ?, success = ?, action = ?, status = ? WHERE id = ?',
                 [durationFormatted, pagesScraped, pagesFailed, successInt, action, status, existingJob.id]
@@ -88,7 +85,6 @@ async function logScrapeJobCompletion(startTimestamp, pagesScraped = 0, pagesFai
         );
         
         if (updatedJob) {
-            console.log(`Scrape job update verified: id=${updatedJob.id}, success=${updatedJob.success}, status=${updatedJob.status}, pages=${updatedJob.pages_scraped}`);
         } else {
             console.error(`Failed to verify scrape job update. No matching record found for chatbot ${chatbotId}.`);
         }
@@ -199,87 +195,11 @@ function formatDuration(ms) {
     return result.trim();
 }
 
-/**
- * Fix existing scrape job records that might have incorrect success values
- * This is a one-time fix for existing records
- */
-async function fixExistingScrapeJobs() {
-    try {
-        console.log("Fixing existing scrape job records...");
-        
-        // Get all scrape jobs
-        const jobs = await dbAll('SELECT * FROM scrape_jobs');
-        console.log(`Found ${jobs.length} scrape job records to check`);
-        
-        let fixedCount = 0;
-        
-        for (const job of jobs) {
-            let needsUpdate = false;
-            let updates = {};
-            
-            // Check if pages were scraped but success is 0
-            if (job.pages_scraped > 0 && job.success === 0) {
-                console.log(`Job ${job.id} has pages_scraped=${job.pages_scraped} but success=0. Setting success=1.`);
-                updates.success = 1;
-                updates.status = JOB_STATUS.COMPLETED;
-                needsUpdate = true;
-            }
-            
-            // Check if duration is missing or invalid
-            if (!job.duration || job.duration === "0") {
-                console.log(`Job ${job.id} has missing or invalid duration. Setting a default duration.`);
-                updates.duration = "1m 0s"; // Default duration
-                needsUpdate = true;
-            }
-            
-            // Check if action is empty
-            if (!job.action) {
-                console.log(`Job ${job.id} has empty action. Setting default action.`);
-                updates.action = "manual";
-                needsUpdate = true;
-            }
-            
-            // Check if status is missing (for existing records before this update)
-            if (job.status === undefined) {
-                console.log(`Job ${job.id} has no status. Setting status based on success value.`);
-                updates.status = job.success ? JOB_STATUS.COMPLETED : JOB_STATUS.FAILED;
-                needsUpdate = true;
-            }
-            
-            // Apply updates if needed
-            if (needsUpdate) {
-                let updateQuery = 'UPDATE scrape_jobs SET ';
-                let updateParams = [];
-                let updateFields = [];
-                
-                for (const [key, value] of Object.entries(updates)) {
-                    updateFields.push(`${key} = ?`);
-                    updateParams.push(value);
-                }
-                
-                updateQuery += updateFields.join(', ');
-                updateQuery += ' WHERE id = ?';
-                updateParams.push(job.id);
-                
-                await dbRun(updateQuery, updateParams);
-                fixedCount++;
-            }
-        }
-        
-        console.log(`Fixed ${fixedCount} scrape job records`);
-        return fixedCount;
-    } catch (error) {
-        console.error("Error fixing existing scrape jobs:", error);
-        return 0;
-    }
-}
-
 module.exports = { 
     logScrapeJobStart, 
     logScrapeJobCompletion,
     getScrapeJobLogs,
     getScrapeJobLogsByChatbot,
     getScrapeJobStats,
-    fixExistingScrapeJobs,
     JOB_STATUS,
 };

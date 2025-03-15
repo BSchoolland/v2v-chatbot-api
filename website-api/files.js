@@ -7,7 +7,7 @@ const { authMiddleware } = require('./middleware');
 const { addFile, updateFileVisibility, updateFileReferencing, updateFileTextContent, deleteFile, uploadsDir, getFilesByWebsiteId } = require('../database/files');
 const { getChatbotFromPlanId } = require('../database/chatbots');
 const TextExtractor = require('./textExtractor');
-
+const { logger } = require('../utils/fileLogger');
 // Configure multer for file uploads
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
@@ -23,7 +23,7 @@ const storage = multer.diskStorage({
 
 // File filter to only allow text-based files
 const fileFilter = (req, file, cb) => {
-    console.log('Received file:', {
+    logger.info('Received file:', {
         originalname: file.originalname,
         mimetype: file.mimetype
     });
@@ -32,7 +32,7 @@ const fileFilter = (req, file, cb) => {
     const ext = path.extname(file.originalname).toLowerCase();
     const detectedMimeType = mime.lookup(ext);
 
-    console.log('Detected MIME type:', detectedMimeType);
+    logger.info('Detected MIME type:', detectedMimeType);
 
     // List of allowed MIME types
     const allowedMimeTypes = [
@@ -56,7 +56,7 @@ const fileFilter = (req, file, cb) => {
         file.mimetype = detectedMimeType;
         cb(null, true);
     } else {
-        console.log('Rejected file type:', detectedMimeType || file.mimetype);
+        logger.info('Rejected file type:', detectedMimeType || file.mimetype);
         cb(new Error('Invalid file type. Only text-based files are allowed.'), false);
     }
 };
@@ -104,7 +104,7 @@ router.post('/upload/:planId', authMiddleware, upload.single('file'), async (req
             const textContent = await TextExtractor.extractFromFile(filePath, file.mimetype);
             await updateFileTextContent(fileId, textContent);
         } catch (extractError) {
-            console.error('Error extracting text content:', extractError);
+            logger.error('Error extracting text content:', extractError);
             // Don't fail the upload if text extraction fails
         }
 
@@ -114,7 +114,7 @@ router.post('/upload/:planId', authMiddleware, upload.single('file'), async (req
             message: 'File uploaded successfully'
         });
     } catch (error) {
-        console.error('Error uploading file:', error);
+        logger.error('Error uploading file:', error);
         res.status(500).json({ success: false, message: 'Error uploading file' });
     }
 });
@@ -137,7 +137,7 @@ router.get('/list/:planId', authMiddleware, async (req, res) => {
         const files = await getFilesByWebsiteId(chatbot.website_id);
         res.status(200).json({ success: true, files });
     } catch (error) {
-        console.error('Error getting files:', error);
+        logger.error('Error getting files:', error);
         res.status(500).json({ success: false, message: 'Error getting files' });
     }
 });
@@ -155,7 +155,7 @@ router.put('/visibility/:fileId', authMiddleware, async (req, res) => {
         await updateFileVisibility(fileId, isVisible);
         res.status(200).json({ success: true, message: 'File visibility updated' });
     } catch (error) {
-        console.error('Error updating file visibility:', error);
+        logger.error('Error updating file visibility:', error);
         res.status(500).json({ success: false, message: 'Error updating file visibility' });
     }
 });
@@ -173,7 +173,7 @@ router.put('/referencing/:fileId', authMiddleware, async (req, res) => {
         await updateFileReferencing(fileId, allowReferencing);
         res.status(200).json({ success: true, message: 'File referencing updated' });
     } catch (error) {
-        console.error('Error updating file referencing:', error);
+        logger.error('Error updating file referencing:', error);
         res.status(500).json({ success: false, message: 'Error updating file referencing' });
     }
 });
@@ -185,7 +185,7 @@ router.delete('/:fileId', authMiddleware, async (req, res) => {
         await deleteFile(fileId);
         res.status(200).json({ success: true, message: 'File deleted' });
     } catch (error) {
-        console.error('Error deleting file:', error);
+        logger.error('Error deleting file:', error);
         res.status(500).json({ success: false, message: 'Error deleting file' });
     }
 });
