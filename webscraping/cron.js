@@ -63,7 +63,7 @@ async function reCrawlOldWebsites() {
         console.log(`Found ${websites.length} websites waiting to be re-crawled`);
         const oldestWebsite = websites[0];
         console.log(`Re-crawling website ${oldestWebsite.domain} for chatbot ${oldestWebsite.chatbot_id}`);
-        await scraperManager.addJob(oldestWebsite.domain, oldestWebsite.chatbot_id);
+        await scraperManager.addJob(oldestWebsite.domain, oldestWebsite.chatbot_id, 5, 50, 'scheduled');
     } else {
         console.log('No websites waiting to be re-crawled');
     }

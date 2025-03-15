@@ -79,6 +79,26 @@ const initializeLoggingDatabase = async () => {
                 plan_id TEXT NOT NULL
             )
         `);
+
+        // scrape job logging:
+        // when a scrape job is started
+        // when a scrape job is completed
+        // how many pages were scraped
+        // how many pages failed to scrape
+        // what action triggered the scrape job
+        db.run(`
+            CREATE TABLE IF NOT EXISTS scrape_jobs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                timestamp TEXT NOT NULL,
+                duration TEXT NOT NULL,
+                pages_scraped INTEGER NOT NULL,
+                pages_failed INTEGER NOT NULL,
+                action TEXT NOT NULL,
+                chatbot_id TEXT NOT NULL,
+                success BOOLEAN NOT NULL,
+                status INTEGER NOT NULL DEFAULT 0
+            )
+        `);
         
 
     });

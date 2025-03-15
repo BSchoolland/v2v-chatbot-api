@@ -11,6 +11,7 @@ const wsManager = require('./chatbot-api/wsManager');
 
 const websiteApiRoutes = require('./website-api/routes.js');
 const chatbotApiRoutes = require('./chatbot-api/routes.js');
+const adminRoutes = require('./routes/admin/index.js');
 
 const cookieParser = require('cookie-parser');
 const conversationsRoutes = require('./website-api/conversations.js');
@@ -53,6 +54,7 @@ process.on('unhandledRejection', (reason, promise) => {
 app.use('/website/api', websiteApiRoutes);
 app.use('/chatbot/api', chatbotApiRoutes);
 app.use('/api/conversations', conversationsRoutes);
+app.use('/api/admin', adminRoutes);
 
 // set development-ui as the public folder
 app.use(express.static('development-ui'));

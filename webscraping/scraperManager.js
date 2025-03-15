@@ -79,7 +79,8 @@ class ScraperManager {
         console.log('Scraper initialized');
     }
 
-    async addJob(baseUrl, chatbotId, maxDepth = 5, maxPages = 50) {
+    async addJob(baseUrl, chatbotId, maxDepth = 5, maxPages = 50, action = 'unknown') {
+        console.log('Adding job', baseUrl, chatbotId, maxDepth, maxPages, action);
         try {
             if (!this.isReady) {
                 await this.init();
@@ -110,6 +111,7 @@ class ScraperManager {
             }
             
             let job = new ActiveJob(baseUrl, chatbotId, maxDepth, maxPages);
+            job.action = action; // Set action type for initial crawl
             const websiteId = await job.getWebsiteId();
             this.activeJobs.push(job);
             this.allJobs.push(job);
@@ -163,15 +165,11 @@ class ScraperManager {
                             page.assigned = true;
                             foundWork = true;
                         } else {
-                            console.log('no work found for job', jobIndex);
-                            console.log('job queue length', job.queue.length);
-                            console.log('job is processing', job.processingUrls.size);
                         }
                         jobIndex = (jobIndex + 1) % this.activeJobs.length;
                         attempts++;
                     }
                 }
-                console.log('tasks', tasks);
                 if (tasks.length === 0) {
                     this.waited += 100;
                     // FIXME: this is a hack to prevent the scraper from hanging indefinitely,
@@ -429,6 +427,10 @@ class ScraperManager {
                 throw new Error(`Website not found for ID: ${websiteId}`);
             }
 
+            // Create a temporary job object to log the scrape
+            const tempJob = new ActiveJob(url, website.chatbot_id, 0, 1);
+            tempJob.action = 'single_page';
+
             // Clean URLs for comparison
             const cleanUrl = this.cleanUrl(url);
             const cleanDomain = this.cleanUrl(website.domain);
@@ -466,7 +468,15 @@ class ScraperManager {
                 // Add to database with appropriate internal flag
                 await addPage(websiteId, url, title, content, isInternal);
                 
+                // Log successful completion
+                await tempJob.completeJob();
+                
                 console.log(`[ScraperManager] Successfully scraped and added ${isInternal ? 'internal' : 'external'} page: ${url}`);
+            } catch (error) {
+                // Log failed completion
+                tempJob.failedPages = 1;
+                await tempJob.completeJob();
+                throw error;
             } finally {
                 await page.close();
             }
