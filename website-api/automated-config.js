@@ -4,6 +4,8 @@ const { getWebsiteById } = require('../database/websites');
 const fetch = require('node-fetch');
 require('dotenv').config();
 
+const { logger } = require('../utils/fileLogger');
+
 // Function to make OpenAI API call with function calling
 async function callOpenAI(prompt, functions) {
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -146,7 +148,7 @@ The configuration should be specific to this website's content and purpose. Use 
 
         try {
             // Get AI-generated configuration
-            console.log("Calling AI to configure chatbot");
+            logger.info("Calling AI to configure chatbot");
             const config = await callOpenAI(prompt, functions);
             // to fix an occasional bug, replace any \n in the system prompt with an actual newline character
             config.system_prompt = config.system_prompt.replace(/\\n/g, '\n');
@@ -170,7 +172,7 @@ Even if you're not sure where the answer is, use the tools to find it.
             await editChatbotSystemPrompt(chatbot.chatbot_id, config.system_prompt);
             await editChatbotInitialMessage(chatbot.chatbot_id, config.initial_message);
             await editChatbotQuestions(chatbot.chatbot_id, JSON.stringify(config.questions));
-            console.log("AI configuration complete");
+            logger.info("AI configuration complete");
 
             // After successful configuration, save the initial values
             await saveInitialConfig(
@@ -182,7 +184,7 @@ Even if you're not sure where the answer is, use the tools to find it.
 
             return config;
         } catch (error) {
-            console.error('Error generating AI configuration:', error);
+            logger.error('Error generating AI configuration:', error);
             // Fall back to basic configuration if AI fails
             const name = website.domain.replace(/^https?:\/\/(www\.)?/, '').split('.')[0];
             const formattedName = name.charAt(0).toUpperCase() + name.slice(1) + " Assistant";

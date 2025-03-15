@@ -2,6 +2,7 @@ const { addPage, getPageByUrlAndWebsiteId } = require('../database/pages.js');
 const { addWebsite, getWebsiteByUrl } = require('../database/websites.js');
 const getCleanHtmlContent = require('./htmlProcessing.js');
 const summarizeContent = require('./summarizeContent.js');
+const { logScrapeJobStart, logScrapeJobCompletion } = require('../database/logging/scraper.js');
 
 class ActiveJob {
     constructor(baseUrl, chatbotId, maxDepth = 5, maxPages = 500) { // TODO: think more about the maxPages parameter. Should it be higher? Should it also apply to external links?
@@ -11,6 +12,7 @@ class ActiveJob {
         this.queue = [{url: baseUrl, depth: 0}];
         this.externalLinks = new Set();
         this.startTime = new Date();
+        this.startTimestamp = new Date().toISOString();
         this.maxDepth = maxDepth;
         this.maxPages = maxPages;
         this.visitedUrls = new Set();
@@ -24,8 +26,13 @@ class ActiveJob {
         this.isReady = false;
         this.isInitializing = false;
         this.externalQueued = false;
+        this.failedPages = 0;
+        this.action = 'unknown';
         this.init();
         this.cleanup = this.cleanup.bind(this);
+        
+        // Log the start of the scrape job
+        this.logJobStart();
     }
 
     async init() {
@@ -88,7 +95,6 @@ class ActiveJob {
 
     getNextPage() {
         if (this.queue.length === 0) {
-            console.error("page was requested but no pages in queue");
             return null;
         }
         const nextPage = this.queue.shift();
@@ -161,7 +167,6 @@ class ActiveJob {
         this.processingUrls.delete(url);
         if (this.processingUrls.size === 0 && this.queue.length === 0) {
             if (!this.externalQueued) {
-                console.log('Adding external links to the queue');
                 // add all the external links to the queue
                 for (let link of this.externalLinks) {
                     this.queue.push({url: link, depth: 0, external: true});
@@ -218,9 +223,7 @@ class ActiveJob {
                 if (!this.visitedUrls.has(link)) {
                     this.visitedUrls.add(link); // Mark as visited immediately
                     this.queue.push({ url: link, depth: depth + 1 });
-                } else {
-                    console.log(`Link ${link} already visited`);
-                }
+                } 
             }
         } catch (error) {
             console.error(`Error!: ${error.message}`);
@@ -284,6 +287,21 @@ class ActiveJob {
                     // Continue with next page
                 }
             }
+
+            // Log the completion of the scrape job
+            try {
+                const pagesScraped = this.completedPages.length;
+                await logScrapeJobCompletion(
+                    this.startTimestamp,
+                    pagesScraped,
+                    this.failedPages,
+                    true, // success
+                    this.action,
+                    this.chatbotId
+                );
+            } catch (error) {
+                console.error("Failed to log scrape job completion:", error);
+            }
         } catch (error) {
             console.error(`Error in completeJob: ${error.message}`);
         }
@@ -304,7 +322,6 @@ class ActiveJob {
             } catch (error) {
                 // If networkidle0 times out, try with just domcontentloaded
                 try {
-                    console.log('Trying with domcontentloaded');
                     await page.goto(nextPage.url, { 
                         waitUntil: 'domcontentloaded', 
                         timeout: 30000 
@@ -312,6 +329,7 @@ class ActiveJob {
                 } catch (error) {
                     console.error(`Error navigating to ${nextPage.url}: ${error.message}`);
                     await this.markPageComplete(nextPage.url);
+                    this.failedPages++; // Increment failed pages counter
                     return 'page processed';
                 }
             }
@@ -328,7 +346,6 @@ class ActiveJob {
 
             // Extract all links
             let links
-            console.log(`Attempting to extract links from ${nextPage.url}`);
             try {
                 links = await page.evaluate(() => {
                     const anchors = document.querySelectorAll('a');
@@ -376,6 +393,15 @@ class ActiveJob {
         // Clear any circular references
         this.websiteId = null;
         this.endTime = new Date();
+    }
+
+    async logJobStart() {
+        try {
+            this.startTimestamp = await logScrapeJobStart(this.action, this.chatbotId);
+        } catch (error) {
+            console.error("Failed to log scrape job start:", error);
+            this.startTimestamp = new Date().toISOString();
+        }
     }
 }
 

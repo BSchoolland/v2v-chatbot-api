@@ -1,9 +1,8 @@
 const { dbRun, dbGet } = require('./database.js');
 const { getCurrentDate } = require('./dateUtils.js');
-
+const { logCreditRenewal } = require('./logging/credits.js');
 async function allocateMonthlyCredits(planId) {
     try {
-        console.log('Allocating monthly credits for plan', planId);
         // Get the plan and its type
         const plan = await dbGet(
             `SELECT p.*, pt.monthly_credits 
@@ -140,13 +139,13 @@ async function checkAndRenewCredits(planId) {
         }
 
         if (shouldRenew) {
-            console.log('Renewing credits for plan', planId);
             // Get the billing anchor day, default to the day the plan was created if not set
             const billingAnchorDay = plan.billing_anchor_day || new Date(plan.renews_at).getDate();
             
             // Calculate next renewal date using the billing anchor day
             const nextRenewal = addOneMonthWithBillingAnchor(new Date(plan.renews_at), billingAnchorDay);
-
+            // log the renewal
+            logCreditRenewal(planId, plan.monthly_credits, plan.remaining_credits);
             // credits are not retained between renewals, so we need to reset the credits to the monthly limit
             await dbRun(
                 `UPDATE plans 

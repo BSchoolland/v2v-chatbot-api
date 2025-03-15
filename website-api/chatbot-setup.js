@@ -14,6 +14,7 @@ const { getWebsiteByUrl } = require('../database/websites');
 const { getExternalPages, deletePage, getPagesByWebsite } = require('../database/pages');
 
 const { automateConfiguration } = require('./automated-config');
+const { logger } = require('../utils/fileLogger');
 
 // user owns plan
 async function userOwnsPlan(userId, planId) {
@@ -46,7 +47,7 @@ router.post('/create-chatbot', authMiddleware, async (req, res) => {
         await setChatbotIdForPlan(planId, chatbotId);
         res.status(200).json({ success: true, chatbotId: chatbotId });
     } catch (error) {
-        console.error('Error creating chatbot:', error);
+        logger.error('Error creating chatbot:', error);
         res.status(500).json({ success: false, message: 'Internal server error' });
     }
 });
@@ -92,15 +93,15 @@ router.get('/scrape-site-progress', authMiddleware, async (req, res) => {
     // check if the website belongs to this chatbot
     if (existingWebsite) {
         if (existingWebsite.chatbot_id !== chatbotId) {
-            console.log('website already exists in the database, and is registered to another chatbot');
+            logger.error('website already exists in the database, and is registered to another chatbot');
             return res.status(403).json({ success: false, message: `The website ${url} is already registered to another chatbot. Please contact support if you believe this is an error.` });
         } else {
-            console.log('You\'ve already registered this website to this chatbot before, move to the next step!');
+            logger.info('You\'ve already registered this website to this chatbot before, move to the next step!');
             return res.status(200).json({ success: true, websiteId: existingWebsite.website_id });
         }
     }
 
-    const {job, websiteId} = await scraperManager.addJob(url, chatbotId);
+    const {job, websiteId} = await scraperManager.addJob(url, chatbotId, 5, 50, 'initial');
     // assign the website id to the chatbot
     await assignWebsiteIdToChatbot(chatbotId, websiteId);
     // Send initial status
@@ -222,7 +223,7 @@ router.post('/chatbot/:chatbotId/reset', async (req, res) => {
         await resetConfig(chatbotId);
         res.json({ success: true, message: 'Chatbot configuration reset to initial values' });
     } catch (error) {
-        console.error('Error resetting chatbot configuration:', error);
+        logger.error('Error resetting chatbot configuration:', error);
         res.status(400).json({ error: error.message });
     }
 });
@@ -249,7 +250,7 @@ router.get('/available-models', authMiddleware, async (req, res) => {
         const models = await getAvailableModelsForPlanType(plan.plan_type_id);
         res.status(200).json({ success: true, models });
     } catch (error) {
-        console.error('Error getting available models:', error);
+        logger.error('Error getting available models:', error);
         res.status(500).json({ success: false, message: 'Internal server error' });
     }
 });
@@ -280,7 +281,7 @@ router.post('/update-model', authMiddleware, async (req, res) => {
         await editChatbotModel(chatbot.chatbot_id, modelId);
         res.status(200).json({ success: true });
     } catch (error) {
-        console.error('Error updating chatbot model:', error);
+        logger.error('Error updating chatbot model:', error);
         if (error.message === 'Model not available for this plan type') {
             res.status(400).json({ success: false, message: error.message });
         } else {
@@ -309,7 +310,7 @@ router.post('/add-external-page', authMiddleware, async (req, res) => {
 
         res.json({ success: true, message: 'Page added successfully' });
     } catch (error) {
-        console.error('Error adding external page:', error);
+        logger.error('Error adding external page:', error);
         res.status(500).json({ success: false, message: 'Error adding external page' });
     }
 });
@@ -332,7 +333,7 @@ router.get('/all-pages', authMiddleware, async (req, res) => {
         const pages = await getPagesByWebsite(chatbot.website_id);
         res.json({ success: true, pages });
     } catch (error) {
-        console.error('Error getting pages:', error);
+        logger.error('Error getting pages:', error);
         res.status(500).json({ success: false, message: 'Error getting pages' });
     }
 });
@@ -344,7 +345,7 @@ router.delete('/external-page/:pageId', authMiddleware, async (req, res) => {
         await deletePage(pageId);
         res.json({ success: true, message: 'Page deleted successfully' });
     } catch (error) {
-        console.error('Error deleting external page:', error);
+        logger.error('Error deleting external page:', error);
         res.status(500).json({ success: false, message: 'Error deleting external page' });
     }
 });

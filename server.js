@@ -1,6 +1,7 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const { initializeDatabase } = require('./database/database.js');
+const { initializeLoggingDatabase } = require('./database/logging/database.js');
 const { dbRun, dbGet, dbAll } = require('./database/database.js');
 const { scraperManager } = require('./webscraping/scraperManager.js');
 const { scheduleCronJobs } = require('./webscraping/cron.js');
@@ -10,6 +11,7 @@ const wsManager = require('./chatbot-api/wsManager');
 
 const websiteApiRoutes = require('./website-api/routes.js');
 const chatbotApiRoutes = require('./chatbot-api/routes.js');
+const adminRoutes = require('./routes/admin/index.js');
 
 const cookieParser = require('cookie-parser');
 const conversationsRoutes = require('./website-api/conversations.js');
@@ -52,6 +54,7 @@ process.on('unhandledRejection', (reason, promise) => {
 app.use('/website/api', websiteApiRoutes);
 app.use('/chatbot/api', chatbotApiRoutes);
 app.use('/api/conversations', conversationsRoutes);
+app.use('/api/admin', adminRoutes);
 
 // set development-ui as the public folder
 app.use(express.static('development-ui'));
@@ -60,7 +63,7 @@ async function startServer() {
     try {
         // Initialize database and run migrations
         await initializeDatabase(dbGet, dbRun, dbAll);
-
+        await initializeLoggingDatabase();
         // Schedule cron jobs (credit renewal and website re-crawling)
         scheduleCronJobs();
         

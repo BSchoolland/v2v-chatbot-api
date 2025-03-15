@@ -17,7 +17,7 @@ const { isValidOrigin } = require('./utils/originValidator');
 const { storeConversation } = require('../database/conversations');
 const path = require('path');
 const { dbGet } = require('../database/database');
-
+const { logMessage } = require('../database/logging/messages.js');
 // Initialize chat session
 router.get('/init-chat', (req, res) => {
     const chatId = getSessionId();
@@ -58,8 +58,7 @@ router.post('/chat/:chatbotId', async (req, res) => {
     const chatId = getSessionId(req.body.chatId);
     appendMessageToSession(chatId, req.body.message, 'user');
     const response = await getChatbotResponse(chatId, req.params.chatbotId);
-    console.log(response);
-
+    logMessage(response.message || response.error || "No response from chatbot", {chatbotId: req.params.chatbotId});
     // Store the conversation after getting the response
     try {
         // Filter out tool responses and only keep user and assistant messages

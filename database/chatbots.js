@@ -1,7 +1,7 @@
 const { dbRun, dbGet, generateUniqueId } = require('./database.js');
 const { getWebsiteById } = require('./websites.js');
 const { getPagesByWebsite } = require('./pages.js');
-const { getFilesByChatbotId, getFilesByWebsiteId } = require('./files.js');
+const { getFilesByWebsiteId } = require('./files.js');
 const { version } = require('./migrate.js');
 const { isModelAvailableForPlanType, getDefaultModel } = require('./models.js');
 const { getPlan } = require('./plans.js');
@@ -177,7 +177,6 @@ async function getSystemPrompt(chatbotId) {
         
         // Add the current date
         systemPrompt += "\nToday's date is: " + new Date().toDateString() + "\n";
-        console.log(systemPrompt);
     } catch (error) {
         console.error(error);
     }

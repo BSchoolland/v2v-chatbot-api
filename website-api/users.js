@@ -3,7 +3,7 @@ const router = express.Router();
 const bcrypt = require('bcryptjs');
 const cookieParser = require('cookie-parser');
 const jwt = require('jsonwebtoken');
-
+const { logger } = require('../utils/fileLogger');
 require('dotenv').config();
 // Determine if the environment is production
 const isProduction = process.env.ENV !== 'development';
@@ -52,7 +52,7 @@ router.post('/login', validateInput, async (req, res) => {
         }
         res.status(401).json({ message: 'Invalid email or password' });
     } catch (err) {
-        console.error(err);
+        logger.error(err);
         res.status(500).json({ message: 'Failed to login' });
     }
 });
@@ -70,7 +70,7 @@ router.post('/register', validateInput, async (req, res) => {
         // Check if email already exists
         const emailExists = await checkEmailExists(email);
         if (emailExists) {
-            console.log('Email already exists')
+            logger.info('Email already exists')
             return res.status(409).json({ message: 'Email already exists' });
         }
         
@@ -82,7 +82,7 @@ router.post('/register', validateInput, async (req, res) => {
         
         res.status(201).json({ message: 'User registered successfully' });
     } catch (err) {
-        console.error(err);
+        logger.error(err);
         res.status(500).json({ message: 'Failed to register user' });
     }
 });
