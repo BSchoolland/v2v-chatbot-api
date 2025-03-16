@@ -136,19 +136,19 @@ async function getChatbotResponse(sessionId, chatbotId) {
             error: "Plan out of credits, chatbot will be paused until the plan is renewed or additional credits are added.",
             chatId: sessionId
         };
-    } else if (plan.remaining_credits + plan.additional_credits < monthlyCredits * 0.5) {
-        if (await shouldSendCreditsHalfWarning(plan.plan_id)) {
-            const email = await getEmailByPlanId(plan.plan_id);
-            sendCreditsHalfWarningEmail(email, chatbot.website_name, plan.renewal_date);
-            await setCreditsHalfWarningSent(plan.plan_id, true);
-            logger.info("Plan:", plan.plan_id, "has sent a credits half warning email due to being below 50% of credits.");
-        }
     } else if (plan.remaining_credits + plan.additional_credits < monthlyCredits * 0.1) {
         if (await shouldSendCreditsLowWarning(plan.plan_id)) {
             const email = await getEmailByPlanId(plan.plan_id);
             sendCreditsLowWarningEmail(email, chatbot.website_name, plan.remaining_credits + plan.additional_credits, plan.renewal_date);
             await setCreditsLowWarningSent(plan.plan_id, true);
             logger.info("Plan:", plan.plan_id, "has sent a credits low warning email due to being below 10% of credits.");
+        }
+    } else if (plan.remaining_credits + plan.additional_credits < monthlyCredits * 0.5) {
+        if (await shouldSendCreditsHalfWarning(plan.plan_id)) {
+            const email = await getEmailByPlanId(plan.plan_id);
+            sendCreditsHalfWarningEmail(email, chatbot.website_name, plan.renewal_date);
+            await setCreditsHalfWarningSent(plan.plan_id, true);
+            logger.info("Plan:", plan.plan_id, "has sent a credits half warning email due to being below 50% of credits.");
         }
     }
 
