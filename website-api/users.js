@@ -4,6 +4,8 @@ const bcrypt = require('bcryptjs');
 const cookieParser = require('cookie-parser');
 const jwt = require('jsonwebtoken');
 const { logger } = require('../utils/fileLogger');
+const { sendVerificationEmail } = require('../utils/emailService.js');
+
 require('dotenv').config();
 // Determine if the environment is production
 const isProduction = process.env.ENV !== 'development';
@@ -79,6 +81,9 @@ router.post('/register', validateInput, async (req, res) => {
         
         // Register user
         await registerUser(email, hashedPassword);
+        // send verification email
+        const token = 'example-token';
+        sendVerificationEmail(email, token);
         
         res.status(201).json({ message: 'User registered successfully' });
     } catch (err) {

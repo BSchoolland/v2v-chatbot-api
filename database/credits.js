@@ -114,13 +114,13 @@ function addOneMonthWithBillingAnchor(date, billingAnchorDay) {
 
 async function checkAndRenewCredits(planId) {
     try {
-        const plan = await dbGet(
-            `SELECT p.*, pt.monthly_credits, pt.plan_type_id
-             FROM plans p
-             JOIN plan_type pt ON p.plan_type_id = pt.plan_type_id
-             WHERE p.plan_id = ?`,
-            [planId]
-        );
+            const plan = await dbGet(
+                `SELECT p.*, pt.monthly_credits, pt.plan_type_id
+                FROM plans p
+                JOIN plan_type pt ON p.plan_type_id = pt.plan_type_id
+                WHERE p.plan_id = ?`,
+                [planId]
+            );
 
         if (!plan) {
             throw new Error('Plan not found');
@@ -139,6 +139,8 @@ async function checkAndRenewCredits(planId) {
         }
 
         if (shouldRenew) {
+            // reset warnings for the plan
+            await resetWarnings(planId);
             // Get the billing anchor day, default to the day the plan was created if not set
             const billingAnchorDay = plan.billing_anchor_day || new Date(plan.renews_at).getDate();
             
@@ -168,8 +170,65 @@ async function checkAndRenewCredits(planId) {
     }
 }
 
+// set the credits half warning sent for a plan
+async function setCreditsHalfWarningSent(planId, sent) {
+    await dbRun('UPDATE plans SET credits_half_warning_sent = ? WHERE plan_id = ?', [sent, planId]);
+}
+
+// set the credits low warning sent for a plan
+async function setCreditsLowWarningSent(planId, sent) {
+    await dbRun('UPDATE plans SET credits_low_warning_sent = ? WHERE plan_id = ?', [sent, planId]);
+}
+
+// set the credits exhausted warning sent for a plan
+async function setCreditsExhaustedWarningSent(planId, sent) {
+    await dbRun('UPDATE plans SET credits_exhausted_warning_sent = ? WHERE plan_id = ?', [sent, planId]);
+}
+
+// reset warnings for a plan
+async function resetWarnings(planId) {
+    await dbRun('UPDATE plans SET credits_half_warning_sent = 0, credits_low_warning_sent = 0, credits_exhausted_warning_sent = 0 WHERE plan_id = ?', [planId]);
+}
+
+// should send a credits half warning for a plan
+async function shouldSendCreditsHalfWarning(planId) {
+    const plan = await dbGet('SELECT credits_half_warning_sent FROM plans WHERE plan_id = ?', [planId]);
+    return !plan.credits_half_warning_sent;
+}
+
+// should send a credits low warning for a plan
+async function shouldSendCreditsLowWarning(planId) {
+    const plan = await dbGet('SELECT credits_low_warning_sent FROM plans WHERE plan_id = ?', [planId]);
+    return !plan.credits_low_warning_sent;
+}
+
+// should send a credits exhausted warning for a plan
+async function shouldSendCreditsExhaustedWarning(planId) {
+    const plan = await dbGet('SELECT credits_exhausted_warning_sent FROM plans WHERE plan_id = ?', [planId]);
+    return !plan.credits_exhausted_warning_sent;
+}
+
+async function getMonthlyCredits(planId) {
+    const plan = await dbGet(
+        `SELECT p.*, pt.monthly_credits, pt.plan_type_id
+         FROM plans p
+         JOIN plan_type pt ON p.plan_type_id = pt.plan_type_id
+         WHERE p.plan_id = ?`,
+        [planId]
+    );
+    return plan.monthly_credits;
+}
+
 module.exports = {
     allocateMonthlyCredits,
     resetToFreeCredits,
-    checkAndRenewCredits
+    checkAndRenewCredits,
+    setCreditsHalfWarningSent,
+    setCreditsLowWarningSent,
+    setCreditsExhaustedWarningSent,
+    resetWarnings,
+    shouldSendCreditsHalfWarning,
+    shouldSendCreditsLowWarning,
+    shouldSendCreditsExhaustedWarning,
+    getMonthlyCredits
 }; 

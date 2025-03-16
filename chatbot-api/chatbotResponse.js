@@ -12,7 +12,22 @@ const { getPlanFromChatbotId, subtractFromPlan } = require('../database/plans.js
 
 const { getSystemPrompt } = require('../database/chatbots.js');
 
-const { checkAndRenewCredits } = require('../database/credits.js');
+const { 
+    checkAndRenewCredits,
+    getMonthlyCredits,
+    shouldSendCreditsHalfWarning,
+    shouldSendCreditsLowWarning,
+    shouldSendCreditsExhaustedWarning,
+    setCreditsHalfWarningSent,
+    setCreditsLowWarningSent,
+    setCreditsExhaustedWarningSent
+} = require('../database/credits.js');
+
+const { logger } = require('../utils/fileLogger.js');
+
+const { sendCreditsExhaustedEmail, sendCreditsLowWarningEmail, sendCreditsHalfWarningEmail } = require('../utils/emailService.js');
+
+const { getEmailByPlanId } = require('../database/users.js');
 
 // use tool requires tool name and params
 const { getTools, useTool } = require('./builtInTools.js');
@@ -107,12 +122,34 @@ async function getChatbotResponse(sessionId, chatbotId) {
     // If they cross into their additional credits, send an email
     // If they completely run out of credits, send an email
     // If they had run low on credits and then credits are added or the plan is renewed, send an email
+    const monthlyCredits = await getMonthlyCredits(plan.plan_id);   
     if (plan.remaining_credits + plan.additional_credits < model.message_cost) {
-        console.warn("Plan:", plan.plan_id, "is out of credits, chatbot will be paused until the plan is renewed or additional credits are added.");
+        if (!plan.credits_exhausted_warning_sent) {
+            logger.warn("Plan:", plan.plan_id, "is out of credits, chatbot will be paused until the plan is renewed or additional credits are added.");
+            if (await shouldSendCreditsExhaustedWarning(plan.plan_id)) {
+                const email = await getEmailByPlanId(plan.plan_id);
+                sendCreditsExhaustedEmail(email, chatbot.website_name, plan.renewal_date);
+                await setCreditsExhaustedWarningSent(plan.plan_id, true);
+            }
+        }
         return {
             error: "Plan out of credits, chatbot will be paused until the plan is renewed or additional credits are added.",
             chatId: sessionId
         };
+    } else if (plan.remaining_credits + plan.additional_credits < monthlyCredits * 0.5) {
+        if (await shouldSendCreditsHalfWarning(plan.plan_id)) {
+            const email = await getEmailByPlanId(plan.plan_id);
+            sendCreditsHalfWarningEmail(email, chatbot.website_name, plan.renewal_date);
+            await setCreditsHalfWarningSent(plan.plan_id, true);
+            logger.info("Plan:", plan.plan_id, "has sent a credits half warning email due to being below 50% of credits.");
+        }
+    } else if (plan.remaining_credits + plan.additional_credits < monthlyCredits * 0.1) {
+        if (await shouldSendCreditsLowWarning(plan.plan_id)) {
+            const email = await getEmailByPlanId(plan.plan_id);
+            sendCreditsLowWarningEmail(email, chatbot.website_name, plan.remaining_credits + plan.additional_credits, plan.renewal_date);
+            await setCreditsLowWarningSent(plan.plan_id, true);
+            logger.info("Plan:", plan.plan_id, "has sent a credits low warning email due to being below 10% of credits.");
+        }
     }
 
     while (toolCallsExist) {
