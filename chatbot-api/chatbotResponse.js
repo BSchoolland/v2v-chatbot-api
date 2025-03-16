@@ -129,8 +129,11 @@ async function getChatbotResponse(sessionId, chatbotId) {
             try {
                 const shouldSend = await checkAndSetWarningFlag(plan.plan_id, 'exhausted');
                 if (shouldSend) {
+                    const website = await getWebsiteByChatbotId(chatbotId);
+                    const renewalDate = new Date(plan.renews_at);
+                    const renewalDateFormatted = renewalDate.toLocaleDateString();
                     const email = await getEmailByPlanId(plan.plan_id);
-                    await sendCreditsExhaustedEmail(email, chatbot.website_name, plan.renewal_date);
+                    await sendCreditsExhaustedEmail(email, website.url, renewalDateFormatted);
                     logger.info("Plan:", plan.plan_id, "has sent a credits exhausted warning email.");
                 }
             } catch (error) {
