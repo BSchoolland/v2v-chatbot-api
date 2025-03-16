@@ -214,7 +214,7 @@ function sendCreditsExhaustedEmail(email, websiteName, renewalDate) {
   <p>If you have any questions, please don't hesitate to <a href="${process.env.FRONTEND_URL}/contact">contact us</a>.</p>
   <p>Credits will automatically be refilled on ${renewalDate}.</p>
   `;
-  return defaultEmailService.sendEmail({ to: email, subject: 'IMPORTANT: Your chatbot on ${websiteName} has been disabled', html });
+  return defaultEmailService.sendEmail({ to: email, subject: `IMPORTANT: Your chatbot on ${websiteName} has been disabled`, html });
 }
 
 /**
@@ -230,11 +230,6 @@ function sendPasswordResetSuccessEmail(email) {
   return defaultEmailService.sendEmail({ to: email, subject: 'Password reset successful', html });
 }
 
-/**
- * Send a password reset success email
- * @param {string} email - The email address to send the password reset success email to
- * @returns {Promise<Object>} - Promise resolving to the info object from Nodemailer
- */
 module.exports = {
   defaultEmailService,
   sendVerificationEmail,

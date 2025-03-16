@@ -235,12 +235,31 @@ async function planMigration(dbGet, dbRun, dbAll) {
     }
 }
 
+async function migrateWarningFlags(dbGet, dbRun, dbAll) {
+    console.log('Migrating plans for warning flags if necessary...');
+    
+    // Check if the credits_half_warning_sent column exists
+    if (!(await columnExists('plans', 'credits_half_warning_sent', dbAll))) {
+        console.log('Adding warning flag columns to plans table...');
+        
+        // Add the warning flag columns
+        await dbRun(`ALTER TABLE plans ADD COLUMN credits_half_warning_sent BOOLEAN DEFAULT 0`);
+        await dbRun(`ALTER TABLE plans ADD COLUMN credits_low_warning_sent BOOLEAN DEFAULT 0`);
+        await dbRun(`ALTER TABLE plans ADD COLUMN credits_exhausted_warning_sent BOOLEAN DEFAULT 0`);
+        
+        console.log('Warning flag columns added to plans table.');
+    } else {
+        console.log('Warning flag columns already exist in plans table.');
+    }
+}
+
 async function migrate(dbGet, dbRun, dbAll) {
     await modelMigration(dbGet, dbRun, dbAll);
     await chatbotMigration(dbGet, dbRun, dbAll);
     await conversationMigration(dbGet, dbRun, dbAll);
     await planTypeMigration(dbGet, dbRun, dbAll);
     await planMigration(dbGet, dbRun, dbAll);
+    await migrateWarningFlags(dbGet, dbRun, dbAll);
 }
 
 module.exports = {

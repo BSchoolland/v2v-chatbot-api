@@ -114,58 +114,56 @@ function addOneMonthWithBillingAnchor(date, billingAnchorDay) {
 
 async function checkAndRenewCredits(planId) {
     try {
-            const plan = await dbGet(
-                `SELECT p.*, pt.monthly_credits, pt.plan_type_id
-                FROM plans p
-                JOIN plan_type pt ON p.plan_type_id = pt.plan_type_id
-                WHERE p.plan_id = ?`,
-                [planId]
-            );
+        const plan = await dbGet(
+            `SELECT p.*, pt.monthly_credits, pt.plan_type_id
+             FROM plans p
+             JOIN plan_type pt ON p.plan_type_id = pt.plan_type_id
+             WHERE p.plan_id = ?`,
+            [planId]
+        );
 
         if (!plan) {
             throw new Error('Plan not found');
         }
 
-        const now = getCurrentDate();
-        let shouldRenew = false;
-
-        // For free plans (plan_type_id = 0), always check renewal
-        if (plan.plan_type_id === 0) {
-            // If no renewal date set, or renewal date is in the past
-            shouldRenew = !plan.renews_at || now >= new Date(plan.renews_at);
-        } else {
-            // For paid plans, only renew if there's an active subscription and renewal is due
-            shouldRenew = plan.subscription_active && plan.renews_at && now >= new Date(plan.renews_at);
-        }
-
+        // Check if the plan needs to be renewed
+        const now = new Date();
+        const renewalDate = new Date(plan.renews_at);
+        
+        // If the renewal date is in the past, renew the plan
+        const shouldRenew = now >= renewalDate;
+        
         if (shouldRenew) {
             // reset warnings for the plan
             await resetWarnings(planId);
             // Get the billing anchor day, default to the day the plan was created if not set
             const billingAnchorDay = plan.billing_anchor_day || new Date(plan.renews_at).getDate();
             
-            // Calculate next renewal date using the billing anchor day
-            const nextRenewal = addOneMonthWithBillingAnchor(new Date(plan.renews_at), billingAnchorDay);
-            // log the renewal
-            logCreditRenewal(planId, plan.monthly_credits, plan.remaining_credits);
-            // credits are not retained between renewals, so we need to reset the credits to the monthly limit
+            // Calculate the next renewal date
+            const nextRenewalDate = addOneMonthWithBillingAnchor(now, billingAnchorDay);
+            
+            // Update the plan with the new renewal date and reset the remaining credits
             await dbRun(
                 `UPDATE plans 
-                 SET remaining_credits = ?,
-                     renews_at = ?
+                 SET remaining_credits = ?, renews_at = ? 
                  WHERE plan_id = ?`,
-                [plan.monthly_credits, nextRenewal.toISOString(), planId]
+                [plan.monthly_credits, nextRenewalDate.toISOString(), planId]
             );
-
+            
             return {
-                credits: plan.monthly_credits,
-                renewalDate: nextRenewal.toISOString()
+                renewed: true,
+                nextRenewalDate,
+                credits: plan.monthly_credits
             };
         }
-
-        return null; // No renewal needed
+        
+        return {
+            renewed: false,
+            nextRenewalDate: renewalDate,
+            credits: plan.remaining_credits
+        };
     } catch (error) {
-        console.error('Error checking/renewing credits:', error);
+        console.error('Error renewing credits:', error);
         throw error;
     }
 }
@@ -208,6 +206,49 @@ async function shouldSendCreditsExhaustedWarning(planId) {
     return !plan.credits_exhausted_warning_sent;
 }
 
+// Check and set warning flag in a single transaction to prevent race conditions
+async function checkAndSetWarningFlag(planId, flagType) {
+    // Begin transaction
+    await dbRun('BEGIN TRANSACTION');
+    
+    try {
+        // Check if warning should be sent
+        let shouldSend = false;
+        
+        if (flagType === 'half') {
+            const plan = await dbGet('SELECT credits_half_warning_sent FROM plans WHERE plan_id = ?', [planId]);
+            shouldSend = !plan.credits_half_warning_sent;
+            
+            if (shouldSend) {
+                await dbRun('UPDATE plans SET credits_half_warning_sent = 1 WHERE plan_id = ?', [planId]);
+            }
+        } else if (flagType === 'low') {
+            const plan = await dbGet('SELECT credits_low_warning_sent FROM plans WHERE plan_id = ?', [planId]);
+            shouldSend = !plan.credits_low_warning_sent;
+            
+            if (shouldSend) {
+                await dbRun('UPDATE plans SET credits_low_warning_sent = 1 WHERE plan_id = ?', [planId]);
+            }
+        } else if (flagType === 'exhausted') {
+            const plan = await dbGet('SELECT credits_exhausted_warning_sent FROM plans WHERE plan_id = ?', [planId]);
+            shouldSend = !plan.credits_exhausted_warning_sent;
+            
+            if (shouldSend) {
+                await dbRun('UPDATE plans SET credits_exhausted_warning_sent = 1 WHERE plan_id = ?', [planId]);
+            }
+        }
+        
+        // Commit transaction
+        await dbRun('COMMIT');
+        
+        return shouldSend;
+    } catch (error) {
+        // Rollback transaction on error
+        await dbRun('ROLLBACK');
+        throw error;
+    }
+}
+
 async function getMonthlyCredits(planId) {
     const plan = await dbGet(
         `SELECT p.*, pt.monthly_credits, pt.plan_type_id
@@ -230,5 +271,6 @@ module.exports = {
     shouldSendCreditsHalfWarning,
     shouldSendCreditsLowWarning,
     shouldSendCreditsExhaustedWarning,
-    getMonthlyCredits
+    getMonthlyCredits,
+    checkAndSetWarningFlag
 }; 

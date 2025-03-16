@@ -38,7 +38,7 @@ async function testEmailConnection() {
     console.log('Sending test email...');
     const info = await transporter.sendMail({
       from: process.env.EMAIL_FROM,
-      to: 'bschoolland@gmail.com', // Use the same recipient from the error log
+      to: process.env.TEST_EMAIL || process.env.EMAIL_USER, // Use environment variable instead of hardcoded email
       subject: 'Test Email',
       text: 'This is a test email to verify the connection.'
     });
@@ -72,7 +72,7 @@ async function testEmailConnection() {
       // Try sending a test email with TLS settings
       const info = await transporterWithTLS.sendMail({
         from: process.env.EMAIL_FROM,
-        to: 'bschoolland@gmail.com',
+        to: process.env.TEST_EMAIL || process.env.EMAIL_USER, // Use environment variable instead of hardcoded email
         subject: 'Test Email with TLS Settings',
         text: 'This is a test email to verify the connection with TLS settings.'
       });
@@ -102,7 +102,7 @@ async function testEmailConnection() {
         // Try sending a test email with SSL settings
         const info = await transporterWithSSL.sendMail({
           from: process.env.EMAIL_FROM,
-          to: 'bschoolland@gmail.com',
+          to: process.env.TEST_EMAIL || process.env.EMAIL_USER, // Use environment variable instead of hardcoded email
           subject: 'Test Email with SSL Settings',
           text: 'This is a test email to verify the connection with SSL settings.'
         });

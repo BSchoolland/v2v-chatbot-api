@@ -20,7 +20,8 @@ const {
     shouldSendCreditsExhaustedWarning,
     setCreditsHalfWarningSent,
     setCreditsLowWarningSent,
-    setCreditsExhaustedWarningSent
+    setCreditsExhaustedWarningSent,
+    checkAndSetWarningFlag
 } = require('../database/credits.js');
 
 const { logger } = require('../utils/fileLogger.js');
@@ -125,10 +126,16 @@ async function getChatbotResponse(sessionId, chatbotId) {
     if (plan.remaining_credits + plan.additional_credits < model.message_cost) {
         if (!plan.credits_exhausted_warning_sent) {
             logger.warn("Plan:", plan.plan_id, "is out of credits, chatbot will be paused until the plan is renewed or additional credits are added.");
-            if (await shouldSendCreditsExhaustedWarning(plan.plan_id)) {
-                const email = await getEmailByPlanId(plan.plan_id);
-                sendCreditsExhaustedEmail(email, chatbot.website_name, plan.renewal_date);
-                await setCreditsExhaustedWarningSent(plan.plan_id, true);
+            try {
+                const shouldSend = await checkAndSetWarningFlag(plan.plan_id, 'exhausted');
+                if (shouldSend) {
+                    const email = await getEmailByPlanId(plan.plan_id);
+                    await sendCreditsExhaustedEmail(email, chatbot.website_name, plan.renewal_date);
+                    logger.info("Plan:", plan.plan_id, "has sent a credits exhausted warning email.");
+                }
+            } catch (error) {
+                logger.error("Failed to send credits exhausted email:", error);
+                // Continue execution even if email fails
             }
         }
         return {
@@ -145,18 +152,28 @@ async function getChatbotResponse(sessionId, chatbotId) {
         const renewalDateFormatted = renewalDate.toLocaleDateString();
         
         if (plan.remaining_credits + plan.additional_credits < monthlyCredits * 0.1) {
-            if (await shouldSendCreditsLowWarning(plan.plan_id)) {
-                const email = await getEmailByPlanId(plan.plan_id);
-                sendCreditsLowWarningEmail(email, website.url, plan.remaining_credits + plan.additional_credits, renewalDateFormatted);
-                await setCreditsLowWarningSent(plan.plan_id, true);
-                logger.info("Plan:", plan.plan_id, "has sent a credits low warning email due to being below 10% of credits.");
+            try {
+                const shouldSend = await checkAndSetWarningFlag(plan.plan_id, 'low');
+                if (shouldSend) {
+                    const email = await getEmailByPlanId(plan.plan_id);
+                    await sendCreditsLowWarningEmail(email, website.url, plan.remaining_credits + plan.additional_credits, renewalDateFormatted);
+                    logger.info("Plan:", plan.plan_id, "has sent a credits low warning email due to being below 10% of credits.");
+                }
+            } catch (error) {
+                logger.error("Failed to send credits low warning email:", error);
+                // Continue execution even if email fails
             }
         } else if (plan.remaining_credits + plan.additional_credits < monthlyCredits * 0.5) {
-            if (await shouldSendCreditsHalfWarning(plan.plan_id)) {
-                const email = await getEmailByPlanId(plan.plan_id);
-                sendCreditsHalfWarningEmail(email, website.url, renewalDateFormatted);
-                await setCreditsHalfWarningSent(plan.plan_id, true);
-                logger.info("Plan:", plan.plan_id, "has sent a credits half warning email due to being below 50% of credits.");
+            try {
+                const shouldSend = await checkAndSetWarningFlag(plan.plan_id, 'half');
+                if (shouldSend) {
+                    const email = await getEmailByPlanId(plan.plan_id);
+                    await sendCreditsHalfWarningEmail(email, website.url, renewalDateFormatted);
+                    logger.info("Plan:", plan.plan_id, "has sent a credits half warning email due to being below 50% of credits.");
+                }
+            } catch (error) {
+                logger.error("Failed to send credits half warning email:", error);
+                // Continue execution even if email fails
             }
         }
     }
