@@ -42,7 +42,7 @@ class FileLogger {
      * @param {boolean} options.appendTimestamp - Whether to append timestamp to each log entry (default: true)
      */
     constructor(options = {}) {
-        this.logDir = options.logDir || 'data/logs';
+        this.logDir = options.logDir || 'backend/storage/logs';
         this.logPrefix = options.logPrefix || 'app';
         this.dailyRotation = options.dailyRotation !== false;
         this.appendTimestamp = options.appendTimestamp !== false;

@@ -6,12 +6,12 @@ const {scraperManager} = require('../webscraping/scraperManager');
 
 const { authMiddleware } = require('./middleware');
 
-const { createChatbot, getChatbotFromPlanId, editChatbotName, editChatbotSystemPrompt, editChatbotInitialMessage, editChatbotQuestions, editChatbotContactInfo, editChatbotRateLimit, assignWebsiteIdToChatbot, resetConfig, editChatbotModel } = require('../database/chatbots');
+const { createChatbot, getChatbotFromPlanId, editChatbotName, editChatbotSystemPrompt, editChatbotInitialMessage, editChatbotQuestions, editChatbotContactInfo, editChatbotRateLimit, assignWebsiteIdToChatbot, resetConfig, editChatbotModel } = require('../backend/database/chatbots.js');
 
-const { getPlan, setChatbotIdForPlan } = require('../database/plans');
-const { getAvailableModelsForPlanType } = require('../database/models');
-const { getWebsiteByUrl } = require('../database/websites');
-const { getExternalPages, deletePage, getPagesByWebsite } = require('../database/pages');
+const { getPlan, setChatbotIdForPlan } = require('../backend/database/plans.js');
+const { getAvailableModelsForPlanType } = require('../backend/database/models.js');
+const { getWebsiteByUrl } = require('../backend/database/websites.js');
+const { getExternalPages, deletePage, getPagesByWebsite } = require('../backend/database/pages.js');
 
 const { automateConfiguration } = require('./automated-config');
 const { logger } = require('../utils/fileLogger');

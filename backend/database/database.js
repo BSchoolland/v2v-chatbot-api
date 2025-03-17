@@ -1,7 +1,8 @@
 const sqlite3 = require('sqlite3').verbose();
 const crypto = require('crypto');
 const {migrate} = require('./migrate.js');
-const db = new sqlite3.Database('data/api_database.db', (err) => {
+const path = require('path');
+const db = new sqlite3.Database(path.resolve(__dirname, '../storage/database.db'), (err) => {
   if (err) {
     console.error('Error opening database:', err.message);
     throw err;
@@ -13,7 +14,7 @@ const dbRun = (sql, params) => new Promise((resolve, reject) => {
   db.run(sql, params, function(err) {
       if (err) reject(err);
       resolve(this.lastID);
-  });
+  }); 
 });
 
 const dbGet = (sql, params) => new Promise((resolve, reject) => {

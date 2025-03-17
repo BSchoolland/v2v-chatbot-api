@@ -2,8 +2,8 @@ const express = require('express');
 const router = express.Router();
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const { authMiddleware } = require('./middleware.js');
-const { getUserById } = require('../database/users.js');
-const { dbRun, dbGet } = require('../database/database.js');
+const { getUserById } = require('../backend/database/users.js');
+const { dbRun, dbGet } = require('../backend/database/database.js');
 const {
   createStripeCustomer,
   getStripeCustomer,
@@ -11,13 +11,13 @@ const {
   updateSubscription,
   addPaymentMethod,
   recordInvoice
-} = require('../database/stripe.js');
+} = require('../backend/database/stripe.js');
 const {
   allocateMonthlyCredits,
   resetToFreeCredits,
   checkAndRenewCredits
-} = require('../database/credits.js');
-const { cancelActiveSubscriptions } = require('../database/plans.js');
+} = require('../backend/database/credits.js');
+const { cancelActiveSubscriptions } = require('../backend/database/plans.js');
 
 // Get Stripe publishable key
 router.get('/config', async (req, res) => {

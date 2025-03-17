@@ -1,4 +1,4 @@
-const { dbGet } = require('../../../database/database');
+const { dbGet } = require('../../database/database');
 
 const dotenv = require('dotenv');
 dotenv.config();

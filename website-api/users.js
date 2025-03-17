@@ -14,7 +14,7 @@ const {
     getUserByEmail, 
     registerUser, 
     checkEmailExists 
-} = require('../database/users.js');
+} = require('../backend/database/users.js');
 // Input validation middleware
 
 const { validateInput } = require('./middleware.js');

@@ -1,8 +1,8 @@
-const {db, dbAll} = require('../../database/database.js');
-const { getPageByUrlAndWebsiteId } = require('../../database/pages.js');
-const {getWebsiteById} = require('../../database/websites.js');
-const { searchFileContent, readFileContent, getFilesByWebsiteId } = require('../../database/files.js');
-const { logToolCall } = require('../../database/logging/toolCalls.js');
+const {db, dbAll} = require('../database/database.js');
+const { getPageByUrlAndWebsiteId } = require('../database/pages.js');
+const {getWebsiteById} = require('../database/websites.js');
+const { searchFileContent, readFileContent, getFilesByWebsiteId } = require('../database/files.js');
+const { logToolCall } = require('../database/logging/toolCalls.js');
 const wsManager = require('./wsManager.js');
 // a set of tools the chatbot can use to find information for the user
 tools = [
