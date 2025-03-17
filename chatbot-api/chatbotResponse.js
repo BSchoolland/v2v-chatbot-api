@@ -15,12 +15,6 @@ const { getWebsiteByChatbotId } = require('../database/websites.js');
 const { 
     checkAndRenewCredits,
     getMonthlyCredits,
-    shouldSendCreditsHalfWarning,
-    shouldSendCreditsLowWarning,
-    shouldSendCreditsExhaustedWarning,
-    setCreditsHalfWarningSent,
-    setCreditsLowWarningSent,
-    setCreditsExhaustedWarningSent,
     checkAndSetWarningFlag
 } = require('../database/credits.js');
 

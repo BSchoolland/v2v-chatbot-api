@@ -227,7 +227,6 @@ async function resetConfig(chatbotId) {
     return true;
 }
 
-
 module.exports = {
     createChatbot,
     getChatbot,

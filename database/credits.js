@@ -129,9 +129,11 @@ async function checkAndRenewCredits(planId) {
         // Check if the plan needs to be renewed
         const now = new Date();
         const renewalDate = new Date(plan.renews_at);
-        
-        // If the renewal date is in the past, renew the plan
-        const shouldRenew = now >= renewalDate;
+        let shouldRenew = false;
+        // If the renewal date is in the past, and the plan is free or active, renew the plan
+        if (now >= renewalDate && (plan.plan_type_id == 0 || plan.subscription_active)) {
+            shouldRenew = true;
+        }
         
         if (shouldRenew) {
             // reset warnings for the plan
@@ -139,9 +141,9 @@ async function checkAndRenewCredits(planId) {
             // Get the billing anchor day, default to the day the plan was created if not set
             const billingAnchorDay = plan.billing_anchor_day || new Date(plan.renews_at).getDate();
             
-            // Calculate the next renewal date
-            const nextRenewalDate = addOneMonthWithBillingAnchor(now, billingAnchorDay);
-            
+            // Calculate the next renewal date based on the billing anchor day
+            const nextRenewalDate = addOneMonthWithBillingAnchor(new Date(plan.renews_at), billingAnchorDay);
+            logCreditRenewal(planId, plan.monthly_credits, plan.remaining_credits);
             // Update the plan with the new renewal date and reset the remaining credits
             await dbRun(
                 `UPDATE plans 
@@ -168,42 +170,10 @@ async function checkAndRenewCredits(planId) {
     }
 }
 
-// set the credits half warning sent for a plan
-async function setCreditsHalfWarningSent(planId, sent) {
-    await dbRun('UPDATE plans SET credits_half_warning_sent = ? WHERE plan_id = ?', [sent, planId]);
-}
-
-// set the credits low warning sent for a plan
-async function setCreditsLowWarningSent(planId, sent) {
-    await dbRun('UPDATE plans SET credits_low_warning_sent = ? WHERE plan_id = ?', [sent, planId]);
-}
-
-// set the credits exhausted warning sent for a plan
-async function setCreditsExhaustedWarningSent(planId, sent) {
-    await dbRun('UPDATE plans SET credits_exhausted_warning_sent = ? WHERE plan_id = ?', [sent, planId]);
-}
 
 // reset warnings for a plan
 async function resetWarnings(planId) {
     await dbRun('UPDATE plans SET credits_half_warning_sent = 0, credits_low_warning_sent = 0, credits_exhausted_warning_sent = 0 WHERE plan_id = ?', [planId]);
-}
-
-// should send a credits half warning for a plan
-async function shouldSendCreditsHalfWarning(planId) {
-    const plan = await dbGet('SELECT credits_half_warning_sent FROM plans WHERE plan_id = ?', [planId]);
-    return !plan.credits_half_warning_sent;
-}
-
-// should send a credits low warning for a plan
-async function shouldSendCreditsLowWarning(planId) {
-    const plan = await dbGet('SELECT credits_low_warning_sent FROM plans WHERE plan_id = ?', [planId]);
-    return !plan.credits_low_warning_sent;
-}
-
-// should send a credits exhausted warning for a plan
-async function shouldSendCreditsExhaustedWarning(planId) {
-    const plan = await dbGet('SELECT credits_exhausted_warning_sent FROM plans WHERE plan_id = ?', [planId]);
-    return !plan.credits_exhausted_warning_sent;
 }
 
 // Check and set warning flag in a single transaction to prevent race conditions
@@ -264,13 +234,6 @@ module.exports = {
     allocateMonthlyCredits,
     resetToFreeCredits,
     checkAndRenewCredits,
-    setCreditsHalfWarningSent,
-    setCreditsLowWarningSent,
-    setCreditsExhaustedWarningSent,
-    resetWarnings,
-    shouldSendCreditsHalfWarning,
-    shouldSendCreditsLowWarning,
-    shouldSendCreditsExhaustedWarning,
     getMonthlyCredits,
     checkAndSetWarningFlag
 }; 
