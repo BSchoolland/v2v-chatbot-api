@@ -61,3 +61,9 @@ When the user uses /review:
     5. Start the server and either ask the user to test or test yourself using curl that the web interface (particularly the parts that have changed) is working as expected
     6. If there are any issues, respond with REJECTED and explain what should be changed and how you would do it
     7. If there are no issues, respond with ACCEPTED
+
+when the user uses /readonly "message":
+    1. The user is asking you to make no changes to the codebase, but to have an intelligent conversation with them about the message, which may discuss the architecture, design, or long term goals of the project.
+    2. You should view the codebase without making changes, and attempt to understand it as much as possible.
+
+
