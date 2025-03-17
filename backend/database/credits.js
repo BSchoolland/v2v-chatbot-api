@@ -1,4 +1,4 @@
-const { dbRun, dbGet } = require('./database.js');
+const { dbRun, dbGet } = require('./config/database.js');
 const { getCurrentDate } = require('./dateUtils.js');
 const { logCreditRenewal } = require('./logging/credits.js');
 async function allocateMonthlyCredits(planId) {

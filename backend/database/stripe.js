@@ -1,5 +1,5 @@
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
-const { dbRun, dbGet, dbAll } = require('./database');
+const { dbRun, dbGet, dbAll } = require('./config/database.js');
 
 // Customer operations
 async function createStripeCustomer(userId, email) {

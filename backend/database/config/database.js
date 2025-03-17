@@ -2,7 +2,7 @@ const sqlite3 = require('sqlite3').verbose();
 const crypto = require('crypto');
 const {migrate} = require('./migrate.js');
 const path = require('path');
-const db = new sqlite3.Database(path.resolve(__dirname, '../storage/database.db'), (err) => {
+const db = new sqlite3.Database(path.resolve(__dirname, '../../storage/database.db'), (err) => {
   if (err) {
     console.error('Error opening database:', err.message);
     throw err;

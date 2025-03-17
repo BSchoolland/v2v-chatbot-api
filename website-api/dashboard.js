@@ -7,7 +7,7 @@ const {
 } = require('../backend/database/plans.js');
 
 const { authMiddleware } = require('./middleware.js');
-const { dbGet, dbAll } = require('../backend/database/database.js');
+const { dbGet, dbAll } = require('../backend/database/config/database.js');
 const { checkAndRenewCredits } = require('../backend/database/credits.js');
 
 // Get all plans for a user

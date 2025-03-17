@@ -1,4 +1,4 @@
-const { dbGet, dbRun, dbAll, generateUniqueId } = require('./database.js');
+const { dbGet, dbRun, dbAll, generateUniqueId } = require('./config/database.js');
 const path = require('path');
 const fs = require('fs');
 

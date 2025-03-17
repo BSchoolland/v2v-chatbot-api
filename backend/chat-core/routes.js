@@ -16,7 +16,7 @@ const { checkRateLimit } = require('./utils/rateLimiter.js');
 const { isValidOrigin } = require('./utils/originValidator.js');
 const { storeConversation } = require('../database/conversations.js');
 const path = require('path');
-const { dbGet } = require('../database/database.js');
+const { dbGet } = require('../database/config/database.js');
 const { logMessage } = require('../database/logging/messages.js');
 // Initialize chat session
 router.get('/init-chat', (req, res) => {

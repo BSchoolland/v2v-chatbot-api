@@ -1,4 +1,4 @@
-const {db, dbAll} = require('../database/database.js');
+const {db, dbAll} = require('../database/config/database.js');
 const { getPageByUrlAndWebsiteId } = require('../database/pages.js');
 const {getWebsiteById} = require('../database/websites.js');
 const { searchFileContent, readFileContent, getFilesByWebsiteId } = require('../database/files.js');

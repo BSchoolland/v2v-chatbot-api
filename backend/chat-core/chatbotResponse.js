@@ -6,7 +6,7 @@ const dotenv = require("dotenv");
 dotenv.config();
 
 const { appendMessageToSession, getSession } = require('./sessions.js');
-const { dbGet } = require('../database/database.js');
+const { dbGet } = require('../database/config/database.js');
 
 const { getPlanFromChatbotId, subtractFromPlan } = require('../database/plans.js');
 

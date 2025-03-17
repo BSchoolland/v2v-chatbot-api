@@ -1,8 +1,8 @@
 const express = require('express');
 const bodyParser = require('body-parser');
-const { initializeDatabase } = require('./backend/database/database.js');
+const { initializeDatabase } = require('./backend/database/config/database.js');
 const { initializeLoggingDatabase } = require('./backend/database/logging/database.js');
-const { dbRun, dbGet, dbAll } = require('./backend/database/database.js');
+const { dbRun, dbGet, dbAll } = require('./backend/database/config/database.js');
 const { scraperManager } = require('./webscraping/scraperManager.js');
 const { scheduleCronJobs } = require('./webscraping/cron.js');
 const expressWs = require('express-ws');

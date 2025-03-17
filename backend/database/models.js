@@ -1,4 +1,4 @@
-const { dbGet, dbRun, dbAll } = require('./database.js');
+const { dbGet, dbRun, dbAll } = require('./config/database.js');
 
 // Add new model
 function addModel(maxContext, name, description, apiString, messageCost) {
