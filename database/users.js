@@ -49,18 +49,19 @@ async function checkEmailExists(email) {
     }
 }
 
-async function getEmailByPlanId(planId) {
+async function getUserByPlanId(planId) {
     try {
-        const plan = await dbGet('SELECT email FROM users WHERE user_id = (SELECT user_id FROM plans WHERE plan_id = ?)', [planId]);
-        return plan.email;
+        const user = await dbGet('SELECT * FROM users WHERE user_id = (SELECT user_id FROM plans WHERE plan_id = ?)', [planId]);
+        return user;
     } catch (err) {
         throw err;
     }
 }
+
 module.exports = {
     registerUser,
     getUserByEmail,
     getUserById,
     checkEmailExists,
-    getEmailByPlanId
+    getUserByPlanId
 };

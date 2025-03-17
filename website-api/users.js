@@ -82,6 +82,7 @@ router.post('/register', validateInput, async (req, res) => {
         // Register user
         await registerUser(email, hashedPassword);
         // send verification email
+        // // TODO: generate and store a secure token, then use it to set verified status in the database
         const token = 'example-token';
         sendVerificationEmail(email, token);
         

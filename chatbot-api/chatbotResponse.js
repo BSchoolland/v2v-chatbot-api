@@ -22,7 +22,7 @@ const { logger } = require('../utils/fileLogger.js');
 
 const { sendCreditsExhaustedEmail, sendCreditsLowWarningEmail, sendCreditsHalfWarningEmail } = require('../utils/emailService.js');
 
-const { getEmailByPlanId } = require('../database/users.js');
+const { getUserByPlanId } = require('../database/users.js');
 
 // use tool requires tool name and params
 const { getTools, useTool } = require('./builtInTools.js');
@@ -112,11 +112,7 @@ async function getChatbotResponse(sessionId, chatbotId) {
         plan = await getPlanFromChatbotId(chatbotId);
     }
 
-    // TODO: email the client in a variety of different situations
-    // If they get below 10% of their credits, send an email
-    // If they cross into their additional credits, send an email
-    // If they completely run out of credits, send an email
-    // If they had run low on credits and then credits are added or the plan is renewed, send an email
+    // if the plan is out of credits, send an email and pause the chatbot
     if (plan.remaining_credits + plan.additional_credits < model.message_cost) {
         if (!plan.credits_exhausted_warning_sent) {
             logger.warn("Plan:", plan.plan_id, "is out of credits, chatbot will be paused until the plan is renewed or additional credits are added.");
@@ -126,8 +122,8 @@ async function getChatbotResponse(sessionId, chatbotId) {
                     const website = await getWebsiteByChatbotId(chatbotId);
                     const renewalDate = new Date(plan.renews_at);
                     const renewalDateFormatted = renewalDate.toLocaleDateString();
-                    const email = await getEmailByPlanId(plan.plan_id);
-                    await sendCreditsExhaustedEmail(email, website.url, renewalDateFormatted);
+                    const user = await getUserByPlanId(plan.plan_id);
+                    await sendCreditsExhaustedEmail(user.email, website.url, renewalDateFormatted);
                     logger.info("Plan:", plan.plan_id, "has sent a credits exhausted warning email.");
                 }
             } catch (error) {
@@ -140,7 +136,7 @@ async function getChatbotResponse(sessionId, chatbotId) {
             chatId: sessionId
         };
     } else {
-        
+        // if the plan is not out of credits, send a warning email if the plan is below 50% or 10% of credits
         const monthlyCredits = await getMonthlyCredits(plan.plan_id);   
         const website = await getWebsiteByChatbotId(chatbotId);
         // convert the renewal date to a date object
@@ -152,8 +148,8 @@ async function getChatbotResponse(sessionId, chatbotId) {
             try {
                 const shouldSend = await checkAndSetWarningFlag(plan.plan_id, 'low');
                 if (shouldSend) {
-                    const email = await getEmailByPlanId(plan.plan_id);
-                    await sendCreditsLowWarningEmail(email, website.url, plan.remaining_credits + plan.additional_credits, renewalDateFormatted);
+                    const user = await getUserByPlanId(plan.plan_id);
+                    await sendCreditsLowWarningEmail(user.email, website.url, plan.remaining_credits + plan.additional_credits, renewalDateFormatted);
                     logger.info("Plan:", plan.plan_id, "has sent a credits low warning email due to being below 10% of credits.");
                 }
             } catch (error) {
@@ -164,8 +160,8 @@ async function getChatbotResponse(sessionId, chatbotId) {
             try {
                 const shouldSend = await checkAndSetWarningFlag(plan.plan_id, 'half');
                 if (shouldSend) {
-                    const email = await getEmailByPlanId(plan.plan_id);
-                    await sendCreditsHalfWarningEmail(email, website.url, renewalDateFormatted);
+                    const user = await getUserByPlanId(plan.plan_id);
+                    await sendCreditsHalfWarningEmail(user.email, website.url, renewalDateFormatted);
                     logger.info("Plan:", plan.plan_id, "has sent a credits half warning email due to being below 50% of credits.");
                 }
             } catch (error) {
