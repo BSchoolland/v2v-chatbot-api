@@ -96,7 +96,8 @@ To deploy manually:
 ## 🤖 AI Models
 
 Currently using:
-- OpenAI's GPT-4 for natural language processing
+- OpenAI's GPT-4o-mini for natural language processing
+- OpenAI's GPT-4o model for automated initial configuration of chatbots
 - Additional models and capabilities coming soon!
 
 ## 🔒 Security
@@ -110,11 +111,3 @@ Currently using:
 ## 📄 License
 
 This project is proprietary software owned by Visions to Visuals.
-
-## 📞 Support
-
-For support inquiries, please contact [support contact information]
-
-## ⏱️ Project Timeline
-
-Expected MVP Completion: January 4, 2025
