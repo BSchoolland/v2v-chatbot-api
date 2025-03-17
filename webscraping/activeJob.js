@@ -1,5 +1,5 @@
-const { addPage, getPageByUrlAndWebsiteId } = require('../backend/database/pages.js');
-const { addWebsite, getWebsiteByUrl } = require('../backend/database/websites.js');
+const { addPage, getPageByUrlAndWebsiteId } = require('../backend/database/queries');
+const { addWebsite, getWebsiteByUrl } = require('../backend/database/queries');
 const getCleanHtmlContent = require('./htmlProcessing.js');
 const summarizeContent = require('./summarizeContent.js');
 const { logScrapeJobStart, logScrapeJobCompletion } = require('../backend/database/logging/scraper.js');

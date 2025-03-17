@@ -1,4 +1,4 @@
-const { dbRun, dbGet, dbAll } = require('./config/database.js');
+const { dbRun, dbGet, dbAll } = require('../../config/database.js');
 
 // Add a new website to the database
 async function addWebsite(url, chatbotId) {

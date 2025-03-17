@@ -1,3 +1,4 @@
+require('dotenv').config();
 const sqlite3 = require('sqlite3').verbose();
 const crypto = require('crypto');
 const {migrate} = require('./migrate.js');

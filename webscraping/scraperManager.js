@@ -3,8 +3,8 @@ const { JSDOM } = require('jsdom');
 const { ActiveJob } = require('./activeJob.js');
 const dotenv = require('dotenv');
 dotenv.config();
-const { setLastCrawled, getWebsiteById } = require('../backend/database/websites.js');
-const { addPage, getPageByUrlAndWebsiteId } = require('../backend/database/pages.js');
+const { setLastCrawled, getWebsiteById } = require('../backend/database/queries');
+const { addPage, getPageByUrlAndWebsiteId } = require('../backend/database/queries');
 
 const { logger } = require('../utils/fileLogger.js');
 

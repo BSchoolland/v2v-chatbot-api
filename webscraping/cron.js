@@ -8,7 +8,7 @@ dotenv.config();
 
 const reCrawlInterval = process.env.RE_CRAWL_INTERVAL || 1440; // 1440 minutes = 24 hours
 const cronCheckInterval = process.env.CRON_CHECK_INTERVAL || 15; // 15 minutes in production, 2 minutes in development
-const { getWebsitesByLastScrapedBefore } = require('../backend/database/websites.js');
+const { getWebsitesByLastScrapedBefore } = require('../backend/database/queries');
 let cronsScheduled = false;
 
 async function checkRenewalOnCredits() {

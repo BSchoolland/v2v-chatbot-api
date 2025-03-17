@@ -1,10 +1,9 @@
-const { dbRun, dbGet, generateUniqueId } = require('./config/database.js');
-const { getWebsiteById } = require('./websites.js');
-const { getPagesByWebsite } = require('./pages.js');
-const { getFilesByWebsiteId } = require('./files.js');
-const { version } = require('./config/migrate.js');
-const { isModelAvailableForPlanType, getDefaultModel } = require('./models.js');
-const { getPlan } = require('./plans.js');
+const { dbRun, dbGet, generateUniqueId } = require('../../config/database.js');
+const { getWebsiteById, getPagesByWebsite } = require('../../queries');
+const { getFilesByWebsiteId } = require('../../files.js');
+const { version } = require('../../config/migrate.js');
+const { isModelAvailableForPlanType, getDefaultModel } = require('../../models.js');
+const { getPlan } = require('../../plans.js');
 
 // schema:
 // chatbot_id TEXT PRIMARY KEY,

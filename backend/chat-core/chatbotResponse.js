@@ -10,8 +10,8 @@ const { dbGet } = require('../database/config/database.js');
 
 const { getPlanFromChatbotId, subtractFromPlan } = require('../database/plans.js');
 
-const { getSystemPrompt } = require('../database/chatbots.js');
-const { getWebsiteByChatbotId } = require('../database/websites.js');
+const { getSystemPrompt } = require('../database/queries');
+const { getWebsiteByChatbotId } = require('../database/queries');
 const { 
     checkAndRenewCredits,
     getMonthlyCredits,

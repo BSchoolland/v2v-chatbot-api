@@ -1,4 +1,4 @@
-const { dbRun, dbGet, dbAll } = require('./config/database.js');
+const { dbRun, dbGet, dbAll } = require('../../config/database.js');
 
 // Add a new page to the database or update if exists
 async function addPage(websiteId, url, summary, content, internal = true, internalLinks = '', externalLinks = '') {

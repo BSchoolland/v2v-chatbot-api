@@ -11,7 +11,7 @@ expressWs(router);
 
 const { getSessionId, appendMessageToSession, getSession } = require('./sessions.js');
 const { getChatbotResponse } = require('./chatbotResponse.js');
-const { getInitialMessage } = require('../database/chatbots.js');
+const { getInitialMessage } = require('../database/queries');
 const { checkRateLimit } = require('./utils/rateLimiter.js');
 const { isValidOrigin } = require('./utils/originValidator.js');
 const { storeConversation } = require('../database/conversations.js');
