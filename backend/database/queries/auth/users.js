@@ -1,4 +1,4 @@
-const { dbRun, dbGet } = require('./config/database.js');
+const { dbRun, dbGet } = require('../../config/database.js');
 const bcrypt = require('bcryptjs');
 
 // Register a new user

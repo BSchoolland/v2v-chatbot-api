@@ -4,8 +4,16 @@ const multer = require('multer');
 const path = require('path');
 const mime = require('mime-types');
 const { authMiddleware } = require('./middleware');
-const { addFile, updateFileVisibility, updateFileReferencing, updateFileTextContent, deleteFile, uploadsDir, getFilesByWebsiteId } = require('../backend/database/files');
-const { getChatbotFromPlanId } = require('../backend/database/queries');
+const { 
+    getChatbotFromPlanId, 
+    addFile, 
+    updateFileVisibility, 
+    updateFileReferencing, 
+    updateFileTextContent, 
+    deleteFile, 
+    getFilesByWebsiteId,
+    uploadsDir
+} = require('../backend/database/queries');
 const TextExtractor = require('./textExtractor');
 const { logger } = require('../utils/fileLogger');
 // Configure multer for file uploads

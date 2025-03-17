@@ -8,8 +8,8 @@ const { authMiddleware } = require('./middleware');
 
 const { createChatbot, getChatbotFromPlanId, editChatbotName, editChatbotSystemPrompt, editChatbotInitialMessage, editChatbotQuestions, editChatbotContactInfo, editChatbotRateLimit, assignWebsiteIdToChatbot, resetConfig, editChatbotModel } = require('../backend/database/queries');
 
-const { getPlan, setChatbotIdForPlan } = require('../backend/database/plans.js');
-const { getAvailableModelsForPlanType } = require('../backend/database/models.js');
+const { getPlan, setChatbotIdForPlan } = require('../backend/database/queries/billing/plans.js');
+const { getAvailableModelsForPlanType } = require('../backend/database/queries/config/models.js');
 const { getWebsiteByUrl } = require('../backend/database/queries');
 const { getExternalPages, deletePage, getPagesByWebsite } = require('../backend/database/queries');
 

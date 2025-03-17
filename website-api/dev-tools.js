@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { setDateOffset, resetDateOffset, getDateOffsetInfo } = require('../backend/database/dateUtils');
+const { setDateOffset, resetDateOffset, getDateOffsetInfo } = require('../backend/database/utils/dateUtils');
 const { checkRenewalOnCredits } = require('../webscraping/cron');
 
 /**

@@ -8,7 +8,7 @@ dotenv.config();
 const { appendMessageToSession, getSession } = require('./sessions.js');
 const { dbGet } = require('../database/config/database.js');
 
-const { getPlanFromChatbotId, subtractFromPlan } = require('../database/plans.js');
+const { getPlanFromChatbotId, subtractFromPlan } = require('../database/queries/billing/plans.js');
 
 const { getSystemPrompt } = require('../database/queries');
 const { getWebsiteByChatbotId } = require('../database/queries');
@@ -16,13 +16,13 @@ const {
     checkAndRenewCredits,
     getMonthlyCredits,
     checkAndSetWarningFlag
-} = require('../database/credits.js');
+} = require('../database/queries');
 
 const { logger } = require('../../utils/fileLogger.js');
 
 const { sendCreditsExhaustedEmail, sendCreditsLowWarningEmail, sendCreditsHalfWarningEmail } = require('../../utils/emailService.js');
 
-const { getUserByPlanId } = require('../database/users.js');
+const { getUserByPlanId } = require('../database/queries/auth/users.js');
 
 // use tool requires tool name and params
 const { getTools, useTool } = require('./builtInTools.js');

@@ -1,4 +1,4 @@
-import { db } from './database.js';
+const { db } = require('../../config/database.js');
 // Add a payment method for a user
 function addPaymentMethod(userId) {
     return new Promise((resolve, reject) => {

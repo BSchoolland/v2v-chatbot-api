@@ -7,7 +7,7 @@ const {
     addPlan,
     getPlan,
     updatePlan
-} = require('../backend/database/plans.js');
+} = require('../backend/database/queries/billing/plans.js');
 
 const { authMiddleware } = require('./middleware.js');
 

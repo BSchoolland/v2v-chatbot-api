@@ -1,4 +1,4 @@
-const { dbAll, dbRun, dbGet } = require('./config/database.js');
+const { dbAll, dbRun, dbGet } = require('../../config/database.js');
 const { allocateMonthlyCredits } = require('./credits.js');
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 

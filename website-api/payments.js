@@ -2,22 +2,22 @@ const express = require('express');
 const router = express.Router();
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const { authMiddleware } = require('./middleware.js');
-const { getUserById } = require('../backend/database/users.js');
+const { getUserById } = require('../backend/database/queries/auth/users.js');
 const { dbRun, dbGet } = require('../backend/database/config/database.js');
 const {
   createStripeCustomer,
   getStripeCustomer,
   createSubscription,
   updateSubscription,
-  addPaymentMethod,
+  addStripePaymentMethod,
   recordInvoice
-} = require('../backend/database/stripe.js');
+} = require('../backend/database/queries');
 const {
   allocateMonthlyCredits,
   resetToFreeCredits,
   checkAndRenewCredits
-} = require('../backend/database/credits.js');
-const { cancelActiveSubscriptions } = require('../backend/database/plans.js');
+} = require('../backend/database/queries');
+const { cancelActiveSubscriptions } = require('../backend/database/queries/billing/plans.js');
 
 // Get Stripe publishable key
 router.get('/config', async (req, res) => {
@@ -64,7 +64,7 @@ router.post('/create-subscription', authMiddleware, async (req, res) => {
     await cancelActiveSubscriptions(planId);
 
     // Add the payment method to the customer if it's new
-    await addPaymentMethod(customer.stripe_customer_id, paymentMethodId, true);
+    await addStripePaymentMethod(customer.stripe_customer_id, paymentMethodId, true);
 
     // Create subscription with the payment method
     const subscription = await createSubscription(

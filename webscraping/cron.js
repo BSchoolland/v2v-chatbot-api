@@ -2,8 +2,8 @@ const { scraperManager } = require('./scraperManager.js');
 const { scheduleJob } = require('node-schedule');
 const dotenv = require('dotenv');
 const { dbAll } = require('../backend/database/config/database.js');
-const { checkAndRenewCredits } = require('../backend/database/credits.js');
-const { getCurrentDate } = require('../backend/database/dateUtils.js');
+const { checkAndRenewCredits } = require('../backend/database/queries');
+const { getCurrentDate } = require('../backend/database/utils/dateUtils.js');
 dotenv.config();
 
 const reCrawlInterval = process.env.RE_CRAWL_INTERVAL || 1440; // 1440 minutes = 24 hours

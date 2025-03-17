@@ -1,5 +1,6 @@
+//TODO: Because this file does not solely deal with database operations it should be split up or moved at a later date
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
-const { dbRun, dbGet, dbAll } = require('./config/database.js');
+const { dbRun, dbGet } = require('../../config/database.js');
 
 // Customer operations
 async function createStripeCustomer(userId, email) {
@@ -141,7 +142,7 @@ async function updateSubscription(subscriptionId, status) {
 }
 
 // Payment method operations
-async function addPaymentMethod(customerId, paymentMethodId, isDefault = false) {
+async function addStripePaymentMethod(customerId, paymentMethodId, isDefault = false) {
   try {
     const paymentMethod = await stripe.paymentMethods.retrieve(paymentMethodId);
     
@@ -211,6 +212,6 @@ module.exports = {
   getStripeCustomer,
   createSubscription,
   updateSubscription,
-  addPaymentMethod,
+  addStripePaymentMethod,
   recordInvoice
 }; 

@@ -4,11 +4,11 @@ require('dotenv').config();
 
 const { 
     getUserPlans
-} = require('../backend/database/plans.js');
+} = require('../backend/database/queries/billing/plans.js');
 
 const { authMiddleware } = require('./middleware.js');
 const { dbGet, dbAll } = require('../backend/database/config/database.js');
-const { checkAndRenewCredits } = require('../backend/database/credits.js');
+const { checkAndRenewCredits } = require('../backend/database/queries');
 
 // Get all plans for a user
 router.get('/user-plans', authMiddleware, async (req, res) => {

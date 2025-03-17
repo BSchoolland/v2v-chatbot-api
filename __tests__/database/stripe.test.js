@@ -27,7 +27,7 @@ const {
   getStripeCustomer,
   createSubscription,
   updateSubscription,
-  addPaymentMethod,
+  addStripePaymentMethod,
   recordInvoice
 } = require('../../database/stripe');
 const { dbRun, dbGet, dbAll } = require('../../database/database');
@@ -150,7 +150,7 @@ describe('Stripe Database Operations', () => {
       mockStripe.paymentMethods.retrieve.mockResolvedValue(mockPaymentMethod);
       dbRun.mockResolvedValue({ lastID: 1 });
 
-      const result = await addPaymentMethod(1, 'pm_123', true);
+      const result = await addStripePaymentMethod(1, 'pm_123', true);
 
       expect(mockStripe.paymentMethods.retrieve).toHaveBeenCalledWith('pm_123');
       expect(dbRun).toHaveBeenCalledWith(

@@ -1,4 +1,4 @@
-const { dbRun, dbGet, dbAll } = require('./config/database.js');
+const { dbRun, dbGet, dbAll } = require('../../config/database.js');
 
 // Store a recorded conversation
 async function storeConversation(chatbotId, conversation, pageUrl, date, chatId) {
