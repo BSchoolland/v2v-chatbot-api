@@ -11,8 +11,18 @@ const { dbGet } = require('../database/database.js');
 const { getPlanFromChatbotId, subtractFromPlan } = require('../database/plans.js');
 
 const { getSystemPrompt } = require('../database/chatbots.js');
+const { getWebsiteByChatbotId } = require('../database/websites.js');
+const { 
+    checkAndRenewCredits,
+    getMonthlyCredits,
+    checkAndSetWarningFlag
+} = require('../database/credits.js');
 
-const { checkAndRenewCredits } = require('../database/credits.js');
+const { logger } = require('../utils/fileLogger.js');
+
+const { sendCreditsExhaustedEmail, sendCreditsLowWarningEmail, sendCreditsHalfWarningEmail } = require('../utils/emailService.js');
+
+const { getUserByPlanId } = require('../database/users.js');
 
 // use tool requires tool name and params
 const { getTools, useTool } = require('./builtInTools.js');
@@ -102,19 +112,65 @@ async function getChatbotResponse(sessionId, chatbotId) {
         plan = await getPlanFromChatbotId(chatbotId);
     }
 
-    // TODO: email the client in a variety of different situations
-    // If they get below 10% of their credits, send an email
-    // If they cross into their additional credits, send an email
-    // If they completely run out of credits, send an email
-    // If they had run low on credits and then credits are added or the plan is renewed, send an email
+    // if the plan is out of credits, send an email and pause the chatbot
     if (plan.remaining_credits + plan.additional_credits < model.message_cost) {
-        console.warn("Plan:", plan.plan_id, "is out of credits, chatbot will be paused until the plan is renewed or additional credits are added.");
+        if (!plan.credits_exhausted_warning_sent) {
+            logger.warn("Plan:", plan.plan_id, "is out of credits, chatbot will be paused until the plan is renewed or additional credits are added.");
+            try {
+                const shouldSend = await checkAndSetWarningFlag(plan.plan_id, 'exhausted');
+                if (shouldSend) {
+                    const website = await getWebsiteByChatbotId(chatbotId);
+                    const renewalDate = new Date(plan.renews_at);
+                    const renewalDateFormatted = renewalDate.toLocaleDateString();
+                    const user = await getUserByPlanId(plan.plan_id);
+                    await sendCreditsExhaustedEmail(user.email, website.url, renewalDateFormatted);
+                    logger.info("Plan:", plan.plan_id, "has sent a credits exhausted warning email.");
+                }
+            } catch (error) {
+                logger.error("Failed to send credits exhausted email:", error);
+                // Continue execution even if email fails
+            }
+        }
         return {
             error: "Plan out of credits, chatbot will be paused until the plan is renewed or additional credits are added.",
             chatId: sessionId
         };
+    } else {
+        // if the plan is not out of credits, send a warning email if the plan is below 50% or 10% of credits
+        const monthlyCredits = await getMonthlyCredits(plan.plan_id);   
+        const website = await getWebsiteByChatbotId(chatbotId);
+        // convert the renewal date to a date object
+        const renewalDate = new Date(plan.renews_at);
+        // format it to mm/dd/yyyy
+        const renewalDateFormatted = renewalDate.toLocaleDateString();
+        
+        if (plan.remaining_credits + plan.additional_credits < monthlyCredits * 0.1) {
+            try {
+                const shouldSend = await checkAndSetWarningFlag(plan.plan_id, 'low');
+                if (shouldSend) {
+                    const user = await getUserByPlanId(plan.plan_id);
+                    await sendCreditsLowWarningEmail(user.email, website.url, plan.remaining_credits + plan.additional_credits, renewalDateFormatted);
+                    logger.info("Plan:", plan.plan_id, "has sent a credits low warning email due to being below 10% of credits.");
+                }
+            } catch (error) {
+                logger.error("Failed to send credits low warning email:", error);
+                // Continue execution even if email fails
+            }
+        } else if (plan.remaining_credits + plan.additional_credits < monthlyCredits * 0.5) {
+            try {
+                const shouldSend = await checkAndSetWarningFlag(plan.plan_id, 'half');
+                if (shouldSend) {
+                    const user = await getUserByPlanId(plan.plan_id);
+                    await sendCreditsHalfWarningEmail(user.email, website.url, renewalDateFormatted);
+                    logger.info("Plan:", plan.plan_id, "has sent a credits half warning email due to being below 50% of credits.");
+                }
+            } catch (error) {
+                logger.error("Failed to send credits half warning email:", error);
+                // Continue execution even if email fails
+            }
+        }
     }
-
+    
     while (toolCallsExist) {
         const {message, tool_calls} = await llmCall(systemPrompt, history, chatbotId, model.api_string, model.service);
         // Add the assistant's message to the history

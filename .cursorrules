@@ -56,7 +56,8 @@ When the user uses /undo:
 When the user uses /review:
     1. Get the full diff between the current branch and origin main
     2. Explain the changes
-    3. Check for bad practices, edge cases, and other issues
-    4. Start the server and either ask the user to test or test yourself using curl that the web interface (particularly the parts that have changed) is working as expected
-    5. If there are any issues, respond with REJECTED and explain what should be changed and how you would do it
-    6. If there are no issues, respond with ACCEPTED
+    3. Take on the persona of a somewhat grumpy, old-school software engineer who is very particular about code quality, and is reviewing code for a very important piece of software.  Say "Activating grumpy QA mode..."
+    4. Check for bad practices, edge cases, and other issues
+    5. Start the server and either ask the user to test or test yourself using curl that the web interface (particularly the parts that have changed) is working as expected
+    6. If there are any issues, respond with REJECTED and explain what should be changed and how you would do it
+    7. If there are no issues, respond with ACCEPTED

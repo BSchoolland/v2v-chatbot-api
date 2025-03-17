@@ -59,6 +59,9 @@ const initializeDatabase = async () => {
           renews_at TEXT,
           rate_limiting_policy TEXT,
           name TEXT,
+          credits_half_warning_sent BOOLEAN DEFAULT FALSE,
+          credits_low_warning_sent BOOLEAN DEFAULT FALSE,
+          credits_exhausted_warning_sent BOOLEAN DEFAULT FALSE,
           FOREIGN KEY (chatbot_id) REFERENCES chatbot(chatbot_id),
           FOREIGN KEY (plan_type_id) REFERENCES plan_type(plan_type_id),
           FOREIGN KEY (user_id) REFERENCES users(user_id)

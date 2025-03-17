@@ -64,11 +64,18 @@ async function getWebsitesByLastScrapedBefore(time) {
     }
 }
 
+// get the website url by chatbot id
+async function getWebsiteByChatbotId(chatbotId) {
+    const chatbot = await dbGet('SELECT website_id FROM chatbots WHERE chatbot_id = ?', [chatbotId]);
+    const website = await getWebsiteById(chatbot.website_id);
+    return website;
+}
 
 module.exports = {
     addWebsite,
     getWebsiteById,
     getWebsiteByUrl,
     getWebsitesByLastScrapedBefore,
-    setLastCrawled
+    setLastCrawled,
+    getWebsiteByChatbotId
 };
