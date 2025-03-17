@@ -6,23 +6,23 @@ const dotenv = require("dotenv");
 dotenv.config();
 
 const { appendMessageToSession, getSession } = require('./sessions.js');
-const { dbGet } = require('../database/database.js');
+const { dbGet } = require('../../database/database.js');
 
-const { getPlanFromChatbotId, subtractFromPlan } = require('../database/plans.js');
+const { getPlanFromChatbotId, subtractFromPlan } = require('../../database/plans.js');
 
-const { getSystemPrompt } = require('../database/chatbots.js');
-const { getWebsiteByChatbotId } = require('../database/websites.js');
+const { getSystemPrompt } = require('../../database/chatbots.js');
+const { getWebsiteByChatbotId } = require('../../database/websites.js');
 const { 
     checkAndRenewCredits,
     getMonthlyCredits,
     checkAndSetWarningFlag
-} = require('../database/credits.js');
+} = require('../../database/credits.js');
 
-const { logger } = require('../utils/fileLogger.js');
+const { logger } = require('../../utils/fileLogger.js');
 
-const { sendCreditsExhaustedEmail, sendCreditsLowWarningEmail, sendCreditsHalfWarningEmail } = require('../utils/emailService.js');
+const { sendCreditsExhaustedEmail, sendCreditsLowWarningEmail, sendCreditsHalfWarningEmail } = require('../../utils/emailService.js');
 
-const { getUserByPlanId } = require('../database/users.js');
+const { getUserByPlanId } = require('../../database/users.js');
 
 // use tool requires tool name and params
 const { getTools, useTool } = require('./builtInTools.js');
@@ -31,7 +31,7 @@ const { getTools, useTool } = require('./builtInTools.js');
 const showdown = require('showdown');
 const converter = new showdown.Converter();
 
-const wsManager = require('./wsManager');
+const wsManager = require('./wsManager.js');
 
 // Function to broadcast tool usage to all connected clients
 function broadcastToolUsage(toolName, reference) {

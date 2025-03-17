@@ -7,10 +7,10 @@ const { scraperManager } = require('./webscraping/scraperManager.js');
 const { scheduleCronJobs } = require('./webscraping/cron.js');
 const expressWs = require('express-ws');
 const http = require('http');
-const wsManager = require('./chatbot-api/wsManager');
+const wsManager = require('./backend/chat-core/wsManager.js');
 
 const websiteApiRoutes = require('./website-api/routes.js');
-const chatbotApiRoutes = require('./chatbot-api/routes.js');
+const chatbotApiRoutes = require('./backend/chat-core/routes.js');
 const adminRoutes = require('./routes/admin/index.js');
 
 const cookieParser = require('cookie-parser');

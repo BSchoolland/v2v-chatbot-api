@@ -1,4 +1,4 @@
-const { dbGet, dbRun } = require('../../database/database.js');
+const { dbGet, dbRun } = require('../../../database/database.js');
 
 // Rate limit window in milliseconds
 const WINDOW_MS = 24 * 60 * 60 * 1000; // 24 hours (1 day)
