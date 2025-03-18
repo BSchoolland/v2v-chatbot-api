@@ -1,8 +1,8 @@
-const { addPage, getPageByUrlAndWebsiteId } = require('../database/pages.js');
-const { addWebsite, getWebsiteByUrl } = require('../database/websites.js');
+const { addPage, getPageByUrlAndWebsiteId } = require('../backend/database/queries');
+const { addWebsite, getWebsiteByUrl } = require('../backend/database/queries');
 const getCleanHtmlContent = require('./htmlProcessing.js');
 const summarizeContent = require('./summarizeContent.js');
-const { logScrapeJobStart, logScrapeJobCompletion } = require('../database/logging/scraper.js');
+const { logScrapeJobStart, logScrapeJobCompletion } = require('../backend/database/logging/scraper.js');
 
 class ActiveJob {
     constructor(baseUrl, chatbotId, maxDepth = 5, maxPages = 500) { // TODO: think more about the maxPages parameter. Should it be higher? Should it also apply to external links?

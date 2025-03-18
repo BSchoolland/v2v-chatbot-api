@@ -3,10 +3,10 @@ const { JSDOM } = require('jsdom');
 const { ActiveJob } = require('./activeJob.js');
 const dotenv = require('dotenv');
 dotenv.config();
-const { setLastCrawled, getWebsiteById } = require('../database/websites.js');
-const { addPage, getPageByUrlAndWebsiteId } = require('../database/pages.js');
+const { setLastCrawled, getWebsiteById } = require('../backend/database/queries');
+const { addPage, getPageByUrlAndWebsiteId } = require('../backend/database/queries');
 
-const { logger } = require('../utils/fileLogger.js');
+const { logger } = require('../backend/api/utils/fileLogger.js');
 
 class ScraperManager {
     constructor() {
