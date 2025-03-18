@@ -90,28 +90,28 @@ router.get('/initial-message/:chatbotId', async (req, res) => {
 });
 
 router.get('/frontend/component.html', (req, res) => {
-    res.sendFile(path.join(__dirname, '../chatbot-frontend/component.html'));
+    res.sendFile(path.join(__dirname, '../../../chatbot-frontend/component.html'));
 }); 
 
 router.get('/frontend/component.css', (req, res) => {
-    res.sendFile(path.join(__dirname, '../chatbot-frontend/component.css'));
+    res.sendFile(path.join(__dirname, '../../../chatbot-frontend/component.css'));
 });
 
 // Images
 router.get('/frontend/component.js', (req, res) => {
-    res.sendFile(path.join(__dirname, '../chatbot-frontend/component.js'));
+    res.sendFile(path.join(__dirname, '../../../chatbot-frontend/component.js'));
 });
 
 router.get('/frontend/user.png', (req, res) => {
-    res.sendFile(path.join(__dirname, '../chatbot-frontend/user.png'));
+    res.sendFile(path.join(__dirname, '../../../chatbot-frontend/user.png'));
 });
 
 router.get('/frontend/send.png', (req, res) => {
-    res.sendFile(path.join(__dirname, '../chatbot-frontend/send.png'));
+    res.sendFile(path.join(__dirname, '../../../chatbot-frontend/send.png'));
 });
 
 router.get('/frontend/chatbot-logo.png', (req, res) => {
-    res.sendFile(path.join(__dirname, '../chatbot-frontend/chatbot-logo.png'));
+    res.sendFile(path.join(__dirname, '../../../chatbot-frontend/chatbot-logo.png'));
 });
 
 // Get contact info for a chatbot

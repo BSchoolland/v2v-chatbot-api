@@ -72,7 +72,6 @@ class WebSocketManager {
         const client = this.clientsByChatId.get(chatId);
         
         if (!client) {
-            console.warn(`No WebSocket client found for chatId: ${chatId}`);
             return;
         }
 

@@ -1,7 +1,8 @@
 const express = require('express');
 const router = express.Router();
 require('dotenv').config();
-
+const { dbAll } = require('../../database/config/database.js');
+const { checkAndRenewCredits } = require('../../database/queries');
 const { 
     getUserPlans,
     addPlan,
