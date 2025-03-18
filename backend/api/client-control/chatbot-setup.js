@@ -2,18 +2,26 @@ const express = require('express');
 const router = express.Router();
 require('dotenv').config();
 
-const {scraperManager} = require('../webscraping/scraperManager');
+const {scraperManager} = require('../../../webscraping/scraperManager');
 
-const { authMiddleware } = require('./middleware');
+const { authMiddleware } = require('../middleware/middleware.js');
 
-const { createChatbot, getChatbotFromPlanId, editChatbotName, editChatbotSystemPrompt, editChatbotInitialMessage, editChatbotQuestions, editChatbotContactInfo, editChatbotRateLimit, assignWebsiteIdToChatbot, resetConfig, editChatbotModel } = require('../backend/database/queries');
+const { 
+    createChatbot, 
+    getChatbotFromPlanId, 
+    editChatbotName, 
+    editChatbotSystemPrompt, 
+    editChatbotInitialMessage, 
+    editChatbotQuestions, 
+    editChatbotContactInfo, editChatbotRateLimit, assignWebsiteIdToChatbot, resetConfig, editChatbotModel 
+} = require('../../database/queries');
 
-const { getPlan, setChatbotIdForPlan } = require('../backend/database/queries/billing/plans.js');
-const { getAvailableModelsForPlanType } = require('../backend/database/queries/config/models.js');
-const { getWebsiteByUrl } = require('../backend/database/queries');
-const { getExternalPages, deletePage, getPagesByWebsite } = require('../backend/database/queries');
+const { getPlan, setChatbotIdForPlan } = require('../../database/queries/billing/plans.js');
+const { getAvailableModelsForPlanType } = require('../../database/queries/config/models.js');
+const { getWebsiteByUrl } = require('../../database/queries');
+const { getExternalPages, deletePage, getPagesByWebsite } = require('../../database/queries');
 
-const { automateConfiguration } = require('./automated-config');
+const { automateConfiguration } = require('./automated-config.js');
 const { logger } = require('../utils/fileLogger');
 
 // user owns plan

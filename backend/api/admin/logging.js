@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { getScrapeJobLogs, getScrapeJobLogsByChatbot, getScrapeJobStats } = require('../../backend/database/logging/scraper.js');
+const { getScrapeJobLogs, getScrapeJobLogsByChatbot, getScrapeJobStats } = require('../../database/logging/scraper.js');
 
 /**
  * @route GET /api/admin/logging/scrape-jobs

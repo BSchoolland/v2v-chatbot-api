@@ -1,12 +1,12 @@
 const express = require('express');
 const router = express.Router();
-const { authMiddleware } = require('./middleware');
+const { authMiddleware } = require('../middleware/middleware');
 const { getChatbot, 
     storeConversation, 
     getConversationsByChatbot, 
     deleteConversation, 
     getConversationById 
-} = require('../backend/database/queries');
+} = require('../../database/queries');
 
 // Get conversations for a chatbot with pagination and filters
 router.get('/:chatbotId', authMiddleware, async (req, res) => {

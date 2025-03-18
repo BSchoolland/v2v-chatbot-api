@@ -11,13 +11,13 @@ expressWs(router);
 
 const { getSessionId, appendMessageToSession, getSession } = require('./sessions.js');
 const { getChatbotResponse } = require('./chatbotResponse.js');
-const { getInitialMessage } = require('../database/queries');
+const { getInitialMessage } = require('../../database/queries');
 const { checkRateLimit } = require('./utils/rateLimiter.js');
 const { isValidOrigin } = require('./utils/originValidator.js');
-const { storeConversation } = require('../database/queries/data/conversations.js');
+const { storeConversation } = require('../../database/queries/data/conversations.js');
 const path = require('path');
-const { dbGet } = require('../database/config/database.js');
-const { logMessage } = require('../database/logging/messages.js');
+const { dbGet } = require('../../database/config/database.js');
+const { logMessage } = require('../../database/logging/messages.js');
 // Initialize chat session
 router.get('/init-chat', (req, res) => {
     const chatId = getSessionId();

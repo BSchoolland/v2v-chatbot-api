@@ -3,7 +3,7 @@ const router = express.Router();
 const multer = require('multer');
 const path = require('path');
 const mime = require('mime-types');
-const { authMiddleware } = require('./middleware');
+const { authMiddleware } = require('../middleware/middleware');
 const { 
     getChatbotFromPlanId, 
     addFile, 
@@ -13,7 +13,7 @@ const {
     deleteFile, 
     getFilesByWebsiteId,
     uploadsDir
-} = require('../backend/database/queries');
+} = require('../../database/queries');
 const TextExtractor = require('./textExtractor');
 const { logger } = require('../utils/fileLogger');
 // Configure multer for file uploads

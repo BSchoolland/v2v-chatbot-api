@@ -3,7 +3,7 @@ const router = express.Router();
 const bcrypt = require('bcryptjs');
 const cookieParser = require('cookie-parser');
 const jwt = require('jsonwebtoken');
-const { logger } = require('../utils/fileLogger');
+const { logger } = require('../utils/fileLogger.js');
 const { sendVerificationEmail } = require('../utils/emailService.js');
 
 require('dotenv').config();
@@ -14,10 +14,10 @@ const {
     getUserByEmail, 
     registerUser, 
     checkEmailExists 
-} = require('../backend/database/queries/auth/users.js');
+} = require('../../database/queries/auth/users.js');
 // Input validation middleware
 
-const { validateInput } = require('./middleware.js');
+const { validateInput } = require('../middleware/middleware.js');
 
 // login
 router.post('/login', validateInput, async (req, res) => {

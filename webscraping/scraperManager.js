@@ -6,7 +6,7 @@ dotenv.config();
 const { setLastCrawled, getWebsiteById } = require('../backend/database/queries');
 const { addPage, getPageByUrlAndWebsiteId } = require('../backend/database/queries');
 
-const { logger } = require('../utils/fileLogger.js');
+const { logger } = require('../backend/api/utils/fileLogger.js');
 
 class ScraperManager {
     constructor() {

@@ -7,9 +7,9 @@ const {
     addPlan,
     getPlan,
     updatePlan
-} = require('../backend/database/queries/billing/plans.js');
+} = require('../../database/queries/billing/plans.js');
 
-const { authMiddleware } = require('./middleware.js');
+const { authMiddleware } = require('../middleware/middleware.js');
 
 // Add a plan for a user
 router.post('/add-plan', authMiddleware, async (req, res) => {
@@ -36,6 +36,32 @@ router.put('/user-plan/:planId', authMiddleware, async (req, res) => {
     const { planName, planTypeId } = req.body;
     const plan = await updatePlan(planId, req.userId, 0, planName, planTypeId);
     res.status(200).json({ plan, success: true });
+});
+
+// Get all plans for a user
+router.get('/user-plans', authMiddleware, async (req, res) => {
+    try {
+        const plans = await dbAll(
+            `SELECT * FROM plans WHERE user_id = ?`,
+            [req.userId]
+        );
+
+        // Check each plan for credit renewal
+        for (const plan of plans) {
+            await checkAndRenewCredits(plan.plan_id);
+        }
+
+        // Get updated plans after potential credit renewal
+        const updatedPlans = await dbAll(
+            `SELECT * FROM plans WHERE user_id = ?`,
+            [req.userId]
+        );
+
+        res.json({ success: true, plans: updatedPlans });
+    } catch (error) {
+        console.error('Error fetching plans:', error);
+        res.status(500).json({ success: false, message: 'Failed to fetch plans' });
+    }
 });
 
 module.exports = router;

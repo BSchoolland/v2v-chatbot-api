@@ -1,6 +1,6 @@
-const { editChatbotName, editChatbotSystemPrompt, editChatbotInitialMessage, editChatbotQuestions, saveInitialConfig } = require('../backend/database/queries');
-const { getPagesByWebsite } = require('../backend/database/queries/core/pages');
-const { getWebsiteById } = require('../backend/database/queries');
+const { editChatbotName, editChatbotSystemPrompt, editChatbotInitialMessage, editChatbotQuestions, saveInitialConfig } = require('../../database/queries');
+const { getPagesByWebsite } = require('../../database/queries/core/pages');
+const { getWebsiteById } = require('../../database/queries');
 const fetch = require('node-fetch');
 require('dotenv').config();
 
