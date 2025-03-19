@@ -99,7 +99,7 @@ router.get('/frontend/component.css', (req, res) => {
 
 // Images
 router.get('/frontend/component.js', (req, res) => {
-    res.sendFile(path.join(__dirname, '../../../chatbot-frontend/component.js'));
+    res.sendFile(path.join(__dirname, '../../../chatbot-frontend/dist/chatbot.min.js'));
 });
 
 router.get('/frontend/user.png', (req, res) => {
