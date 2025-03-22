@@ -3,28 +3,6 @@ import { getBaseUrl, chatbotId } from './utils';
 import userIcon from '../assets/user.png';
 
 
-const createLoadingContainer = () => {
-    const loadingContainer = document.createElement('div');
-    loadingContainer.classList.add('message-container', 'loading-container');
-    const botImageContainer = document.createElement('div');
-    botImageContainer.classList.add('bot-image-container');
-    const botImage = document.createElement('img');
-    botImage.src = chatbotLogo;
-    botImage.alt = 'Chatbot';
-    botImage.classList.add('message-image');
-    botImageContainer.appendChild(botImage);
-    const loadingDots = document.createElement('div');
-    loadingDots.classList.add('loading-dots');
-    loadingDots.innerHTML = `
-        <span></span>
-        <span></span>
-        <span></span>
-    `;
-
-    loadingContainer.appendChild(botImageContainer);
-    loadingContainer.appendChild(loadingDots);
-    return loadingContainer;
-};
 
 const appendMessage = (chatbox, messageHtml, imgSrc, isUser, isError = false, complete = true) => {
     const messageContainer = document.createElement('div');
@@ -109,7 +87,6 @@ const sendMessage = async (e, shadow, chatId) => {
         }
     } catch (error) {
         console.error('Error sending message:', error);
-        chatbox.removeChild(loadingContainer);
         appendMessage(chatbox, 'Sorry, something went wrong. Please try again later.', `${baseUrl}/chatbot/api/frontend/chatbot-logo.png`, false, true);
     }
 };
