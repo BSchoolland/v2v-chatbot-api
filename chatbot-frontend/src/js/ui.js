@@ -1,6 +1,7 @@
 import cssContent from '../css/component.css';
 import htmlTemplate from '../html/component.html';
 import chatbotLogo from '../assets/chatbot-logo.png';
+import closeIcon from '../assets/close.svg';
 import sendIcon from '../assets/send.png';
 import { getBaseUrl, chatbotId } from './utils';
 import { sendMessage, appendMessage } from './chat';
@@ -110,7 +111,7 @@ const initializeChatInterface = async (shadow, baseUrl) => {
     const container = shadow.querySelector('.v2v-chatbot-container');
     const button = shadow.querySelector('.v2v-chatbot-button');
     const overlay = shadow.querySelector('.overlay');
-    const closeButton = shadow.querySelector('.v2v-chatbot-close');
+    const closeButton = shadow.querySelector('.v2v-chatbot-button-close');
     const submitButton = shadow.querySelector('.submit-button');
     const userInput = shadow.querySelector('.user-input');
 
@@ -118,7 +119,7 @@ const initializeChatInterface = async (shadow, baseUrl) => {
         container.style.display = isVisible ? 'flex' : 'none';
         button.style.display = isVisible ? 'none' : 'flex';
         overlay.style.display = isVisible ? 'block' : 'none';
-        
+        closeButton.style.display = isVisible ? 'flex' : 'none';
         // Prevent body scroll when chat is open on mobile
         if (window.innerWidth <= 768) {
             document.body.style.overflow = isVisible ? 'hidden' : '';
@@ -191,7 +192,6 @@ const initializeChatInterface = async (shadow, baseUrl) => {
     submitButton.addEventListener('click', (e) => sendMessage(e, shadow, chatId));
 
     shadow.querySelector('.submit-button img').src = sendIcon;
-    shadow.querySelector('.v2v-chatbot-button-icon').src = chatbotLogo;
 
     // Add touch event handling for better mobile experience
     let touchStartY = 0;
@@ -238,7 +238,10 @@ const chatbotComponent = (chatbotId) => {
 
     // Update image sources
     shadow.querySelector('.submit-button img').src = sendIcon;
-    shadow.querySelector('.v2v-chatbot-button-icon').src = chatbotLogo;
+    shadow.querySelector('.v2v-chatbot-button-close-icon').src = closeIcon;
+    shadow.querySelectorAll('.v2v-chatbot-button-icon').forEach(icon => {
+        icon.src = chatbotLogo;
+    });
 
     initializeChatInterface(shadow, baseUrl);
 };

@@ -25,9 +25,9 @@ import { chatbotId } from './js/utils';
         messageContainer.appendChild(messageText);
         chatbox.appendChild(messageContainer);
 
-        const divider = document.createElement('hr');
-        divider.classList.add('message-divider');
-        chatbox.appendChild(divider);
+        // const divider = document.createElement('hr');
+        // divider.classList.add('message-divider');
+        // chatbox.appendChild(divider);
 
         chatbox.scrollTop = chatbox.scrollHeight;
     };

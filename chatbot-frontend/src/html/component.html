@@ -3,11 +3,11 @@
 <div class="v2v-chatbot-container" style="display: none;">
     <div class="v2v-chatbot-header">
         <div class="v2v-chatbot-header-left">
-            <button class="v2v-chatbot-close" aria-label="Close chat">✕</button>
-            <h1>Got questions? Ask A.I.</h1>
+            <img class="v2v-chatbot-button-icon" src="" alt="Chatbot Logo" width="24" height="24">
+            <h1 id="v2v-chatbot-header-text">__HeaderText__</h1>
         </div>
         <div class="v2v-chatbot-header-right">
-            <a href="#" class="v2v-chatbot-contact" style="display: none;">Talk to a human</a>
+            <!-- TODO: Settings button -->
         </div>
     </div>
     <div class="v2v-chatbot-body">
@@ -26,5 +26,9 @@
 
 <div class="v2v-chatbot-button" role="button" tabindex="0">
     <img class="v2v-chatbot-button-icon" src="" alt="Chatbot Logo" width="24" height="24">
-    <button class="v2v-chatbot-button-text">Got questions?</button>
+    <button class="v2v-chatbot-button-text" id="v2v-chatbot-button-text">__ButtonText__</button>
+</div>
+
+<div class="v2v-chatbot-button-close" role="button" tabindex="0">
+    <img class="v2v-chatbot-button-close-icon" src="" alt="Chatbot Logo" width="24" height="24">
 </div>

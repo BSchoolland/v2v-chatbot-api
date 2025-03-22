@@ -6,12 +6,13 @@ import userIcon from '../assets/user.png';
 const createLoadingContainer = () => {
     const loadingContainer = document.createElement('div');
     loadingContainer.classList.add('message-container', 'loading-container');
-
+    const botImageContainer = document.createElement('div');
+    botImageContainer.classList.add('bot-image-container');
     const botImage = document.createElement('img');
     botImage.src = chatbotLogo;
     botImage.alt = 'Chatbot';
     botImage.classList.add('message-image');
-
+    botImageContainer.appendChild(botImage);
     const loadingDots = document.createElement('div');
     loadingDots.classList.add('loading-dots');
     loadingDots.innerHTML = `
@@ -20,7 +21,7 @@ const createLoadingContainer = () => {
         <span></span>
     `;
 
-    loadingContainer.appendChild(botImage);
+    loadingContainer.appendChild(botImageContainer);
     loadingContainer.appendChild(loadingDots);
     return loadingContainer;
 };
@@ -28,23 +29,27 @@ const createLoadingContainer = () => {
 const appendMessage = (chatbox, messageHtml, imgSrc, isUser, isError = false) => {
     const messageContainer = document.createElement('div');
     messageContainer.classList.add(isUser ? 'user-message-container' : 'message-container');
+    if (!isUser) {
+        const messageImageContainer = document.createElement('div');
+        messageImageContainer.classList.add('message-image-container');
+        const messageImage = document.createElement('img');
+        messageImage.src = chatbotLogo;
+        messageImage.alt = 'Chatbot';
+        messageImage.classList.add('message-image');
+        messageImageContainer.appendChild(messageImage);
+        messageContainer.appendChild(messageImageContainer);
 
-    const messageImage = document.createElement('img');
-    messageImage.src = isUser ? userIcon : chatbotLogo;
-    messageImage.alt = isUser ? 'User' : 'Chatbot';
-    messageImage.classList.add(isUser ? 'user-message-image' : 'message-image');
-
+    }
     const messageText = document.createElement('div');
     messageText.classList.add(isUser ? 'user-message-text' : (isError ? 'error-message-text' : 'message-text'));
     messageText.innerHTML = messageHtml;
 
-    messageContainer.appendChild(messageImage);
     messageContainer.appendChild(messageText);
     chatbox.appendChild(messageContainer);
 
-    const divider = document.createElement('hr');
-    divider.classList.add('message-divider');
-    chatbox.appendChild(divider);
+    // const divider = document.createElement('hr');
+    // divider.classList.add('message-divider');
+    // chatbox.appendChild(divider);
 
     chatbox.scrollTop = chatbox.scrollHeight;
 };

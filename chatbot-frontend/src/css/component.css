@@ -1,10 +1,11 @@
 /* Main Container Layout */
 .v2v-chatbot-container {
     position: fixed;
-    bottom: 0;
-    right: 0;
-    width: 600px;
-    height: 100vh;
+    bottom: 75px;
+    right: 25px;
+    width: 500px;
+    height: 80vh;
+    border-radius: 20px;
     background-color: white;
     display: flex;
     flex-direction: column;
@@ -28,8 +29,10 @@
     align-items: center;
     justify-content: space-between;
     padding: 12px 16px;
-    background-color: #c9d9ff;
-    color: #000000;
+    background-color: #000000;
+    color: #ffffff;
+    border-top-left-radius: 20px;
+    border-top-right-radius: 20px;
 }
 
 .v2v-chatbot-header-left {
@@ -127,36 +130,30 @@
     flex-direction: row-reverse;
 }
 
-.message-image, .user-message-image {
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-}
-
-.message-image {
-    margin-right: 12px;
-}
-
-.user-message-image {
-    margin-left: 12px;
-}
 
 .message-text {
     background-color: #f5f5f5;
     color: #000000;
     padding: 12px;
-    border-radius: 8px;
-    max-width: 80%;
+    border-top-left-radius: 12px;
+    border-bottom-left-radius: 2px;
+    border-top-right-radius: 12px;
+    border-bottom-right-radius: 12px;
+    /* max-width: 80%; */
     word-wrap: break-word;
     transform: translateY(-5px);
 }
 
 .user-message-text {
-    background-color: #c9d9ff;
-    color: #000000;
+    background-color: #000000;
+    color: #ffffff;
     padding: 12px;
-    border-radius: 8px;
-    max-width: 80%;
+    border-radius: 12px;
+    border-top-left-radius: 12px;
+    border-bottom-left-radius: 12px;
+    border-top-right-radius: 12px;
+    border-bottom-right-radius: 2px;
+    /* max-width: 80%; */
     word-wrap: break-word;
     transform: translateY(-5px);
 }
@@ -234,10 +231,9 @@
     align-items: center;
     justify-content: center;
     gap: 10px;
-    background-color: #c9d9ff;
-    color: #000000;
+    background-color: #000000;
     padding: 12px 16px;
-    border-radius: 20px;
+    border-radius: 9999px;
     position: fixed;
     bottom: 25px;
     right: 25px;
@@ -247,8 +243,49 @@
 }
 
 .v2v-chatbot-button:hover {
-    background-color: #929cb4;
-    color: #000000;
+    background-color: #000000;
+    color: #ffffff;
+}
+
+.message-image {
+    height: 20px;
+    width: 20px;
+}
+
+.message-image-container {
+    background-color: #000000;
+    border-radius: 9999px;
+    width: 32px;
+    height: 32px;
+    min-width: 32px;
+    display: flex; 
+    align-items: center; 
+    justify-content: center;
+    align-self: flex-end;
+    margin-bottom: 4px;
+}
+
+/* Chat Button Styles */
+.v2v-chatbot-button-close {
+    z-index: 1000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    background-color: #000000;
+    padding: 12px 12px;
+    border-radius: 9999px;
+    position: fixed;
+    bottom: 25px;
+    right: 25px;
+    width: fit-content;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.v2v-chatbot-button-close:hover {
+    background-color: #000000;
+    color: #ffffff;
 }
 
 .v2v-chatbot-button * {
@@ -263,6 +300,7 @@
 }
 
 .v2v-chatbot-button-text {
+    color: #ffffff;
     background: none;
     border: none;
     font-size: 16px;
@@ -344,19 +382,13 @@
     color: #d32f2f;
     padding: 12px;
     border-radius: 8px;
-    max-width: 80%;
+    /* max-width: 80%; */
     word-wrap: break-word;
     transform: translateY(-5px);
     border: 1px solid #ef5350;
     box-shadow: 0 0 4px rgba(239, 83, 80, 0.3);
 }
 
-/* Miscellaneous */
-.message-divider {
-    border: none;
-    border-top: 1px solid #eee;
-    margin: 50px 10px;
-}
 
 /* Tool Usage Indicator */
 .tool-usage-indicator {
@@ -397,10 +429,10 @@
 /* Responsive Design */
 @media screen and (max-width: 768px) {
     .v2v-chatbot-container {
-        width: 100%;
-        height: 100vh;
-        right: 0;
-        bottom: 0;
+        width: 90%;
+        height: 80vh;
+        right: 5%;
+        bottom: 50px;
     }
 
     .v2v-chatbot-header h1 {
@@ -441,14 +473,9 @@
         padding: 12px;
     }
 
-    .message-image, .user-message-image {
-        width: 28px;
-        height: 28px;
-    }
-
     .message-container, .user-message-container {
         gap: 8px;
-        margin: 12px 0;
+        margin-left: 12px;
     }
 
     .v2v-chatbot-button {
