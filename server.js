@@ -30,10 +30,14 @@ wsManager.initialize(wsInstance.getWss());
 
 // allow all cors origins as this is a public api
 const cors = require('cors');
+// app.use(cors({
+//     origin: '*',
+//     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+//     allowedHeaders: ['Content-Type', 'Authorization']
+// }));
 app.use(cors({
-    origin: '*',
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization']
+    origin: process.env.FRONTEND_URL,
+    credentials: true
 }));
 
 // Use middleware

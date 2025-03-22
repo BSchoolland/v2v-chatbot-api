@@ -17,6 +17,7 @@ const authMiddleware = (req, res, next) => {
     try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
         req.userId = decoded.userId;
+        req.email = decoded.email;  // Add this line to fix the /me endpoint
         next();
     } catch (err) {
         console.error('Invalid token:', err);

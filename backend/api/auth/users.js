@@ -5,6 +5,7 @@ const cookieParser = require('cookie-parser');
 const jwt = require('jsonwebtoken');
 const { logger } = require('../utils/fileLogger.js');
 const { sendVerificationEmail } = require('../utils/emailService.js');
+const { validateInput, authMiddleware } = require('../middleware/middleware.js');
 
 require('dotenv').config();
 // Determine if the environment is production
@@ -15,9 +16,6 @@ const {
     registerUser, 
     checkEmailExists 
 } = require('../../database/queries/auth/users.js');
-// Input validation middleware
-
-const { validateInput } = require('../middleware/middleware.js');
 
 // login
 router.post('/login', validateInput, async (req, res) => {
@@ -44,7 +42,6 @@ router.post('/login', validateInput, async (req, res) => {
                     sameSite: 'Strict',
                     maxAge: 24 * 60 * 60 * 1000 // 1 day
                 });
-                
                 return res.status(200).json({ 
                     success: true,
                     message: 'Login successful',
@@ -67,7 +64,8 @@ router.post('/logout', (req, res) => {
 
 // register
 router.post('/register', validateInput, async (req, res) => {
-    let { email: email, password } = req.body;
+    let { firstName, lastName, email, password } = req.body;
+    // TODO: Record the user's name in the database
     try {
         // Check if email already exists
         const emailExists = await checkEmailExists(email);
@@ -80,20 +78,63 @@ router.post('/register', validateInput, async (req, res) => {
         const hashedPassword = await bcrypt.hash(password, 10);
         
         // Register user
-        await registerUser(email, hashedPassword);
+        const user = await registerUser(email, hashedPassword);
+
+
         // send verification email
         // // TODO: generate and store a secure token, then use it to set verified status in the database
         const token = 'example-token';
-        sendVerificationEmail(email, token);
+        // sendVerificationEmail(email, token);
+
+        // TODO: send email to user with verification link
+
+        // Generate JWT
+        const sessionToken = jwt.sign(
+            { 
+                userId: user.user_id,
+                email: user.email 
+            },
+            process.env.JWT_SECRET,
+            { expiresIn: '24h' }
+        );
         
-        res.status(201).json({ message: 'User registered successfully' });
+        // Set secure cookie
+        res.cookie('session', sessionToken, {
+            httpOnly: true,
+            secure: isProduction,
+            sameSite: 'Strict',
+            maxAge: 24 * 60 * 60 * 1000 // 1 day
+        });
+        res.status(201).json({ message: 'Registration successful' });
     } catch (err) {
         logger.error(err);
         res.status(500).json({ message: 'Failed to register user' });
     }
 });
 
-router.use(cookieParser());
+// Check authentication status
+router.get('/me', authMiddleware, async (req, res) => {
+    try {
+        const user = await getUserByEmail(req.email);
+        if (user) {
+            return res.status(200).json({
+                authenticated: true,
+                email: user.email,
+                userId: user.user_id
+            });
+        }
+        res.status(401).json({ authenticated: false });
+    } catch (err) {
+        logger.error(err);
+        res.status(500).json({ message: 'Failed to check authentication status' });
+    }
+});
+
+// log the user out
+router.get('/logout', (req, res) => {
+    res.clearCookie('session');
+    res.status(200).json({ message: 'Logout successful' });
+});
 
 
 module.exports = router;
