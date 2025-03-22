@@ -2,7 +2,8 @@
   "scripts": {
     "test": "jest",
     "dev": "nodemon server.js",
-    "start": "node server.js"
+    "start": "node server.js",
+    "dev:all": "concurrently \"npm run dev\" \"cd chatbot-frontend && npm run dev\""
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
@@ -28,5 +29,8 @@
     "uuid": "^11.0.3",
     "ws": "^8.18.0",
     "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
   }
 }

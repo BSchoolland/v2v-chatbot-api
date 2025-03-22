@@ -63,7 +63,7 @@ class WebSocketManager {
      * @param {string} toolName - Name of the tool being used
      * @param {string} reference - Reference information about the tool usage
      */
-    sendToolUsage(chatId, toolName, reference) {
+    sendToolUsage(chatId, toolName, reference, toolMessage) {
         if (!this.wss) {
             console.warn('WebSocket server not initialized');
             return;
@@ -80,6 +80,7 @@ class WebSocketManager {
                 type: 'tool_usage',
                 toolName,
                 reference,
+                toolMessage,
                 chatId
             };
             client.send(JSON.stringify(message));
