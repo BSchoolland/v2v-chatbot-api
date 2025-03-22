@@ -26,7 +26,7 @@ const createLoadingContainer = () => {
     return loadingContainer;
 };
 
-const appendMessage = (chatbox, messageHtml, imgSrc, isUser, isError = false) => {
+const appendMessage = (chatbox, messageHtml, imgSrc, isUser, isError = false, complete = true) => {
     const messageContainer = document.createElement('div');
     messageContainer.classList.add(isUser ? 'user-message-container' : 'message-container');
     if (!isUser) {
@@ -43,7 +43,10 @@ const appendMessage = (chatbox, messageHtml, imgSrc, isUser, isError = false) =>
     const messageText = document.createElement('div');
     messageText.classList.add(isUser ? 'user-message-text' : (isError ? 'error-message-text' : 'message-text'));
     messageText.innerHTML = messageHtml;
-
+    if (!complete) {
+        console.log('in progress');
+        messageContainer.classList.add('v2v-chatbot-in-progress');
+    }
     messageContainer.appendChild(messageText);
     chatbox.appendChild(messageContainer);
 
@@ -52,7 +55,17 @@ const appendMessage = (chatbox, messageHtml, imgSrc, isUser, isError = false) =>
     // chatbox.appendChild(divider);
 
     chatbox.scrollTop = chatbox.scrollHeight;
+    return messageContainer;
 };
+
+const editMessage = (messageContainer, messageHtml) => {
+    const messageText = messageContainer.querySelector('.message-text');
+    messageText.innerHTML = messageHtml;
+}
+
+const completeMessage = (messageContainer) => {
+    messageContainer.classList.remove('v2v-chatbot-in-progress');
+}
 
 const sendMessage = async (e, shadow, chatId) => {
     e.preventDefault();
@@ -66,9 +79,7 @@ const sendMessage = async (e, shadow, chatId) => {
     appendMessage(chatbox, message, `${baseUrl}/chatbot/api/frontend/user.png`, true);
     userInput.value = '';
 
-    const loadingContainer = createLoadingContainer();
-    chatbox.appendChild(loadingContainer);
-    chatbox.scrollTop = chatbox.scrollHeight;
+    const chatbotMessageContainer = appendMessage(chatbox, 'Thinking ...', `${baseUrl}/chatbot/api/frontend/chatbot-logo.png`, false, false, false);
 
     try {
         const response = await fetch(`${baseUrl}/chatbot/api/chat/${chatbotId}`, {
@@ -78,7 +89,6 @@ const sendMessage = async (e, shadow, chatId) => {
         });
         const data = await response.json();
 
-        chatbox.removeChild(loadingContainer);
 
         const botMessageHtml = data.message ? DOMPurify.sanitize(data.message) : data.error;
         let isError = false;
@@ -86,7 +96,8 @@ const sendMessage = async (e, shadow, chatId) => {
             console.error('Error from chatbot API:', data.error);
             isError = true;
         }
-        appendMessage(chatbox, botMessageHtml, `${baseUrl}/chatbot/api/frontend/chatbot-logo.png`, false, isError);
+        editMessage(chatbotMessageContainer, botMessageHtml);
+        completeMessage(chatbotMessageContainer);
         
         // If chatId changed, reconnect WebSocket with new chatId
         if (chatId !== data.chatId) {

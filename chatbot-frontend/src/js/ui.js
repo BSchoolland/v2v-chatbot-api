@@ -36,7 +36,10 @@ const initializeChatInterface = async (shadow, baseUrl) => {
             const data = JSON.parse(event.data);
             
             if (data.type === 'tool_usage' && data.chatId === chatId) {
-                appendToolUsageIndicator(chatbox, data.toolName, data.reference);
+                const inProgressMessage = chatbox.querySelector('.v2v-chatbot-in-progress .message-text');
+                if (inProgressMessage) {
+                    inProgressMessage.innerHTML = data.toolMessage;
+                }
             } else if (data.type === 'connection_status') {
             }
         };
@@ -85,15 +88,26 @@ const initializeChatInterface = async (shadow, baseUrl) => {
             if (data.message && data.message !== '') {
                 botMessageHtml += `${data.message}<br><br>`;
             }
-            if (data.questions && data.questions.length > 0) {
-                data.questions.forEach(question => {
-                    botMessageHtml += `<button class='faq-button'>${question}</button>`;
-                });
-            }
+            
 
             appendMessage(chatbox, botMessageHtml, `${baseUrl}/chatbot/api/frontend/chatbot-logo.png`, false);
-
-            shadow.querySelectorAll('.faq-button').forEach(faqButton => {
+            // add FAQ buttons
+            const faqSection = document.createElement('div');
+            faqSection.classList.add('v2v-chatbot-faq-section');
+            // sort questions by length
+            const sortedQuestions = data.questions.sort((a, b) => a.length - b.length);
+            if (sortedQuestions && sortedQuestions.length > 0) {
+                sortedQuestions.forEach(question => {
+                    const faqButton = document.createElement('button');
+                    faqButton.classList.add('v2v-chatbot-faq-button');
+                    faqButton.textContent = question;
+                    faqSection.appendChild(faqButton);
+                });
+            }
+            chatbox.appendChild(faqSection);
+            
+            // When a FAQ button is clicked, ask the question
+            shadow.querySelectorAll('.v2v-chatbot-faq-button').forEach(faqButton => {
                 faqButton.addEventListener('click', (e) => {
                     userInput.value = e.target.textContent;
                     submitButton.click();
