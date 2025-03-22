@@ -57,7 +57,7 @@ const appendMessage = (chatbox, messageHtml, imgSrc, isUser, isError = false) =>
 const sendMessage = async (e, shadow, chatId) => {
     e.preventDefault();
     const baseUrl = getBaseUrl();
-    const userInput = shadow.querySelector('.user-input');
+    const userInput = shadow.querySelector('.v2v-chatbot-user-input');
     const chatbox = shadow.querySelector('.chatbox');
     const message = userInput.value.trim();
 

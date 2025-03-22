@@ -112,8 +112,8 @@ const initializeChatInterface = async (shadow, baseUrl) => {
     const button = shadow.querySelector('.v2v-chatbot-button');
     const overlay = shadow.querySelector('.overlay');
     const closeButton = shadow.querySelector('.v2v-chatbot-button-close');
-    const submitButton = shadow.querySelector('.submit-button');
-    const userInput = shadow.querySelector('.user-input');
+    const submitButton = shadow.querySelector('.v2v-chatbot-submit-button');
+    const userInput = shadow.querySelector('.v2v-chatbot-user-input');
 
     const toggleChatVisibility = (isVisible) => {
         container.style.display = isVisible ? 'flex' : 'none';
@@ -191,7 +191,7 @@ const initializeChatInterface = async (shadow, baseUrl) => {
 
     submitButton.addEventListener('click', (e) => sendMessage(e, shadow, chatId));
 
-    shadow.querySelector('.submit-button img').src = sendIcon;
+    shadow.querySelector('.v2v-chatbot-submit-button img').src = sendIcon;
 
     // Add touch event handling for better mobile experience
     let touchStartY = 0;
@@ -237,7 +237,7 @@ const chatbotComponent = (chatbotId) => {
     shadow.appendChild(wrapper);
 
     // Update image sources
-    shadow.querySelector('.submit-button img').src = sendIcon;
+    shadow.querySelector('.v2v-chatbot-submit-button img').src = sendIcon;
     shadow.querySelector('.v2v-chatbot-button-close-icon').src = closeIcon;
     shadow.querySelectorAll('.v2v-chatbot-button-icon').forEach(icon => {
         icon.src = chatbotLogo;
