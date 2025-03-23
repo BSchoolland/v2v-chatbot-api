@@ -33,7 +33,6 @@ router.post('/chat/:chatbotId', async (req, res) => {
     const origin = req.get('Origin');
     // TODO: allow clients to set whether they want to use the origin validator (for if they need to test locally)
     // if (!await isValidOrigin(origin, req.params.chatbotId)) {
-    //     console.log('Unauthorized origin:', origin);
     //     res.status(403).json({ error: 'Unauthorized origin' });
     //     return;
     // }
@@ -99,7 +98,7 @@ router.get('/frontend/component.css', (req, res) => {
 
 // Images
 router.get('/frontend/component.js', (req, res) => {
-    res.sendFile(path.join(__dirname, '../../../chatbot-frontend/component.js'));
+    res.sendFile(path.join(__dirname, '../../../chatbot-frontend/dist/chatbot.min.js'));
 });
 
 router.get('/frontend/user.png', (req, res) => {

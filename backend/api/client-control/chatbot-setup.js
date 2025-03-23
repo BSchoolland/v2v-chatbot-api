@@ -69,7 +69,6 @@ router.get('/scrape-site-progress', authMiddleware, async (req, res) => {
         return res.status(403).json({ success: false, message: 'Unauthorized' });
     }
     let url = req.query.url;
-    
     if (!url) {
         return res.status(400).send('URL is required');
     }
@@ -95,11 +94,10 @@ router.get('/scrape-site-progress', authMiddleware, async (req, res) => {
         return res.status(404).json({ success: false, message: 'Chatbot not found' });
     }
     const chatbotId = chatbot.chatbot_id;
-
     // check if the url already exists in the database as a registered website
     const existingWebsite = await getWebsiteByUrl(url);
     // check if the website belongs to this chatbot
-    if (existingWebsite) {
+    if (existingWebsite && false) { // TODO: remove this
         if (existingWebsite.chatbot_id !== chatbotId) {
             logger.error('website already exists in the database, and is registered to another chatbot');
             return res.status(403).json({ success: false, message: `The website ${url} is already registered to another chatbot. Please contact support if you believe this is an error.` });
@@ -120,15 +118,24 @@ router.get('/scrape-site-progress', authMiddleware, async (req, res) => {
     const statusInterval = setInterval(async () => {
         if (job.isJobComplete()) {
             clearInterval(statusInterval);
+            const allPages = (await getPagesByWebsite(websiteId)).map(page => {
+                return {
+                    url: page.url,
+                    internal: page.internal
+                }
+            });
             sendUpdate({ 
                 complete: true,
+                percentage: 100,
                 message: 'Website analysis complete',
                 pagesScraped: job.getScrapedPagesCount(),
-                newlyCompletedPages: []
+                newlyCompletedPages: [],
+                allUrls: allPages
             });
         } else {
             sendUpdate({
                 complete: false,
+                percentage: job.getBestEstimatePercentage(),
                 status: 'in_progress', 
                 message: 'Analyzing website...',
                 pagesScraped: job.getScrapedPagesCount(),

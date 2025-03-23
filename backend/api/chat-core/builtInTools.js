@@ -250,9 +250,9 @@ async function getTools(chatbotId) {
 }
 
 // Function to broadcast tool usage to all connected clients
-function broadcastToolUsage(toolName, reference, metadata) {
+function broadcastToolUsage(toolName, reference, metadata, message) {
     if (metadata && metadata.chatId) {
-        wsManager.sendToolUsage(metadata.chatId, toolName, reference);
+        wsManager.sendToolUsage(metadata.chatId, toolName, reference, message);
     } else {
         console.warn('No chatId in metadata, cannot send tool usage notification:', metadata);
     }
@@ -277,7 +277,11 @@ async function useTool(toolName, params, metadata = {}) {
                         path = website.domain + path;
                     }
                     reference = `page "${path}"`;
-                    broadcastToolUsage(toolName, reference, metadata);
+                    // remove trailing slash from path if it exists
+                    if (path.endsWith("/")) {
+                        path = path.slice(0, -1);
+                    }
+                    broadcastToolUsage(toolName, reference, metadata, `Referencing ${path}`);
                 } else {
                     logToolCall(toolName, false, params, result, metadata);
                 }
@@ -288,7 +292,7 @@ async function useTool(toolName, params, metadata = {}) {
                     logToolCall(toolName, true, params, result, metadata);
                     const parsedParams = JSON.parse(params);
                     reference = `search "${parsedParams.term}"`;
-                    broadcastToolUsage(toolName, reference, metadata);
+                    broadcastToolUsage(toolName, reference, metadata, `Searching for "${parsedParams.term}"`);
                 } catch (error) {
                     logToolCall(toolName, false, params, result, metadata);
                 }
@@ -308,7 +312,7 @@ async function useTool(toolName, params, metadata = {}) {
                     result = "An error occurred while reading the file:\n " + error.message;
                 }
                 reference = `file "${fileParams.filename}"`;
-                broadcastToolUsage(toolName, reference, metadata);
+                broadcastToolUsage(toolName, reference, metadata, `Referencing file ${fileParams.filename}`);
                 break;
             default:
                 throw new Error(`Unknown tool: ${toolName}`);

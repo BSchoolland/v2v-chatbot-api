@@ -33,6 +33,13 @@ class ActiveJob {
         
         // Log the start of the scrape job
         this.logJobStart();
+
+        // percentage estimate
+        this.maxPercentage = 0;
+        this.optimism = 1; // how likely the scraper is to assume we're close to done
+        this.recentNewPageRate = -1; // how many pages on average are added to the queue per page
+        this.ignorePages = 0; // how many pages to ignore for the percentage estimate
+        this.ignored = false; // whether we've ignored any pages yet
     }
 
     async init() {
@@ -58,6 +65,41 @@ class ActiveJob {
             this.isInitializing = false;
             return this.websiteId;
         }
+    }
+
+    getBestEstimatePercentage() {
+        const midpoint = 33;
+        // very simple estimate for now
+        let estimatedPercentage
+        if (!this.ignored) {
+            estimatedPercentage = Math.round((this.getScrapedPagesCount() - this.ignorePages) / (this.getScrapedPagesCount() - this.ignorePages + this.queue.length) * midpoint);
+        } else {
+            estimatedPercentage = Math.round((this.getScrapedPagesCount() - this.ignorePages) / (this.getScrapedPagesCount() - this.ignorePages + this.queue.length) * (100 - midpoint));
+        }
+        // if we're on external links, add 50% to the estimate
+        if (this.externalQueued) {
+            if (!this.ignored) {
+                this.ignorePages = this.getScrapedPagesCount();
+                this.ignored = true;
+                estimatedPercentage = Math.round((this.getScrapedPagesCount() - this.ignorePages) / (this.getScrapedPagesCount() - this.ignorePages + this.queue.length) * midpoint);
+                
+            }
+            estimatedPercentage += midpoint;
+        }
+        // slow down the estimate if it jumps too much
+        const highestSpeedAllowed = 3;
+        if (estimatedPercentage > this.maxPercentage + highestSpeedAllowed){
+            estimatedPercentage = this.maxPercentage + highestSpeedAllowed;
+        }
+        this.maxPercentage = Math.max(this.maxPercentage || 0, estimatedPercentage);
+        if (!this.maxPercentage) {
+            this.maxPercentage = 0;
+        }
+        if (this.maxPercentage === 100) {
+            this.maxPercentage = 99;
+        }
+        // console.log(this.maxPercentage);
+        return this.maxPercentage;
     }
 
     async getWebsiteId() {

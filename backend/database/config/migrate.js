@@ -253,6 +253,7 @@ async function migrateWarningFlags(dbGet, dbRun, dbAll) {
     }
 }
 
+
 async function migrate(dbGet, dbRun, dbAll) {
     await modelMigration(dbGet, dbRun, dbAll);
     await chatbotMigration(dbGet, dbRun, dbAll);

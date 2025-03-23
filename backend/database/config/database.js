@@ -40,7 +40,8 @@ const initializeDatabase = async () => {
         CREATE TABLE IF NOT EXISTS users (
           user_id INTEGER PRIMARY KEY AUTOINCREMENT,
           email TEXT NOT NULL UNIQUE,
-          password TEXT NOT NULL
+          password TEXT NOT NULL,
+          google_sub TEXT UNIQUE
         )
       `);
       db.run(`
