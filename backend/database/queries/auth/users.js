@@ -4,11 +4,12 @@ const bcrypt = require('bcryptjs');
 // Register a new user
 async function registerUser(email, password) {
     try {
-        await dbRun(
+        const result = await dbRun(
             `INSERT INTO users (email, password) VALUES (?, ?)`,
             [email, password]
         );
-        return { email, password };
+        console.log('user id', result);
+        return { email, password, user_id: result};
     } catch (err) {
         throw err;
     }

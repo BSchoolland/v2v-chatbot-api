@@ -116,6 +116,9 @@ router.post('/register', validateInput, async (req, res) => {
 router.get('/me', authMiddleware, async (req, res) => {
     try {
         const user = await getUserByEmail(req.email);
+        if (user.user_id !== req.userId) {
+            return res.status(401).json({ authenticated: false });
+        }
         if (user) {
             return res.status(200).json({
                 authenticated: true,
