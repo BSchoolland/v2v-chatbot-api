@@ -22,15 +22,10 @@ const appendMessage = (chatbox, messageHtml, imgSrc, isUser, isError = false, co
     messageText.classList.add(isUser ? 'user-message-text' : (isError ? 'error-message-text' : 'message-text'));
     messageText.innerHTML = messageHtml;
     if (!complete) {
-        console.log('in progress');
         messageContainer.classList.add('v2v-chatbot-in-progress');
     }
     messageContainer.appendChild(messageText);
     chatbox.appendChild(messageContainer);
-
-    // const divider = document.createElement('hr');
-    // divider.classList.add('message-divider');
-    // chatbox.appendChild(divider);
 
     chatbox.scrollTop = chatbox.scrollHeight;
     return messageContainer;
@@ -71,8 +66,8 @@ const sendMessage = async (e, shadow, chatId) => {
         const botMessageHtml = data.message ? DOMPurify.sanitize(data.message) : data.error;
         let isError = false;
         if (!data.message) {
-            console.error('Error from chatbot API:', data.error);
             isError = true;
+            // TODO: display error message
         }
         editMessage(chatbotMessageContainer, botMessageHtml);
         completeMessage(chatbotMessageContainer);
@@ -86,7 +81,6 @@ const sendMessage = async (e, shadow, chatId) => {
             connectWebSocket();
         }
     } catch (error) {
-        console.error('Error sending message:', error);
         appendMessage(chatbox, 'Sorry, something went wrong. Please try again later.', `${baseUrl}/chatbot/api/frontend/chatbot-logo.png`, false, true);
     }
 };

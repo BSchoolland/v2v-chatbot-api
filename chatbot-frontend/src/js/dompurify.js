@@ -8,7 +8,7 @@ const loadExternalScript = (src, integrity, crossOrigin, referrerPolicy, onLoadC
     if (referrerPolicy) script.referrerPolicy = referrerPolicy;
 
     script.onload = onLoadCallback;
-    script.onerror = () => console.error(`Failed to load script: ${src}`);
+    script.onerror = () => console.error(`Failed to load script: ${src}`); // TODO: display error message
 
     document.head.appendChild(script);
 };

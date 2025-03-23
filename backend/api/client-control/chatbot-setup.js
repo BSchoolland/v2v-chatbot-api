@@ -90,7 +90,6 @@ router.get('/scrape-site-progress', authMiddleware, async (req, res) => {
 
     // get the id of the chatbot belonging to this plan
     const chatbot = await getChatbotFromPlanId(planId);
-    console.log(chatbot);
     if (!chatbot) {
         return res.status(404).json({ success: false, message: 'Chatbot not found' });
     }

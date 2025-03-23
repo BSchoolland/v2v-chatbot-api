@@ -17,7 +17,7 @@ const initializeChatInterface = async (shadow, baseUrl) => {
         const data = await response.json();
         chatId = data.chatId;
     } catch (error) {
-        console.error('Error initializing chat:', error);
+        // TODO: display error message or try again
     }
 
     /**
@@ -45,7 +45,7 @@ const initializeChatInterface = async (shadow, baseUrl) => {
         };
 
         ws.onerror = (error) => {
-            console.error('WebSocket error:', error);
+            // TODO: display error message
         };
 
         ws.onclose = () => {
@@ -114,7 +114,7 @@ const initializeChatInterface = async (shadow, baseUrl) => {
                 });
             });
         } catch (error) {
-            console.error('Error fetching initial message:', error);
+            // TODO: determine if fallback is acceptable
             const fallbackMessage = 'Hi! How can I assist you today?';
             appendMessage(chatbox, fallbackMessage, `${baseUrl}/chatbot/api/frontend/chatbot-logo.png`, false);
         }
@@ -197,7 +197,7 @@ const initializeChatInterface = async (shadow, baseUrl) => {
                 }
             }
         } catch (error) {
-            console.error('Error fetching contact info:', error);
+            // TODO: display error message
         }
     };
 

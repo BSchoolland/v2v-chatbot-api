@@ -8,7 +8,7 @@ const getBaseUrl = () => {
         const url = new URL(scriptSrc);
         return url.origin;
     } catch (e) {
-        console.error('Failed to parse script URL:', e);
+        // TODO: display error message or determine if defaultBaseUrl is fine in this case
         return defaultBaseUrl;
     }
 };

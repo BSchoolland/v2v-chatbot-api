@@ -1,4 +1,7 @@
 const path = require('path');
+// mode is passed in from the command line
+const mode = process.argv[3] || 'development';
+console.log('mode', mode);
 
 module.exports = {
   entry: './src/component.js',
@@ -6,9 +9,9 @@ module.exports = {
     filename: 'chatbot.min.js',
     path: path.resolve(__dirname, 'dist'),
   },
-  mode: process.env.NODE_ENV === 'production' ? 'production' : 'development',
-  devtool: process.env.NODE_ENV === 'production' ? false : 'eval-source-map',
-  watch: process.env.NODE_ENV !== 'production',
+  mode: mode,
+  devtool: mode === 'production' ? false : 'eval-source-map',
+  watch: mode !== 'production',
   watchOptions: {
     ignored: /node_modules/,
     aggregateTimeout: 300,
