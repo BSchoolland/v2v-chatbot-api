@@ -32,11 +32,13 @@ async function userOwnsPlan(userId, planId) {
 
 // create a chatbot
 router.post('/create-chatbot', authMiddleware, async (req, res) => {
+    console.log('create-chatbot');
     try {
         const userId = req.userId;
         const planId = req.body.planId;
         // make sure the user owns the plan
         const ownsThisPlan = await userOwnsPlan(userId, planId);
+        console.log(userId, planId, ownsThisPlan);
         if (!ownsThisPlan) {
             return res.status(403).json({ success: false, message: 'Unauthorized' });
         }
@@ -56,20 +58,22 @@ router.post('/create-chatbot', authMiddleware, async (req, res) => {
         res.status(200).json({ success: true, chatbotId: chatbotId });
     } catch (error) {
         logger.error('Error creating chatbot:', error);
+        console.log(error);
         res.status(500).json({ success: false, message: 'Internal server error' });
     }
 });
 
 router.get('/scrape-site-progress', authMiddleware, async (req, res) => {
+    console.log('scrape-site-progress');
     // make sure the user owns the plan
     const userId = req.userId;
     const planId = req.query.planId;
     const ownsThisPlan = await userOwnsPlan(userId, planId);
+    console.log(userId, planId, ownsThisPlan);
     if (!ownsThisPlan) {
         return res.status(403).json({ success: false, message: 'Unauthorized' });
     }
     let url = req.query.url;
-    
     if (!url) {
         return res.status(400).send('URL is required');
     }
@@ -91,15 +95,15 @@ router.get('/scrape-site-progress', authMiddleware, async (req, res) => {
 
     // get the id of the chatbot belonging to this plan
     const chatbot = await getChatbotFromPlanId(planId);
+    console.log(chatbot);
     if (!chatbot) {
         return res.status(404).json({ success: false, message: 'Chatbot not found' });
     }
     const chatbotId = chatbot.chatbot_id;
-
     // check if the url already exists in the database as a registered website
     const existingWebsite = await getWebsiteByUrl(url);
     // check if the website belongs to this chatbot
-    if (existingWebsite) {
+    if (existingWebsite && false) { // TODO: remove this
         if (existingWebsite.chatbot_id !== chatbotId) {
             logger.error('website already exists in the database, and is registered to another chatbot');
             return res.status(403).json({ success: false, message: `The website ${url} is already registered to another chatbot. Please contact support if you believe this is an error.` });
@@ -120,15 +124,24 @@ router.get('/scrape-site-progress', authMiddleware, async (req, res) => {
     const statusInterval = setInterval(async () => {
         if (job.isJobComplete()) {
             clearInterval(statusInterval);
+            const allPages = (await getPagesByWebsite(websiteId)).map(page => {
+                return {
+                    url: page.url,
+                    internal: page.internal
+                }
+            });
             sendUpdate({ 
                 complete: true,
+                percentage: 100,
                 message: 'Website analysis complete',
                 pagesScraped: job.getScrapedPagesCount(),
-                newlyCompletedPages: []
+                newlyCompletedPages: [],
+                allUrls: allPages
             });
         } else {
             sendUpdate({
                 complete: false,
+                percentage: job.getBestEstimatePercentage(),
                 status: 'in_progress', 
                 message: 'Analyzing website...',
                 pagesScraped: job.getScrapedPagesCount(),
