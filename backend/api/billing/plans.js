@@ -16,7 +16,6 @@ const { authMiddleware } = require('../middleware/middleware.js');
 router.post('/add-plan', authMiddleware, async (req, res) => {
     try {
         const { chatbotId, planTypeId, planName } = req.body;
-        console.log(req.body, req.userId);
         const plan = await addPlan(req.userId, chatbotId, planTypeId, planName);
         res.status(200).json({ plan, success: true });
     } catch (err) {

@@ -8,7 +8,6 @@ async function registerUser(email, password) {
             `INSERT INTO users (email, password) VALUES (?, ?)`,
             [email, password]
         );
-        console.log('user id', result);
         return { email, password, user_id: result};
     } catch (err) {
         throw err;

@@ -32,13 +32,11 @@ async function userOwnsPlan(userId, planId) {
 
 // create a chatbot
 router.post('/create-chatbot', authMiddleware, async (req, res) => {
-    console.log('create-chatbot');
     try {
         const userId = req.userId;
         const planId = req.body.planId;
         // make sure the user owns the plan
         const ownsThisPlan = await userOwnsPlan(userId, planId);
-        console.log(userId, planId, ownsThisPlan);
         if (!ownsThisPlan) {
             return res.status(403).json({ success: false, message: 'Unauthorized' });
         }
@@ -58,18 +56,15 @@ router.post('/create-chatbot', authMiddleware, async (req, res) => {
         res.status(200).json({ success: true, chatbotId: chatbotId });
     } catch (error) {
         logger.error('Error creating chatbot:', error);
-        console.log(error);
         res.status(500).json({ success: false, message: 'Internal server error' });
     }
 });
 
 router.get('/scrape-site-progress', authMiddleware, async (req, res) => {
-    console.log('scrape-site-progress');
     // make sure the user owns the plan
     const userId = req.userId;
     const planId = req.query.planId;
     const ownsThisPlan = await userOwnsPlan(userId, planId);
-    console.log(userId, planId, ownsThisPlan);
     if (!ownsThisPlan) {
         return res.status(403).json({ success: false, message: 'Unauthorized' });
     }

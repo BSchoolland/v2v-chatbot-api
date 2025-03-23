@@ -425,7 +425,6 @@ class ActiveJob {
         this.visitedUrls.clear();
         this.processingUrls.clear();
         this.externalLinks.clear();
-        console.log('completedPages', this.completedPages);
         this.completedPages = [];
         
         // Reset flags
