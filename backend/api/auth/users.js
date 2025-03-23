@@ -7,6 +7,11 @@ const { logger } = require('../utils/fileLogger.js');
 const { sendVerificationEmail } = require('../utils/emailService.js');
 const { validateInput, authMiddleware } = require('../middleware/middleware.js');
 
+const { OAuth2Client } = require('google-auth-library');
+
+// Initialize Google OAuth client
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+
 require('dotenv').config();
 // Determine if the environment is production
 const isProduction = process.env.ENV !== 'development';
@@ -14,7 +19,9 @@ const isProduction = process.env.ENV !== 'development';
 const { 
     getUserByEmail, 
     registerUser, 
-    checkEmailExists 
+    checkEmailExists,
+    getUserByGoogleSub,
+    updateUserGoogleSub
 } = require('../../database/queries/auth/users.js');
 
 // login
@@ -130,6 +137,89 @@ router.get('/me', authMiddleware, async (req, res) => {
     } catch (err) {
         logger.error(err);
         res.status(500).json({ message: 'Failed to check authentication status' });
+    }
+});
+
+// Google Authentication route
+router.post('/google-auth', async (req, res) => {
+    const { credential } = req.body;
+
+    try {
+        logger.info('Starting Google authentication');
+        
+        // Verify the Google token
+        const ticket = await googleClient.verifyIdToken({
+            idToken: credential,
+            audience: process.env.GOOGLE_CLIENT_ID
+        });
+
+        const payload = ticket.getPayload();
+        const { email, given_name, family_name, sub } = payload;
+        logger.info('Google token verified', { email, sub });
+
+        // First try to find user by Google sub (primary identifier)
+        let user = await getUserByGoogleSub(sub);
+        logger.info('Google sub lookup result:', { found: !!user });
+
+        if (!user) {
+            // If not found by sub, check by email as fallback
+            user = await getUserByEmail(email);
+            logger.info('Email fallback lookup result:', { found: !!user });
+            
+            if (user) {
+                logger.info('Updating existing user with Google sub', { userId: user.user_id, sub });
+                // If user exists with email but no sub, update their record with the sub
+                await updateUserGoogleSub(user.user_id, sub);
+                // Refresh user data after update
+                user = await getUserByGoogleSub(sub);
+                logger.info('User data refreshed after update:', { success: !!user });
+            } else {
+                // If user doesn't exist at all, register them
+                logger.info('Registering new user with Google credentials');
+                const randomPassword = Math.random().toString(36).slice(-12);
+                const hashedPassword = await bcrypt.hash(randomPassword, 10);
+                
+                user = await registerUser(email, hashedPassword, sub);
+                logger.info('New user registered:', { userId: user.user_id });
+            }
+        }
+
+        // Generate JWT
+        const token = jwt.sign(
+            { 
+                userId: user.user_id,
+                email: user.email,
+                googleSub: sub
+            },
+            process.env.JWT_SECRET,
+            { expiresIn: '24h' }
+        );
+        logger.info('JWT generated successfully');
+        
+        // Set secure cookie
+        res.cookie('session', token, {
+            httpOnly: true,
+            secure: isProduction,
+            sameSite: 'Strict',
+            maxAge: 24 * 60 * 60 * 1000 // 1 day
+        });
+
+        return res.status(200).json({ 
+            success: true,
+            message: 'Google authentication successful',
+            email: user.email
+        });
+
+    } catch (error) {
+        logger.error('Google authentication error:', {
+            error: error,
+            stack: error.stack,
+            credential: credential ? 'present' : 'missing'
+        });
+        return res.status(401).json({ 
+            success: false,
+            message: 'Google authentication failed' 
+        });
     }
 });
 
