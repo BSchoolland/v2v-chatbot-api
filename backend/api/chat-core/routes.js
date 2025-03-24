@@ -1,6 +1,6 @@
 // routes for chatbot api
 const { bschoollandTools } = require('./builtInTools.js');
-const { ChatbotManager } = require('@bschoolland/ai-tools');
+const { ChatbotManager } = require('@benschoolland/ai-tools');
 
 const { getChatbotModel, getSystemPrompt, getWebsiteId } = require('../../database/queries');
 const express = require('express');

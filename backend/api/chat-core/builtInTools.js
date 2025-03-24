@@ -4,7 +4,7 @@ const { getWebsiteById } = require('../../database/queries');
 const { searchFileContent, getFileByFilename, getFilesByWebsiteId } = require('../../database/queries');
 const { logToolCall } = require('../../database/logging/toolCalls.js');
 const wsManager = require('./wsManager.js');
-const { Tools } = require('@bschoolland/ai-tools');
+const { Tools } = require('@benschoolland/ai-tools');
 
 
 // read the content of a page
@@ -262,7 +262,7 @@ function broadcastToolUsage(toolName, reference, customIdentifier, message) {
     }
 }
 
-// Create tools using @bschoolland/ai-tools format
+// Create tools using @benschoolland/ai-tools format
 const bschoollandTools = new Tools([
     {
         func: readPageContent,
