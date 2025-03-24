@@ -1,6 +1,7 @@
 // routes for chatbot api
 const { bschoollandTools } = require('./builtInTools.js');
 const { ChatbotManager } = require('@benschoolland/ai-tools');
+const { logger } = require('../utils/fileLogger.js')
 
 const { getChatbotModel, getSystemPrompt, getWebsiteId } = require('../../database/queries');
 const express = require('express');
@@ -42,67 +43,72 @@ const chatbotManager = new ChatbotManager({
 });
 
 router.post('/chat/:chatbotId', async (req, res) => {
-    // Extract user ID from session token if it exists
-    const sessionToken = req.cookies?.session;
-    if (sessionToken) {
-        try {
-            const decoded = jwt.verify(sessionToken, process.env.JWT_SECRET);
-            req.userId = decoded.userId;
-        } catch (err) {
-            console.error('Invalid session token:', err);
-            // Don't fail the request, just continue without user ID.  This is a user using a client's chatbot
-        }
-    }
-
-    if (!await checkRateLimit(req)) {
-        res.status(429).json({ error: 'Sorry, you\'ve run out of messages for today.  Please try again later.' });
-        return;
-    }
-
-    const chatId = getSessionId(req.body.chatId);
-    // create a new conversation or get the existing one with configs from the chatbot
-    const model = await getChatbotModel(req.params.chatbotId);
-    const systemMessage = await getSystemPrompt(req.params.chatbotId);
-    const conversation = await chatbotManager.getConversation(
-        {
-            conversationID: chatId,
-            model: model,
-            systemMessage: systemMessage,
-            customIdentifier: {
-                chatbotId: req.params.chatbotId,
-                websiteId: await getWebsiteId(req.params.chatbotId),
-                chatId: chatId
+    try {
+        // Extract user ID from session token if it exists
+        const sessionToken = req.cookies?.session;
+        if (sessionToken) {
+            try {
+                const decoded = jwt.verify(sessionToken, process.env.JWT_SECRET);
+                req.userId = decoded.userId;
+            } catch (err) {
+                console.error('Invalid session token:', err);
+                // Don't fail the request, just continue without user ID.  This is a user using a client's chatbot
             }
         }
-    )
-    const chatbotResponse = await conversation.sendMessage(req.body.message);
-    logMessage(chatbotResponse || "Chatbot error", {chatbotId: req.params.chatbotId});
-    // Store the conversation after getting the response
-    try {
-        // Filter out tool responses and only keep user and assistant messages
-        const messages = conversation.getHistory().history
-            .filter(msg => msg.role === 'user' || (msg.role === 'assistant' && !msg.tool_calls && !msg.tool_call_id && !msg.tool_name))
-            .map(msg => ({
-                role: msg.role,
-                content: msg.content
-            }));
-        
-        // Store the entire conversation each time, using chatId to update the same record
-        await storeConversation(
-            req.params.chatbotId,
-            messages,
-            req.headers.referer || 'Unknown',
-            new Date().toISOString(),
-            chatId
-        );
+
+        if (!await checkRateLimit(req)) {
+            res.status(429).json({ error: 'Sorry, you\'ve run out of messages for today.  Please try again later.' });
+            return;
+        }
+
+        const chatId = getSessionId(req.body.chatId);
+        // create a new conversation or get the existing one with configs from the chatbot
+        const model = await getChatbotModel(req.params.chatbotId);
+        const systemMessage = await getSystemPrompt(req.params.chatbotId);
+        const conversation = await chatbotManager.getConversation(
+            {
+                conversationID: chatId,
+                model: model,
+                systemMessage: systemMessage,
+                customIdentifier: {
+                    chatbotId: req.params.chatbotId,
+                    websiteId: await getWebsiteId(req.params.chatbotId),
+                    chatId: chatId
+                }
+            }
+        )
+        const chatbotResponse = await conversation.sendMessage(req.body.message);
+        logMessage(chatbotResponse || "Chatbot error", {chatbotId: req.params.chatbotId});
+        // Store the conversation after getting the response
+        try {
+            // Filter out tool responses and only keep user and assistant messages
+            const messages = conversation.getHistory().history
+                .filter(msg => msg.role === 'user' || (msg.role === 'assistant' && !msg.tool_calls && !msg.tool_call_id && !msg.tool_name))
+                .map(msg => ({
+                    role: msg.role,
+                    content: msg.content
+                }));
+            
+            // Store the entire conversation each time, using chatId to update the same record
+            await storeConversation(
+                req.params.chatbotId,
+                messages,
+                req.headers.referer || 'Unknown',
+                new Date().toISOString(),
+                chatId
+            );
+        } catch (error) {
+            logger.error('Error storing conversation:', error);
+            // Don't fail the request if storage fails
+        }
+        res.json({
+            message: converter.makeHtml(chatbotResponse),
+            chatId: chatId
+        });
     } catch (error) {
-        console.error('Error storing conversation:', error);
-        // Don't fail the request if storage fails
+        logger.error('Error processing chat request:', error);  
+        res.status(500).json({ error: 'Oops!  Something went wrong.  Please try again later.' });
     }
-    res.json({
-        message: converter.makeHtml(chatbotResponse),
-        chatId: chatId
-    });
 });
 
 router.get('/initial-message/:chatbotId', async (req, res) => {
