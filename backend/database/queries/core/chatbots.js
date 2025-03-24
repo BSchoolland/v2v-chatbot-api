@@ -117,7 +117,6 @@ async function editChatbotModel(chatbotId, modelId) {
     return result;
 }
 
-
 // edit a chatbot's contact info
 async function editChatbotContactInfo(chatbotId, contactInfo) {
     const chatbot = await dbRun('UPDATE chatbots SET contact_info = ? WHERE chatbot_id = ?', [contactInfo, chatbotId]);
@@ -228,27 +227,6 @@ async function resetConfig(chatbotId) {
     return true;
 }
 
-// get a chatbot's model name
-async function getChatbotModel(chatbotId) {
-    const model = await dbGet(
-        `SELECT m.name, m.api_string, m.service
-         FROM chatbots c
-         JOIN models m ON c.model_id = m.model_id
-         WHERE c.chatbot_id = ?`,
-        [chatbotId]
-    );
-    if (!model) {
-        throw new Error('Chatbot or model not found');
-    }
-    return model.api_string;
-}
-
-// get a chatbot's website id
-async function getWebsiteId(chatbotId) {
-    const chatbot = await dbGet('SELECT website_id FROM chatbots WHERE chatbot_id = ?', [chatbotId]);
-    return chatbot.website_id;
-}
-
 module.exports = {
     createChatbot,
     getChatbot,
@@ -267,6 +245,4 @@ module.exports = {
     saveInitialConfig,
     resetConfig,
     editChatbotModel,
-    getChatbotModel,
-    getWebsiteId
 };

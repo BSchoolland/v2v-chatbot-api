@@ -16,8 +16,6 @@ const {
     saveInitialConfig,
     resetConfig,
     editChatbotModel,
-    getChatbotModel,
-    getWebsiteId
 } = require('./core/chatbots');
 
 const {
@@ -48,6 +46,7 @@ const {
     updateFileTextContent,
     deleteFile,
     searchFileContent,
+    readFileContent,
     uploadsDir
 } = require('./data/files.js');
 
@@ -129,8 +128,7 @@ module.exports = {
     saveInitialConfig,
     resetConfig,
     editChatbotModel,
-    getChatbotModel,
-    getWebsiteId,
+
     // website queries
     addWebsite,
     getWebsiteById,
@@ -157,6 +155,7 @@ module.exports = {
     updateFileTextContent,
     deleteFile,
     searchFileContent,
+    readFileContent,
     uploadsDir,
 
     // conversation queries
