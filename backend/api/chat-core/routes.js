@@ -1,5 +1,5 @@
 // routes for chatbot api
-const { bschoollandTools } = require('./builtInTools.js');
+const { defaultTools } = require('./builtInTools.js');
 const { ChatbotManager } = require('@benschoolland/ai-tools');
 const { logger } = require('../utils/fileLogger.js')
 
@@ -39,7 +39,7 @@ router.ws('/ws', (ws, req) => {
 
 const chatbotManager = new ChatbotManager({
     model: "gpt-4o-mini",
-    tools: bschoollandTools,
+    tools: defaultTools,
 });
 
 router.post('/chat/:chatbotId', async (req, res) => {

@@ -263,7 +263,7 @@ function broadcastToolUsage(toolName, reference, customIdentifier, message) {
 }
 
 // Create tools using @benschoolland/ai-tools format
-const bschoollandTools = new Tools([
+const defaultTools = new Tools([
     {
         func: readPageContent,
         description: 'Reads the text content of a URL path (internal or external), use if the user asks for information that can be found on a page of the website.',
@@ -299,4 +299,4 @@ const bschoollandTools = new Tools([
     }
 ]);
 
-module.exports = { bschoollandTools };
+module.exports = { defaultTools };
