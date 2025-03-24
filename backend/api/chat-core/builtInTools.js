@@ -1,72 +1,18 @@
 const { dbAll } = require('../../database/config/database.js');
 const { getPageByUrlAndWebsiteId } = require('../../database/queries');
 const { getWebsiteById } = require('../../database/queries');
-const { searchFileContent, readFileContent, getFilesByWebsiteId } = require('../../database/queries');
+const { searchFileContent, getFileByFilename, getFilesByWebsiteId } = require('../../database/queries');
 const { logToolCall } = require('../../database/logging/toolCalls.js');
 const wsManager = require('./wsManager.js');
-// a set of tools the chatbot can use to find information for the user
-tools = [
-    {
-        "type": "function",
-        "function": {
-            "name": "readPageContent",
-            "description": "Reads the text content of a URL path (internal or external), use if the user asks for information that can be found on a page of the website.",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "path": {
-                        "type": "string",
-                        "description": "The full path of the page to read, e.g. https://www.example.com/page",
-                    }
-                },
-                "required": ["path"],
-            },
-        },
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "siteWideSearch",
-            "description": "Searches the entire website, external resources, and uploaded documents for specific words (exact match), returning a list of pages and files that contain those exact words. If this fails, it could be due to a small issue with phrasing. In that case, try reading page content or file content.",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "term": {
-                        "type": "string",
-                        "description": "The exact word or phrase to search for.",
-                    },
-                },
-                "required": ["term"],
-            },
-        },
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "readFileContent",
-            "description": "Reads the content of an uploaded file. Use this when you want to read the full content of a specific file that was found in a search.",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "filename": {
-                        "type": "string",
-                        "description": "The name of the file to read (e.g. 'example.pdf').",
-                    },
-                },
-                "required": ["filename"],
-            },
-        },
-    },
-]
+const { Tools } = require('@bschoolland/ai-tools');
+
 
 // read the content of a page
-async function readPageContent(params, metadata) {
-    // convert params to json
-    params = JSON.parse(params);
-    let path = params.path;
+async function readPageContent(path, customIdentifier) {
+    broadcastToolUsage("readPageContent", path, customIdentifier, `Referencing ${path}`);
     // if the path does not begin with http, add the default path
     if (!path.startsWith("http")) {
-        const website = await getWebsiteById(metadata.websiteId);
+        const website = await getWebsiteById(customIdentifier.websiteId);
         path = website.domain + path;
     }
     // if the path ends with #something, remove the #something
@@ -81,13 +27,13 @@ async function readPageContent(params, metadata) {
     if (path[path.length - 1] !== "/") {
         path = path + "/";
     }
-    const page = await getPageByUrlAndWebsiteId(metadata.websiteId, path);
+    const page = await getPageByUrlAndWebsiteId(customIdentifier.websiteId, path);
     if (page) {
         return page.content;
     } else {
         // try with www. instead
         path = path.replace("://", "://www.");
-        const page = await getPageByUrlAndWebsiteId(metadata.websiteId, path);
+        const page = await getPageByUrlAndWebsiteId(customIdentifier.websiteId, path);
         if (page) {
             return page.content;
         }
@@ -95,13 +41,13 @@ async function readPageContent(params, metadata) {
 
         // Get all available paths
         let paths = [];
-        paths = await dbAll('SELECT url FROM page WHERE website_id = ?', [metadata.websiteId]);
+        paths = await dbAll('SELECT url FROM page WHERE website_id = ?', [customIdentifier.websiteId]);
 
         // Extract URLs from the database result
         const pathUrls = paths.map(path => path.url);
 
         // Calculate the most similar path based on substring
-        const paramsPath = params.path.slice(1).toLowerCase(); // Normalize for case-insensitive matching
+        const paramsPath = path.slice(1).toLowerCase(); // Normalize for case-insensitive matching
 
         // Count occurrences of the input substring in each URL
         const scores = pathUrls.map(url => ({
@@ -117,21 +63,20 @@ async function readPageContent(params, metadata) {
 
         // if one path ends with the input path, return that path
         for (let i = 0; i < pathUrls.length; i++) {
-            if (pathUrls[i].endsWith(params.path)) {
+            if (pathUrls[i].endsWith(path)) {
                 bestMatch = pathUrls[i];
             }
         }
 
         // Construct the message
-        const message = `You entered ${params.path}.  Please try again using a full path (e.g. www.example.com/page instead of just /page). The system also thinks you may be interested in: ${bestMatch}`;
+        const message = `You entered ${path}. Please try again using a full path (e.g. www.example.com/page instead of just /page). The system also thinks you may be interested in: ${bestMatch}`;
         return message;
     }
 }
 
-async function siteWideSearch(params, metadata) {
-    params = typeof params === 'string' ? JSON.parse(params) : params;
-
-    const searchString = params.term.toLowerCase();
+async function siteWideSearch(term, customIdentifier) {
+    broadcastToolUsage("siteWideSearch", term, customIdentifier, `Searching for "${term}"`);
+    const searchString = term.toLowerCase();
     if (!searchString) {
         return "Please provide a search term";
     }
@@ -139,11 +84,11 @@ async function siteWideSearch(params, metadata) {
     // Search website pages
     const pages = await dbAll(
         'SELECT url, content FROM page WHERE website_id = ?',
-        [metadata.websiteId]
+        [customIdentifier.websiteId]
     );
 
     // Search uploaded files
-    const files = await getFilesByWebsiteId(metadata.websiteId);
+    const files = await getFilesByWebsiteId(customIdentifier.websiteId);
     const visibleFiles = files.filter(file => file.is_visible && file.allow_referencing && file.text_content);
 
     if ((!pages || pages.length === 0) && (!visibleFiles || visibleFiles.length === 0)) {
@@ -192,7 +137,7 @@ async function siteWideSearch(params, metadata) {
     }).filter(result => result.score > 0);
 
     // Get file results using searchFileContent
-    const fileResults = await searchFileContent(metadata.websiteId, searchString);
+    const fileResults = await searchFileContent(customIdentifier.websiteId, searchString);
     const fileResultsArray = fileResults === "No searchable files found" || fileResults === "No matches found in any files" 
         ? [] 
         : fileResults.split("\n\n").map(res => {
@@ -244,85 +189,114 @@ function generateSmartExcerpt(content, searchWords) {
     return content.substring(0, 100) + '...'; // Fallback if no match is found
 }
 
-async function getTools(chatbotId) {
-    // TODO: allow different tools for different chatbots
-    return tools;
+// Read file content by filename
+async function readFileContent(filename, customIdentifier) {
+    broadcastToolUsage("readFileContent", filename, customIdentifier, `Reading file ${filename}`);
+    const file = await getFileByFilename(customIdentifier.websiteId, filename);
+    
+    // check if the file exists
+    if (!file) {
+        return "File not found";
+    }
+
+    // check if the file is visible and allowed to be referenced
+    if (!file.is_visible || !file.allow_referencing) {
+        return "This file is not available for reference";
+    }
+
+    // check if the file has readable content
+    if (!file.text_content) {
+        return "No readable content available for this file";
+    }
+
+    // Limit content to 50,000 characters
+    const maxLength = 50000;
+    let content = file.text_content;
+    let truncated = false;
+
+    if (content.length > maxLength) {
+        content = content.substring(0, maxLength);
+        truncated = true;
+    }
+
+    // Format the content
+    content = formatTextContent(content);
+    
+    // Add truncation notice if needed
+    if (truncated) {
+        content += "...\n\n[Note: This file's content has been truncated due to length. Showing first 50,000 characters.]";
+    }
+
+    return content;
+}
+
+// Helper function to format text content
+function formatTextContent(content) {
+    if (!content) return '';
+
+    // Replace multiple spaces with a single space
+    let formatted = content.replace(/\s+/g, ' ');
+
+    // Fix common PDF extraction issues where words get joined
+    formatted = formatted.replace(/([a-z])([A-Z])/g, '$1 $2');
+
+    // Preserve meaningful line breaks (e.g., between paragraphs)
+    formatted = formatted.replace(/\.\s+/g, '.\n\n');  // Add line break after periods
+    formatted = formatted.replace(/[•●]\s*/g, '\n• '); // Format bullet points properly
+
+    // Clean up excessive newlines
+    formatted = formatted.replace(/\n{3,}/g, '\n\n');
+
+    // Trim any leading/trailing whitespace
+    formatted = formatted.trim();
+
+    return formatted;
 }
 
 // Function to broadcast tool usage to all connected clients
-function broadcastToolUsage(toolName, reference, metadata, message) {
-    if (metadata && metadata.chatId) {
-        wsManager.sendToolUsage(metadata.chatId, toolName, reference, message);
+function broadcastToolUsage(toolName, reference, customIdentifier, message) {
+    if (customIdentifier && customIdentifier.chatId) {
+        wsManager.sendToolUsage(customIdentifier.chatId, toolName, reference, message);
     } else {
-        console.warn('No chatId in metadata, cannot send tool usage notification:', metadata);
+        console.warn('No chatId in metadata, cannot send tool usage notification:', customIdentifier);
     }
 }
 
-async function useTool(toolName, params, metadata = {}) {
-    let reference = '';
-    let result;
-    
-    try {
-        // Execute the tool first
-        switch (toolName) {
-            case 'readPageContent':
-                result = await readPageContent(params, metadata);
-                // Only broadcast if the page was found (result doesn't contain error message)
-                if (!result.includes("No information found for path")) {
-                    logToolCall(toolName, true, params, result, metadata);
-                    const parsedParams = JSON.parse(params);
-                    let path = parsedParams.path;
-                    if (!path.startsWith("http")) {
-                        const website = await getWebsiteById(metadata.websiteId);
-                        path = website.domain + path;
-                    }
-                    reference = `page "${path}"`;
-                    // remove trailing slash from path if it exists
-                    if (path.endsWith("/")) {
-                        path = path.slice(0, -1);
-                    }
-                    broadcastToolUsage(toolName, reference, metadata, `Referencing ${path}`);
-                } else {
-                    logToolCall(toolName, false, params, result, metadata);
-                }
-                break;
-            case 'siteWideSearch':
-                try {
-                    result = await siteWideSearch(params, metadata);
-                    logToolCall(toolName, true, params, result, metadata);
-                    const parsedParams = JSON.parse(params);
-                    reference = `search "${parsedParams.term}"`;
-                    broadcastToolUsage(toolName, reference, metadata, `Searching for "${parsedParams.term}"`);
-                } catch (error) {
-                    logToolCall(toolName, false, params, result, metadata);
-                }
-                break;
-            case 'readFileContent':
-                const fileParams = JSON.parse(params);
-                
-                
-                try {
-                    const content = await readFileContent(metadata.websiteId, fileParams.filename);
-                    logToolCall(toolName, true, params, content, metadata);
-                    
-                    result = content;
-                } catch (error) {
-                    console.error(`[readFileContent tool] Error:`, error);
-                    logToolCall(toolName, false, params, error.message, metadata);
-                    result = "An error occurred while reading the file:\n " + error.message;
-                }
-                reference = `file "${fileParams.filename}"`;
-                broadcastToolUsage(toolName, reference, metadata, `Referencing file ${fileParams.filename}`);
-                break;
-            default:
-                throw new Error(`Unknown tool: ${toolName}`);
-        }
-        return result;
-    } catch (error) {
-        console.error(`Error using tool ${toolName}:`, error);
-        logToolCall(toolName, false, params, "Error: " + error.message, metadata);
-        throw error;
+// Create tools using @bschoolland/ai-tools format
+const bschoollandTools = new Tools([
+    {
+        func: readPageContent,
+        description: 'Reads the text content of a URL path (internal or external), use if the user asks for information that can be found on a page of the website.',
+        parameters: {
+            path: {
+                type: 'string',
+                description: 'The full path of the page to read, e.g. https://www.example.com/page',
+            }
+        },
+        acceptsCustomIdentifier: true
+    },
+    {
+        func: siteWideSearch,
+        description: 'Searches the entire website, external resources, and uploaded documents for specific words (exact match), returning a list of pages and files that contain those exact words. If this fails, it could be due to a small issue with phrasing. In that case, try reading page content or file content.',
+        parameters: {
+            term: {
+                type: 'string',
+                description: 'The exact word or phrase to search for.',
+            }
+        },
+        acceptsCustomIdentifier: true
+    },
+    {
+        func: readFileContent,
+        description: 'Reads the content of an uploaded file. Use this when you want to read the full content of a specific file that was found in a search.',
+        parameters: {
+            filename: {
+                type: 'string',
+                description: 'The name of the file to read (e.g. "example.pdf").',
+            }
+        },
+        acceptsCustomIdentifier: true
     }
-}
+]);
 
-module.exports = {getTools, useTool};
+module.exports = { bschoollandTools };

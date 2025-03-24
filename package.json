@@ -6,6 +6,7 @@
     "start": "concurrently \"npm run build --prefix chatbot-frontend\" \"node server.js\""
   },
   "dependencies": {
+    "@bschoolland/ai-tools": "git+https://github.com/bschoolland/ai-tools.git",
     "bcryptjs": "^2.4.3",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",

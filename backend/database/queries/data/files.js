@@ -187,99 +187,6 @@ function generateSmartExcerpt(content, searchWords) {
     return content.substring(0, 100) + '...'; // Fallback if no match is found
 }
 
-// Helper function to format CSV content
-function formatCSVContent(content) {
-    try {
-        // Split into lines and take first 10 rows
-        const lines = content.split('\n').slice(0, 10);
-        if (lines.length === 0) return content;
-
-        // Get headers
-        const headers = lines[0].split(',').map(h => h.trim());
-        
-        // Format as markdown table
-        let formatted = '### CSV Contents (first 10 rows):\n\n';
-        formatted += headers.join(' | ') + '\n';
-        formatted += headers.map(() => '---').join(' | ') + '\n';
-        
-        // Add data rows
-        for (let i = 1; i < lines.length; i++) {
-            const cells = lines[i].split(',').map(c => c.trim());
-            formatted += cells.join(' | ') + '\n';
-        }
-        
-        if (lines.length === 10) {
-            formatted += '\n_Note: Showing first 10 rows only_';
-        }
-        
-        return formatted;
-    } catch (error) {
-        console.error('[formatCSVContent] Error formatting CSV:', error);
-        return content; // Return original content if formatting fails
-    }
-}
-
-// Helper function to format text content
-function formatTextContent(content) {
-    if (!content) return '';
-
-    // Replace multiple spaces with a single space
-    let formatted = content.replace(/\s+/g, ' ');
-
-    // Fix common PDF extraction issues where words get joined
-    formatted = formatted.replace(/([a-z])([A-Z])/g, '$1 $2');
-
-    // Preserve meaningful line breaks (e.g., between paragraphs)
-    formatted = formatted.replace(/\.\s+/g, '.\n\n');  // Add line break after periods
-    formatted = formatted.replace(/[•●]\s*/g, '\n• '); // Format bullet points properly
-
-    // Clean up excessive newlines
-    formatted = formatted.replace(/\n{3,}/g, '\n\n');
-
-    // Trim any leading/trailing whitespace
-    formatted = formatted.trim();
-
-    return formatted;
-}
-
-// Read file content by filename
-async function readFileContent(websiteId, filename) {
-    const file = await getFileByFilename(websiteId, filename);
-    
-    if (!file) {
-        return "File not found";
-    }
-
-    
-    if (!file.is_visible || !file.allow_referencing) {
-        return "This file is not available for reference";
-    }
-
-    if (!file.text_content) {
-        return "No readable content available for this file";
-    }
-
-    // Limit content to 50,000 characters
-    const maxLength = 50000;
-    let content = file.text_content;
-    let truncated = false;
-
-    if (content.length > maxLength) {
-        content = content.substring(0, maxLength);
-        truncated = true;
-    }
-
-    // Format the content
-    content = formatTextContent(content);
-    
-    // Add truncation notice if needed
-    if (truncated) {
-        content += "\n\n[Note: This file's content has been truncated due to length. Showing first 50,000 characters.]";
-    }
-
-    return content;
-}
-
 module.exports = {
     addFile,
     getFileById,
@@ -290,6 +197,5 @@ module.exports = {
     updateFileTextContent,
     deleteFile,
     searchFileContent,
-    readFileContent,
     uploadsDir
 }; 
