@@ -219,30 +219,64 @@ class ScraperManager {
         this.isRunning = false;
 
         this.lastCleanup = Date.now();
+
+        // Wrap the entire cleanup in a timeout promise
+        try {
+            await Promise.race([
+                this._doCleanup(),
+                new Promise((_, reject) => {
+                    setTimeout(() => reject(new Error('Cleanup timed out after 30 seconds')), 30000);
+                })
+            ]);
+        } catch (error) {
+            logger.error('Cleanup error or timeout:', error.message);
+        } finally {
+            // Ensure flags are reset even if cleanup fails
+            this.isReady = false;
+            this.isInitializing = false;
+            this.isCleaning = false;
+            logger.info('Cleanup process completed');
+        }
+    }
+
+    async _doCleanup() {
         // Force close the browser process first
         if (this.browser) {
             try {
                 const browserProcess = this.browser.process();
                 if (browserProcess) {
-                    // Force kill the browser process
                     browserProcess.kill('SIGKILL');
+                    // Give it a moment to actually die
+                    await new Promise(resolve => setTimeout(resolve, 1000));
                 }
             } catch (error) {
                 logger.error('Error force killing browser:', error.message);
+            } finally {
+                this.browser = null;
             }
-            this.browser = null;
         }
 
         // Clear all references
         this.pages = [];
-        this.activeJobs = [];
-        this.allJobs.forEach(job => job.cleanup());
-        this.allJobs = [];
         
-        // Reset flags
-        this.isReady = false;
-        this.isInitializing = false;
-        this.isCleaning = false;
+        // Clean up jobs with timeout protection
+        await Promise.all(
+            this.allJobs.map(async (job) => {
+                try {
+                    await Promise.race([
+                        job.cleanup(),
+                        new Promise((_, reject) => 
+                            setTimeout(() => reject(new Error('Job cleanup timed out')), 5000)
+                        )
+                    ]);
+                } catch (error) {
+                    logger.error(`Job cleanup error: ${error.message}`);
+                }
+            })
+        );
+        
+        this.activeJobs = [];
+        this.allJobs = [];
 
         // Nuclear memory cleanup
         try {
@@ -258,13 +292,17 @@ class ScraperManager {
 
             // Request system to release memory back to OS
             try {
-                // Some systems support this
                 process.memoryUsage();
                 if (process.hasOwnProperty('release')) {
-                    process.release();
+                    await Promise.race([
+                        process.release(),
+                        new Promise((_, reject) => 
+                            setTimeout(() => reject(new Error('Memory release timed out')), 5000)
+                        )
+                    ]);
                 }
             } catch (e) {
-                // do nothing
+                logger.warn('Memory release not supported or failed:', e.message);
             }
         } catch (error) {
             logger.error('Error during memory cleanup:', error.message);
