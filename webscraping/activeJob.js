@@ -376,6 +376,7 @@ class ActiveJob {
                 }
             }
             let finalUrl = page.url(); // Get the final URL after any redirects
+            // TODO: don't allow external pages to redirect to other external pages (e.g. if a linkedin profile page redirects to the login page we should not add that to the queue)
             // Remove anything after # in the link
             finalUrl = finalUrl.split('#')[0];
             // Remove anything after ? in the link
