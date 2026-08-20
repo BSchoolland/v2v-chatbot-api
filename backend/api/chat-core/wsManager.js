@@ -5,11 +5,16 @@
  */
 const WebSocket = require('ws');
 
+// Must stay below the reverse proxy's read timeout (nginx defaults to 60s), or the
+// proxy tears down idle chat sockets and every client reconnect-loops.
+const HEARTBEAT_INTERVAL_MS = 25000;
+
 class WebSocketManager {
     constructor() {
         this.wss = null;
         // Map of chatId to WebSocket connection
         this.clientsByChatId = new Map();
+        this.heartbeatInterval = null;
     }
 
     /**
@@ -36,11 +41,20 @@ class WebSocketManager {
                 return;
             }
 
+            ws.isAlive = true;
+            ws.on('pong', () => {
+                ws.isAlive = true;
+            });
+
             // Store the connection with its chatId
             this.clientsByChatId.set(chatId, ws);
             
             ws.on('close', () => {
-                this.clientsByChatId.delete(chatId);
+                // A chatId can briefly hold two sockets while a client reconnects; only
+                // the socket that is currently registered may de-register itself.
+                if (this.clientsByChatId.get(chatId) === ws) {
+                    this.clientsByChatId.delete(chatId);
+                }
             });
 
             ws.on('error', (error) => {
@@ -55,6 +69,31 @@ class WebSocketManager {
             };
             ws.send(JSON.stringify(confirmationMessage));
         });
+
+        this.startHeartbeat();
+        this.wss.on('close', () => this.stopHeartbeat());
+    }
+
+    /**
+     * Ping every client on an interval so idle chat sockets keep producing traffic,
+     * and drop any client that missed the previous ping.
+     */
+    startHeartbeat() {
+        this.heartbeatInterval = setInterval(() => {
+            this.wss.clients.forEach((ws) => {
+                if (ws.isAlive === false) {
+                    ws.terminate();
+                    return;
+                }
+                ws.isAlive = false;
+                ws.ping();
+            });
+        }, HEARTBEAT_INTERVAL_MS);
+    }
+
+    stopHeartbeat() {
+        clearInterval(this.heartbeatInterval);
+        this.heartbeatInterval = null;
     }
 
     /**
