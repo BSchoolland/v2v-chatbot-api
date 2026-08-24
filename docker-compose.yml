@@ -7,7 +7,9 @@ services:
     volumes:
       - ./data:/home/pptruser/app/data
     ports:
-      - "3000:3000"
+      # Host :3000 on the deploy target is permanently held by PM2-supervised
+      # radvantage-lms; nginx proxies chatbot.visionstovisuals.com to :3001.
+      - "3001:3000"
     environment:
       - PUPPETEER_CACHE_DIR=/home/pptruser/.cache/puppeteer
     command: ["node", "--experimental-modules", "server.js"]
@@ -38,8 +40,3 @@ services:
       rollback_config:
         parallelism: 0
         order: stop-first
-      restart_policy:
-        condition: on-failure
-        delay: 5s
-        max_attempts: 3
-        window: 120s
