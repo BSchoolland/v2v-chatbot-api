@@ -10,6 +10,10 @@ services:
       - "3000:3000"
     environment:
       - PUPPETEER_CACHE_DIR=/home/pptruser/.cache/puppeteer
+      # Dockerfile bakes .env into the image, and dotenv will not override a
+      # variable already present in the process environment. Setting ENV here is
+      # the only way the deployment can pick its own mode.
+      - ENV=production
     command: ["node", "--experimental-modules", "server.js"]
     cap_add:
       - SYS_ADMIN
