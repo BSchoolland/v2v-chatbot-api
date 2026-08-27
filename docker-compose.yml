@@ -7,7 +7,14 @@ services:
     volumes:
       - ./data:/home/pptruser/app/data
     ports:
-      - "3000:3000"
+      # Host :3000 on the deploy target is permanently held by PM2-supervised
+      # radvantage-lms; nginx proxies chatbot.visionstovisuals.com to :3001.
+      # Loopback-only, so the API and dashboard are not also served in plaintext
+      # on the host's public IP. Both entries are needed: nginx resolves
+      # `localhost` to ::1 first, and an IPv4-only bind makes every re-probe of
+      # that peer a failed connect.
+      - "127.0.0.1:3001:3000"
+      - "[::1]:3001:3000"
     environment:
       - PUPPETEER_CACHE_DIR=/home/pptruser/.cache/puppeteer
     command: ["node", "--experimental-modules", "server.js"]
@@ -38,8 +45,3 @@ services:
       rollback_config:
         parallelism: 0
         order: stop-first
-      restart_policy:
-        condition: on-failure
-        delay: 5s
-        max_attempts: 3
-        window: 120s
