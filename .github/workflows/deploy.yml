@@ -20,10 +20,12 @@ jobs:
           
       - name: Deploy to VPS
         run: |
+          # data/ is bind-mounted into the container, which runs as pptruser (uid 999).
           ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} '\
             cd /root/v2v-chatbot-api/ && \
             git pull origin production && \
             docker system prune -f && \
+            chown -R 999:999 data && \
             docker-compose down && \
             sleep 10 && \
             docker-compose up --build -d'

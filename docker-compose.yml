@@ -3,7 +3,9 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    user: root
+    # Chrome refuses to enable its sandbox when running as root, so the
+    # container must run as pptruser for cap_add SYS_ADMIN below to buy anything.
+    user: pptruser
     volumes:
       - ./data:/home/pptruser/app/data
     ports:

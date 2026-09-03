@@ -46,8 +46,6 @@ class ScraperManager {
                 {
                     headless: true,
                     args: [
-                        '--no-sandbox',
-                        '--disable-setuid-sandbox',
                         '--disable-dev-shm-usage', // Disable /dev/shm usage
                         '--disable-accelerated-2d-canvas', // Disable GPU acceleration
                         '--disable-gpu', // Disable GPU hardware acceleration

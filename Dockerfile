@@ -20,4 +20,11 @@ RUN npx puppeteer browsers install chrome && \
     ls -l $PUPPETEER_CACHE_DIR && \
     find $PUPPETEER_CACHE_DIR -name "chrome" -type f
 
+# The app runs as pptruser (docker-compose.yml) so Chrome can sandbox itself, so
+# every directory it writes to at runtime must be owned by pptruser. The logs and
+# uploads dirs are gitignored and mkdir'd on demand at require time, which would
+# otherwise EACCES on boot.
+RUN mkdir -p backend/storage/logs backend/database/queries/storage/uploads data && \
+    chown -R pptruser:pptruser backend/storage backend/database/queries/storage data
+
 CMD ["node", "server.js"]
